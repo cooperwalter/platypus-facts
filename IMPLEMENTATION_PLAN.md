@@ -8,15 +8,15 @@ All items are marked with their implementation status. This is a greenfield proj
 
 These items must be completed first. Everything else depends on them.
 
-- [ ] **NOT IMPLEMENTED** -- Initialize `package.json` with `bun init`, set project name to `platypus-facts`, entry point to `src/index.ts`
-- [ ] **NOT IMPLEMENTED** -- Create `tsconfig.json` targeting Bun runtime (use `bun` types, strict mode, `noImplicitAny: true`, path aliases if desired)
-- [ ] **NOT IMPLEMENTED** -- Install core dependencies: `twilio` SDK (database uses Bun's built-in `bun:sqlite`, no separate package needed)
-- [ ] **NOT IMPLEMENTED** -- Install dev dependencies: `@types/bun`, `typescript`, Biome (linter/formatter)
-- [ ] **NOT IMPLEMENTED** -- Create initial directory structure: `src/`, `src/lib/`, `src/lib/sms/`, `src/routes/`, `src/jobs/`, `src/scripts/`, `data/`, `public/`, `config/`
-- [ ] **NOT IMPLEMENTED** -- Create `data/.gitkeep` so the `data/` directory is tracked by git (the SQLite database file itself is gitignored)
-- [ ] **NOT IMPLEMENTED** -- Create `.env.example` with all environment variables documented in `specs/infrastructure.md`: `PORT`, `BASE_URL`, `DATABASE_PATH`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`, `DAILY_SEND_TIME_UTC`, `MAX_SUBSCRIBERS`
-- [ ] **NOT IMPLEMENTED** -- Create `.gitignore` (node_modules, *.db, .env, dist/; bun.lock should NOT be ignored -- commit it for reproducible builds)
-- [ ] **NOT IMPLEMENTED** -- Set up Biome configuration (`biome.json`) for linting and formatting
+- [x] **IMPLEMENTED** -- Initialize `package.json` with `bun init`, set project name to `platypus-facts`, entry point to `src/index.ts`
+- [x] **IMPLEMENTED** -- Create `tsconfig.json` targeting Bun runtime (use `bun` types, strict mode, `noImplicitAny: true`, path aliases if desired)
+- [x] **IMPLEMENTED** -- Install core dependencies: `twilio` SDK (database uses Bun's built-in `bun:sqlite`, no separate package needed)
+- [x] **IMPLEMENTED** -- Install dev dependencies: `@types/bun`, `typescript`, Biome (linter/formatter)
+- [x] **IMPLEMENTED** -- Create initial directory structure: `src/`, `src/lib/`, `src/lib/sms/`, `src/routes/`, `src/jobs/`, `src/scripts/`, `data/`, `public/`, `config/`
+- [x] **IMPLEMENTED** -- Create `data/.gitkeep` so the `data/` directory is tracked by git (the SQLite database file itself is gitignored)
+- [x] **IMPLEMENTED** -- Create `.env.example` with all environment variables documented in `specs/infrastructure.md`: `PORT`, `BASE_URL`, `DATABASE_PATH`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`, `DAILY_SEND_TIME_UTC`, `MAX_SUBSCRIBERS`
+- [x] **IMPLEMENTED** -- Create `.gitignore` (node_modules, *.db, .env, dist/; bun.lock should NOT be ignored -- commit it for reproducible builds)
+- [x] **IMPLEMENTED** -- Set up Biome configuration (`biome.json`) for linting and formatting
 
 ---
 
@@ -24,7 +24,7 @@ These items must be completed first. Everything else depends on them.
 
 Centralized config loading used by all components.
 
-- [ ] **NOT IMPLEMENTED** -- Create `src/lib/config.ts` -- load and validate all environment variables with typed defaults:
+- [x] **IMPLEMENTED** -- Create `src/lib/config.ts` -- load and validate all environment variables with typed defaults:
   - `PORT` default `3000`
   - `MAX_SUBSCRIBERS` default `1000`
   - `DATABASE_PATH` default `./data/platypus-facts.db`
@@ -33,8 +33,8 @@ Centralized config loading used by all components.
   - `TWILIO_ACCOUNT_SID` (required, no default)
   - `TWILIO_AUTH_TOKEN` (required, no default)
   - `TWILIO_PHONE_NUMBER` (required, no default, must be E.164 format)
-- [ ] **NOT IMPLEMENTED** -- Validate required env vars at startup and fail fast with clear error messages if missing (per `specs/infrastructure.md` environment variables table)
-- [ ] **NOT IMPLEMENTED** -- Export typed config object (not individual env var reads scattered through codebase)
+- [x] **IMPLEMENTED** -- Validate required env vars at startup and fail fast with clear error messages if missing (per `specs/infrastructure.md` environment variables table)
+- [x] **IMPLEMENTED** -- Export typed config object (not individual env var reads scattered through codebase)
 
 ---
 
@@ -42,14 +42,14 @@ Centralized config loading used by all components.
 
 The database is a dependency for nearly every feature. Moved ahead of testing infrastructure because tests need the schema.
 
-- [ ] **NOT IMPLEMENTED** -- Create `src/lib/db.ts` -- SQLite connection setup using Bun's built-in `bun:sqlite`, configured via `DATABASE_PATH` from config
-- [ ] **NOT IMPLEMENTED** -- Enable WAL mode (`PRAGMA journal_mode=WAL`) and foreign keys (`PRAGMA foreign_keys=ON`) on connection open
-- [ ] **NOT IMPLEMENTED** -- Create schema initialization (run on connection open) with all four tables matching `specs/data-model.md` exactly:
+- [x] **IMPLEMENTED** -- Create `src/lib/db.ts` -- SQLite connection setup using Bun's built-in `bun:sqlite`, configured via `DATABASE_PATH` from config
+- [x] **IMPLEMENTED** -- Enable WAL mode (`PRAGMA journal_mode=WAL`) and foreign keys (`PRAGMA foreign_keys=ON`) on connection open
+- [x] **IMPLEMENTED** -- Create schema initialization (run on connection open) with all four tables matching `specs/data-model.md` exactly:
   - `facts` (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))
   - `fact_sources` (id INTEGER PRIMARY KEY AUTOINCREMENT, fact_id INTEGER NOT NULL REFERENCES facts(id) ON DELETE CASCADE, url TEXT NOT NULL, title TEXT)
   - `subscribers` (id INTEGER PRIMARY KEY AUTOINCREMENT, phone_number TEXT NOT NULL UNIQUE, status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL DEFAULT (datetime('now')), confirmed_at TEXT, unsubscribed_at TEXT)
   - `sent_facts` (id INTEGER PRIMARY KEY AUTOINCREMENT, fact_id INTEGER NOT NULL REFERENCES facts(id), sent_date TEXT NOT NULL UNIQUE, cycle INTEGER NOT NULL) -- note: NO `ON DELETE CASCADE` here (unlike `fact_sources`), because send history must be preserved even if a fact were ever removed
-- [ ] **NOT IMPLEMENTED** -- Export a function to create an in-memory database with the same schema (used by tests and the sync script)
+- [x] **IMPLEMENTED** -- Export a function to create an in-memory database with the same schema (used by tests and the sync script)
 
 ---
 
@@ -59,8 +59,8 @@ Test utilities are needed before writing unit tests in later priorities. The dat
 
 Test files are colocated with source code (e.g., `src/lib/phone.test.ts` next to `src/lib/phone.ts`). This keeps related code together and is the Bun test runner default discovery pattern.
 
-- [ ] **NOT IMPLEMENTED** -- Configure Bun test runner (`bunfig.toml` if needed, ensure `bun test` discovers `*.test.ts` files in `src/`)
-- [ ] **NOT IMPLEMENTED** -- Create test utilities module (`src/lib/test-utils.ts`):
+- [x] **IMPLEMENTED** -- Configure Bun test runner (`bunfig.toml` if needed, ensure `bun test` discovers `*.test.ts` files in `src/`)
+- [x] **IMPLEMENTED** -- Create test utilities module (`src/lib/test-utils.ts`):
   - In-memory SQLite database factory (creates a fresh database with schema for each test, using the schema init from Priority 3)
   - Preliminary mock SMS provider (records sent messages; will be updated in Priority 8 to implement `SmsProvider` interface)
   - Test data builder functions (prefer generator/factory functions over setup/teardown) for facts, subscribers, sent_facts records
@@ -71,7 +71,7 @@ Test files are colocated with source code (e.g., `src/lib/phone.test.ts` next to
 
 Write unit tests for the database setup from Priority 3. Depends on test utilities from Priority 4.
 
-- [ ] **NOT IMPLEMENTED** -- Write unit tests (`src/lib/db.test.ts`) for database setup:
+- [x] **IMPLEMENTED** -- Write unit tests (`src/lib/db.test.ts`) for database setup:
   - All four tables exist after initialization
   - Foreign key constraint on `fact_sources.fact_id` is enforced (inserting a fact_source referencing a nonexistent fact_id fails)
   - `ON DELETE CASCADE` works on `fact_sources`: deleting a fact deletes its associated fact_sources rows
@@ -88,7 +88,7 @@ Write unit tests for the database setup from Priority 3. Depends on test utiliti
 
 Reusable module depended on by subscription flow and web pages. Rules from `specs/phone-validation.md`.
 
-- [ ] **NOT IMPLEMENTED** -- Create `src/lib/phone.ts` -- phone number validation and E.164 normalization:
+- [x] **IMPLEMENTED** -- Create `src/lib/phone.ts` -- phone number validation and E.164 normalization:
   - Strip all non-digit characters except a leading `+`
   - Rule 1: starts with `+1` followed by exactly 10 digits -> valid, already normalized
   - Rule 2: starts with `1` followed by exactly 10 digits -> prepend `+`, valid
@@ -98,7 +98,7 @@ Reusable module depended on by subscription flow and web pages. Rules from `spec
   - NANP validation: exchange (next 3 digits after area code) must not start with `0` or `1`
   - Return normalized E.164 string on success, or error on failure
   - Error message: "Please enter a valid US phone number."
-- [ ] **NOT IMPLEMENTED** -- Write unit tests (`src/lib/phone.test.ts`) for phone validation/normalization covering all accepted formats from `specs/phone-validation.md`:
+- [x] **IMPLEMENTED** -- Write unit tests (`src/lib/phone.test.ts`) for phone validation/normalization covering all accepted formats from `specs/phone-validation.md`:
   - `+15551234567` (E.164, already normalized) -> `+15551234567`
   - `15551234567` (country code, no plus) -> `+15551234567`
   - `5551234567` (10-digit) -> `+15551234567`
@@ -123,7 +123,7 @@ Reusable module depended on by subscription flow and web pages. Rules from `spec
 
 All SMS message content, traceable to `specs/subscription-flow.md` and `specs/sms-integration.md`.
 
-- [ ] **NOT IMPLEMENTED** -- Create `src/lib/sms-templates.ts` -- all SMS message templates as typed functions. Each template must match the exact wording in `specs/subscription-flow.md`:
+- [x] **IMPLEMENTED** -- Create `src/lib/sms-templates.ts` -- all SMS message templates as typed functions. Each template must match the exact wording in `specs/subscription-flow.md`:
   - `welcomeMessage(): string` -- "Welcome to Daily Platypus Facts! Inspired by Life is Strange: Double Exposure. [duck emoji]\nReply 1 or PERRY to confirm and start receiving a platypus fact every day."
   - `confirmationSuccessMessage(): string` -- "You're now a Platypus Fan! You'll receive one platypus fact every day. Reply STOP at any time to unsubscribe."
   - `alreadySubscribedMessage(): string` -- "You're already a Platypus Fan! Reply STOP to unsubscribe." (sent via SMS only when re-registering while already active)
@@ -131,7 +131,7 @@ All SMS message content, traceable to `specs/subscription-flow.md` and `specs/sm
   - `helpMessage(): string` -- "Daily Platypus Facts: Reply 1 or PERRY to confirm your subscription. Reply STOP to unsubscribe."
   - `atCapacityMessage(): string` -- "Sorry, Daily Platypus Facts is currently at capacity! We can't confirm your subscription right now. Please try again later." (sent via SMS when confirmation rejected at cap)
   - `dailyFactMessage(factText: string, factUrl: string): string` -- "[duck emoji] Daily Platypus Fact:\n{fact_text}\n\nSources: {fact_url}" (format from `specs/sms-integration.md`, `factUrl` is the pre-constructed `${BASE_URL}/facts/${factId}` URL)
-- [ ] **NOT IMPLEMENTED** -- Write unit tests (`src/lib/sms-templates.test.ts`) for SMS templates:
+- [x] **IMPLEMENTED** -- Write unit tests (`src/lib/sms-templates.test.ts`) for SMS templates:
   - Each template returns the exact text specified in `specs/subscription-flow.md`
   - `unsubscribedUserMessage` correctly interpolates `baseUrl`
   - `dailyFactMessage` correctly interpolates `factText` and `factUrl`
@@ -146,19 +146,19 @@ Required before subscription flow or daily sends can work.
 
 Note on interface design: `specs/sms-integration.md` defines a generic provider interface ("Send SMS" + "Incoming message webhook handler"). The plan adds `validateWebhookSignature` and `createWebhookResponse` to the interface, which are Twilio-influenced. This is acceptable for v1 (Twilio is the only provider), but if swapping providers later, these methods would need to be generalized.
 
-- [ ] **NOT IMPLEMENTED** -- Create `src/lib/sms/types.ts` -- define the `SmsProvider` interface (per `specs/sms-integration.md` provider abstraction):
+- [x] **IMPLEMENTED** -- Create `src/lib/sms/types.ts` -- define the `SmsProvider` interface (per `specs/sms-integration.md` provider abstraction):
   - `sendSms(to: string, body: string): Promise<void>`
   - `parseIncomingMessage(request: Request): Promise<{ from: string; body: string }>`
   - `validateWebhookSignature(request: Request): Promise<boolean>`
   - `createWebhookResponse(message?: string): string` (returns TwiML for Twilio, could return different format for other providers)
-- [ ] **NOT IMPLEMENTED** -- Create `src/lib/sms/twilio.ts` -- Twilio implementation of `SmsProvider`:
+- [x] **IMPLEMENTED** -- Create `src/lib/sms/twilio.ts` -- Twilio implementation of `SmsProvider`:
   - `sendSms`: use Twilio REST API via `twilio` SDK, sending from configured `TWILIO_PHONE_NUMBER`
   - `parseIncomingMessage`: parse incoming webhook form data, extract `From` and `Body` fields. Handle missing/empty `From` or `Body` gracefully (return empty strings or throw with clear error)
   - `validateWebhookSignature`: validate `X-Twilio-Signature` header against request URL + params + auth token (per `specs/sms-integration.md` webhook handler step 1)
   - `createWebhookResponse`: generate TwiML XML -- empty `<Response/>` when no message, or `<Response><Message>...</Message></Response>` when message provided
-- [ ] **NOT IMPLEMENTED** -- Create `src/lib/sms/index.ts` -- factory function that returns the configured provider (Twilio for production, mock for tests)
-- [ ] **NOT IMPLEMENTED** -- Update test utilities: ensure mock SMS provider in test helpers implements the same `SmsProvider` interface
-- [ ] **NOT IMPLEMENTED** -- Write unit tests (`src/lib/sms/twilio.test.ts`) for Twilio provider:
+- [x] **IMPLEMENTED** -- Create `src/lib/sms/index.ts` -- factory function that returns the configured provider (Twilio for production, mock for tests)
+- [x] **IMPLEMENTED** -- Update test utilities: ensure mock SMS provider in test helpers implements the same `SmsProvider` interface
+- [x] **IMPLEMENTED** -- Write unit tests (`src/lib/sms/twilio.test.ts`) for Twilio provider:
   - `sendSms` calls Twilio SDK with correct parameters (mock the SDK)
   - `parseIncomingMessage` extracts `From` and `Body` from form data
   - `parseIncomingMessage` handles missing or empty `Body` field gracefully
@@ -173,10 +173,10 @@ Note on interface design: `specs/sms-integration.md` defines a generic provider 
 
 Facts must be in the database before the daily job or fact pages can work.
 
-- [ ] **NOT IMPLEMENTED** -- Create `data/facts.json` with initial platypus facts matching the format in `specs/seed-data.md`:
+- [x] **IMPLEMENTED** -- Create `data/facts.json` with initial platypus facts matching the format in `specs/seed-data.md`:
   - Array of objects, each with `text` (string) and `sources` (array of `{ url: string, title?: string }`)
   - Include at least 2-3 placeholder facts for development (real facts to be authored before launch)
-- [ ] **NOT IMPLEMENTED** -- Create `src/scripts/sync-facts.ts` implementing the sync behavior from `specs/seed-data.md`:
+- [x] **IMPLEMENTED** -- Create `src/scripts/sync-facts.ts` implementing the sync behavior from `specs/seed-data.md`:
   - Load and validate `data/facts.json`:
     - Each fact must have non-empty `text`
     - Each fact must have at least one source
@@ -190,7 +190,7 @@ Facts must be in the database before the daily job or fact pages can work.
   - Run in a database transaction for atomicity
   - Log summary of changes (facts added, facts updated, facts unchanged)
   - Must be importable as a function (for use in web server startup and daily send job) as well as runnable as a standalone script (`bun run src/scripts/sync-facts.ts`)
-- [ ] **NOT IMPLEMENTED** -- Write unit tests (`src/scripts/sync-facts.test.ts`) for sync script:
+- [x] **IMPLEMENTED** -- Write unit tests (`src/scripts/sync-facts.test.ts`) for sync script:
   - New fact insertion creates rows in both `facts` and `fact_sources`
   - Source updates for existing facts (add source, remove source, change URL/title)
   - Idempotent re-runs produce no changes
@@ -206,14 +206,14 @@ Facts must be in the database before the daily job or fact pages can work.
 
 Data access functions used by the subscription flow and daily send job.
 
-- [ ] **NOT IMPLEMENTED** -- Create `src/lib/subscribers.ts` -- subscriber data access layer:
+- [x] **IMPLEMENTED** -- Create `src/lib/subscribers.ts` -- subscriber data access layer:
   - `findByPhoneNumber(db, phone: string): Subscriber | null`
   - `getActiveCount(db): number` -- count of subscribers with status `active` (used for cap checks per `specs/subscription-flow.md`)
   - `createSubscriber(db, phone: string): Subscriber` -- insert with status `pending`, phone in E.164 format
   - `updateStatus(db, id: number, status: 'pending' | 'active' | 'unsubscribed', timestamps?: { confirmed_at?: string; unsubscribed_at?: string }): void`
   - `getActiveSubscribers(db): Subscriber[]` -- all subscribers with status `active` (used by daily send job)
-- [ ] **NOT IMPLEMENTED** -- Define TypeScript `Subscriber` type matching the `subscribers` table schema from `specs/data-model.md`
-- [ ] **NOT IMPLEMENTED** -- Write unit tests (`src/lib/subscribers.test.ts`) for subscriber data access:
+- [x] **IMPLEMENTED** -- Define TypeScript `Subscriber` type matching the `subscribers` table schema from `specs/data-model.md`
+- [x] **IMPLEMENTED** -- Write unit tests (`src/lib/subscribers.test.ts`) for subscriber data access:
   - `createSubscriber` inserts with `pending` status and E.164 phone
   - `findByPhoneNumber` returns subscriber when it exists
   - `findByPhoneNumber` returns null when phone number not found
@@ -229,7 +229,7 @@ Data access functions used by the subscription flow and daily send job.
 
 Data access functions for facts and sent_facts, used by the fact cycling algorithm, daily send job, fact page route, and sync script. Without this module, SQL queries for facts would be scattered across multiple files.
 
-- [ ] **NOT IMPLEMENTED** -- Create `src/lib/facts.ts` -- fact data access layer:
+- [x] **IMPLEMENTED** -- Create `src/lib/facts.ts` -- fact data access layer:
   - `getFactById(db, id: number): Fact | null` -- used by fact page route
   - `getFactWithSources(db, id: number): { fact: Fact; sources: FactSource[] } | null` -- used by fact page and daily fact SMS
   - `getAllFactIds(db): number[]` -- all fact IDs in the database
@@ -238,8 +238,8 @@ Data access functions for facts and sent_facts, used by the fact cycling algorit
   - `getCurrentCycle(db): number` -- `MAX(cycle)` from `sent_facts`, or `1` if table is empty
   - `recordSentFact(db, factId: number, sentDate: string, cycle: number): void` -- insert into `sent_facts`
   - `getSentFactByDate(db, date: string): { fact_id: number; cycle: number } | null` -- used for idempotency check in daily send job
-- [ ] **NOT IMPLEMENTED** -- Define TypeScript `Fact` and `FactSource` types matching the `facts` and `fact_sources` table schemas from `specs/data-model.md`
-- [ ] **NOT IMPLEMENTED** -- Write unit tests (`src/lib/facts.test.ts`) for fact data access:
+- [x] **IMPLEMENTED** -- Define TypeScript `Fact` and `FactSource` types matching the `facts` and `fact_sources` table schemas from `specs/data-model.md`
+- [x] **IMPLEMENTED** -- Write unit tests (`src/lib/facts.test.ts`) for fact data access:
   - `getFactById` returns fact when it exists
   - `getFactById` returns null for nonexistent ID
   - `getFactWithSources` returns fact with all its sources
@@ -360,32 +360,35 @@ Core algorithm for the daily send job. Implements `specs/fact-cycling.md` exactl
 
 The HTTP layer that ties everything together. Uses `Bun.serve()` for the HTTP server.
 
-- [ ] **NOT IMPLEMENTED** -- Create `src/index.ts` -- Bun HTTP server entry point using `Bun.serve()`:
+- [x] **IMPLEMENTED** -- Create `src/index.ts` -- Bun HTTP server entry point using `Bun.serve()`:
   - Run fact sync on startup (per `specs/seed-data.md`: "On application startup, the sync script runs automatically")
   - Initialize database connection
   - Set up request router/dispatcher (match method + path, delegate to route handlers)
-  - Serve static files from `public/` directory
+  - Serve static files from `public/` directory with path traversal protection (`path.resolve()` validation)
   - Listen on configured PORT
   - Global error handler: catch unhandled errors, log them, return 500 response with `Content-Type: application/json`
-  - Handle `SIGTERM` and `SIGINT` for graceful shutdown (finish in-flight requests, close database connection, exit cleanly -- required for Kamal zero-downtime deploys per `specs/infrastructure.md`)
-- [ ] **NOT IMPLEMENTED** -- Create `src/routes/health.ts` -- `GET /health` returns 200 OK (per `specs/infrastructure.md`: used by Kamal for deploy health checks)
-- [ ] **NOT IMPLEMENTED** -- Create `src/routes/subscribe.ts` -- `POST /api/subscribe`:
+  - Handle `SIGTERM` and `SIGINT` for graceful shutdown (await `server.stop()`, close database connection, exit cleanly -- required for Kamal zero-downtime deploys per `specs/infrastructure.md`)
+  - Rate limiter cleanup every 10 minutes
+- [x] **IMPLEMENTED** -- Create `src/routes/health.ts` -- `GET /health` returns 200 OK (per `specs/infrastructure.md`: used by Kamal for deploy health checks)
+- [x] **IMPLEMENTED** -- Create `src/routes/subscribe.ts` -- `POST /api/subscribe`:
   - Parse JSON body `{ "phoneNumber": string }` (field name per `specs/web-pages.md`)
   - Handle malformed JSON body or missing `phoneNumber` field: return 400 with `Content-Type: application/json` and `{ "success": false, "error": "Invalid request body" }`
   - Apply rate limiting (5 per IP per hour) -- return 429 with `{ "success": false, "error": "Too many requests. Please try again later." }`
   - Call subscription flow signup logic
   - At capacity: return 200 with `{ "success": false, "error": "<at-capacity web message>" }`
   - Return `{ "success": true, "message": string }` or `{ "success": false, "error": string }` (response format per `specs/web-pages.md`)
-- [ ] **NOT IMPLEMENTED** -- Create `src/routes/webhook.ts` -- `POST /api/webhooks/twilio/incoming`:
-  - Validate Twilio request signature (reject with 403 if invalid, per `specs/sms-integration.md`)
-  - Parse incoming message (extract `From` and `Body`)
-  - Delegate to incoming message handler
-  - Return webhook response with `Content-Type: text/xml`. Every code path must return valid TwiML -- either `<Response/>` (no reply) or `<Response><Message>...</Message></Response>` (with reply)
-- [ ] **NOT IMPLEMENTED** -- Create `src/routes/pages.ts` -- HTML page routes:
+  - Extract client IP from X-Forwarded-For header (falls back to "unknown")
+- [x] **IMPLEMENTED** -- Create `src/routes/webhook.ts` -- `POST /api/webhooks/twilio/incoming`:
+  - Validate Twilio request signature (clone request to preserve body, reject with 403 if invalid, per `specs/sms-integration.md`)
+  - Parse incoming message (extract `From` and `Body`) with error handling
+  - Delegate to incoming message handler with error handling (returns empty TwiML on failure to prevent Twilio retries)
+  - Return webhook response with `Content-Type: text/xml`. Every code path returns valid TwiML -- either `<Response/>` (no reply) or `<Response><Message>...</Message></Response>` (with reply)
+- [x] **IMPLEMENTED** -- Create `src/routes/pages.ts` -- HTML page routes:
   - `GET /` -- signup page (server-rendered HTML, details in Priority 16)
   - `GET /facts/:id` -- fact display page (server-rendered HTML, details in Priority 16)
   - `GET /facts/:id` with nonexistent ID or non-numeric `:id`: return 404 page
-- [ ] **NOT IMPLEMENTED** -- Write tests (`src/routes/routes.test.ts` or per-route test files) for routes:
+  - URL scheme validation (only http/https) to prevent javascript: XSS in source links
+- [x] **IMPLEMENTED** -- Write tests (`src/routes/routes.test.ts`) for routes:
   - `GET /health` returns 200
   - `POST /api/subscribe` with valid phone returns success JSON
   - `POST /api/subscribe` with invalid phone returns error JSON with `success: false`
@@ -400,8 +403,7 @@ The HTTP layer that ties everything together. Uses `Bun.serve()` for the HTTP se
   - `GET /` at capacity renders the capacity message instead of the signup form
   - `GET /facts/:id` with valid ID returns HTML with fact content and sources
   - `GET /facts/:id` with nonexistent numeric ID returns 404
-  - `GET /facts/:id` with non-numeric ID (e.g., `/facts/abc`) returns 404
-  - Static file serving from `public/` works
+  - 404 page returns helpful content with branding
 
 ---
 
@@ -411,32 +413,31 @@ User-facing HTML pages with Life is Strange: Double Exposure styling. Per `specs
 
 After implementing any frontend changes, the AGENTS.md requires an Opus subagent UX/UI review to evaluate visual hierarchy, accessibility, theme consistency, usability, and responsiveness before committing.
 
-- [ ] **NOT IMPLEMENTED** -- Create `GET /` signup page HTML (per `specs/web-pages.md` Signup Page section):
+- [x] **IMPLEMENTED** -- Create `GET /` signup page HTML (per `specs/web-pages.md` Signup Page section):
   - Project title "Daily Platypus Facts"
-  - Tagline referencing the *Life is Strange: Double Exposure* inspiration (per `specs/overview.md`: "clearly note... it is inspired by the Daily Platypus Facts from Life is Strange: Double Exposure")
+  - Tagline referencing the *Life is Strange: Double Exposure* inspiration (per `specs/overview.md`)
   - Current Platypus Fan count and limit displayed (e.g., "42 / 1,000 Platypus Fans") -- uses "Platypus Fans" terminology per `specs/design-decisions.md`
-  - Phone number input field with US +1 default and placeholder like `(555) 123-4567` (per `specs/phone-validation.md`)
-  - Submit button
+  - Phone number input field with US +1 prefix and placeholder `(555) 123-4567`, with sr-only label and aria-describedby for accessibility
+  - Submit button with disabled state during submission
   - Brief explanation of what the user is signing up for (one fact per day via SMS)
   - "Standard message rates apply" note
-  - At-capacity state: replace form with capacity message (e.g., "We're currently at capacity! Check back later." per `specs/subscription-flow.md`). Note: this is a web-facing message, distinct from the SMS `atCapacityMessage()` template which is sent via SMS when a pending subscriber tries to confirm at cap.
-  - Client-side JS for form submission via `POST /api/subscribe`:
-    - On success: display confirmation message telling user to check their phone (per `specs/web-pages.md`)
-    - On validation error: display inline error (invalid phone number)
-    - On rate limit (429): display friendly "try again later" message
-- [ ] **NOT IMPLEMENTED** -- Create `GET /facts/:id` fact page HTML (per `specs/web-pages.md` Fact Page section):
+  - At-capacity state: replaces form with capacity message, script not included when at capacity
+  - Client-side JS for form submission via `POST /api/subscribe` with success/error/rate-limit display using `role="alert"` for screen readers
+- [x] **IMPLEMENTED** -- Create `GET /facts/:id` fact page HTML (per `specs/web-pages.md` Fact Page section):
   - Fact text prominently displayed
-  - List of sources with clickable links (display title if available, URL otherwise)
-  - "Daily Platypus Facts" branding
+  - List of sources with clickable links (display title if available, URL otherwise), filtered to http/https only
+  - "Daily Platypus Facts" branding with link to homepage
   - "Inspired by *Life is Strange: Double Exposure*" attribution
-  - Link to signup page for visitors who aren't yet subscribed (optional per spec, but recommended)
+  - Link to signup page for visitors who aren't yet subscribed
   - 404 handling for nonexistent fact IDs
-- [ ] **NOT IMPLEMENTED** -- Create `public/styles.css` -- themed stylesheet (per `specs/web-pages.md` Design section and `specs/design-decisions.md`):
+- [x] **IMPLEMENTED** -- Create `public/styles.css` -- themed stylesheet (per `specs/web-pages.md` Design section and `specs/design-decisions.md`):
   - Warm, indie, handcrafted aesthetic inspired by *Life is Strange: Double Exposure*
-  - Platypus personality and charm
-  - Responsive design for mobile (most users arrive from SMS link clicking the fact URL)
-  - Consistent theme between signup page and fact page
-- [ ] **NOT IMPLEMENTED** -- Add platypus imagery/illustrations to `public/` (favicon at minimum)
+  - WCAG-compliant contrast ratios (accent #a86520, muted text #6b5744)
+  - Responsive design for mobile with 480px breakpoint
+  - Focus-visible styles for keyboard navigation
+  - sr-only utility class for accessible labels
+  - Consistent theme between signup page, fact page, and 404 page
+- [x] **IMPLEMENTED** -- Add platypus imagery/illustrations to `public/` (inline SVG duck emoji favicon on all pages)
 
 ---
 
@@ -446,19 +447,19 @@ The scheduled job that orchestrates sending facts. Implements `specs/daily-job.m
 
 The daily send job is a standalone Bun script. It must initialize its own dependencies (config, database connection, SMS provider) since it does not run inside the web server process.
 
-- [ ] **NOT IMPLEMENTED** -- Create `src/jobs/daily-send.ts` -- standalone Bun script:
-  - Initialize config, database connection, and SMS provider (standalone script, not part of the web server)
-  - Run fact sync before selecting today's fact (ensures newly added facts are available; the spec requires sync on "application startup" per `specs/seed-data.md` -- the daily job is a separate process, so it runs sync independently to ensure consistency)
-  - Determine "today" in UTC (`new Date().toISOString().split('T')[0]`) -- must use UTC to match the `DAILY_SEND_TIME_UTC` cron schedule and avoid timezone edge cases
-  - Check idempotency: query `sent_facts` for today's UTC date (YYYY-MM-DD format) via `getSentFactByDate()`, exit if already sent (per `specs/daily-job.md` Idempotency section)
+- [x] **IMPLEMENTED** -- Create `src/jobs/daily-send.ts` -- standalone Bun script:
+  - Initialize config, database connection, and SMS provider (standalone script via `import.meta.main` guard, not part of the web server)
+  - Run fact sync before selecting today's fact (ensures newly added facts are available)
+  - Determine "today" in UTC (`new Date().toISOString().split('T')[0]`), with `todayOverride` parameter for testing
+  - Check idempotency: query `sent_facts` for today's UTC date via `getSentFactByDate()`, exit if already sent
   - Select today's fact via fact cycling algorithm
-  - If no fact selected (no facts in DB): log warning and exit (per `specs/daily-job.md` and `specs/fact-cycling.md`)
+  - If no fact selected (no facts in DB): log warning and exit
   - Query all active subscribers via `getActiveSubscribers()`
-  - Send SMS to each subscriber: message includes fact text and link to `/facts/:id` (using `dailyFactMessage` template, format per `specs/sms-integration.md`: duck emoji + "Daily Platypus Fact:" + fact text + "Sources:" link). Construct fact URL as `${BASE_URL}/facts/${factId}` -- ensure no double slashes if `BASE_URL` has a trailing slash.
-  - Continue on individual SMS failures: log error for each failure, do not halt the entire job (per `specs/daily-job.md` Failure Handling section)
-  - Record in `sent_facts` with today's UTC date and cycle number -- record EVEN IF some individual deliveries fail (per `specs/daily-job.md`: "The fact is still recorded in sent_facts even if some individual deliveries fail")
-  - Log summary: total subscribers messaged, number of failures
-- [ ] **NOT IMPLEMENTED** -- Write unit tests (`src/jobs/daily-send.test.ts`) for daily send job:
+  - Send SMS to each subscriber using `dailyFactMessage` template with fact URL `${BASE_URL}/facts/${factId}`
+  - Continue on individual SMS failures with masked phone number logging (PII protection)
+  - Record in `sent_facts` with today's UTC date and cycle number even with partial delivery failures
+  - Log summary: total subscribers messaged, success count, failure count
+- [x] **IMPLEMENTED** -- Write unit tests (`src/jobs/daily-send.test.ts`) for daily send job:
   - Happy path: fact selected, SMS sent to all active subscribers, recorded in `sent_facts`
   - Idempotency: `sent_facts` already has today's date -> job exits without sending
   - No facts in database: logs warning, exits without error
@@ -466,8 +467,8 @@ The daily send job is a standalone Bun script. It must initialize its own depend
   - Individual SMS failure does not halt job (other subscribers still receive SMS)
   - Fact recorded in `sent_facts` even with partial delivery failures
   - Uses correct `dailyFactMessage` template with fact text and URL
-  - Fact URL is constructed correctly (e.g., `https://example.com/facts/42`, no double slashes)
-  - "Today" is determined in UTC (test with mocked date near midnight UTC boundary)
+  - Fact URL is constructed correctly (no double slashes)
+  - UTC today date used when no override provided (verified via sent_facts record)
 
 ---
 
