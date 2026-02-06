@@ -1,0 +1,42 @@
+service: platypus-facts
+
+image: ghcr.io/<your-github-username>/platypus-facts
+
+servers:
+  web:
+    hosts:
+      - <your-server-ip>
+    options:
+      network: kamal
+
+registry:
+  server: ghcr.io
+  username:
+    - KAMAL_REGISTRY_USERNAME
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+env:
+  clear:
+    PORT: 3000
+    DATABASE_PATH: /app/data/platypus-facts.db
+    DAILY_SEND_TIME_UTC: "14:00"
+    MAX_SUBSCRIBERS: 1000
+  secret:
+    - BASE_URL
+    - TWILIO_ACCOUNT_SID
+    - TWILIO_AUTH_TOKEN
+    - TWILIO_PHONE_NUMBER
+
+volumes:
+  - /opt/platypus-facts/data:/app/data
+
+proxy:
+  ssl: true
+  host: <your-domain.com>
+  app_port: 3000
+
+healthcheck:
+  path: /health
+  port: 3000
+  interval: 10

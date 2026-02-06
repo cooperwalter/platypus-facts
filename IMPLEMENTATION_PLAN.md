@@ -496,23 +496,21 @@ Ensure all components work together and type safety is maintained.
 
 Containerization, CI/CD, and deployment configuration. Per `specs/infrastructure.md`.
 
-- [ ] **NOT IMPLEMENTED** -- Create `Dockerfile` (multi-stage, per `specs/infrastructure.md` Dockerfile section):
-  - Build stage: `FROM oven/bun` as builder, `COPY package.json bun.lock`, `RUN bun install`, `COPY .`
-  - Production stage: `FROM oven/bun`, copy from builder, expose PORT, `CMD` runs fact sync then starts server (e.g., `bun run src/scripts/sync-facts.ts && bun run src/index.ts`)
-- [ ] **NOT IMPLEMENTED** -- Create `.dockerignore` (node_modules, .git, .env, *.db, specs/)
-- [ ] **NOT IMPLEMENTED** -- Create `config/deploy.yml` (Kamal configuration, per `specs/infrastructure.md` Configuration section):
-  - Docker image registry (GHCR)
-  - Server IP address(es)
-  - Service name
-  - Health check endpoint (`GET /health`)
-  - Traefik proxy config for TLS via Let's Encrypt
-  - Volume mount for SQLite database (host path -> container `DATABASE_PATH`, per `specs/infrastructure.md` Volumes section)
-  - Environment variables and secrets
-- [ ] **NOT IMPLEMENTED** -- Create `.github/workflows/deploy.yml` (GitHub Actions CI/CD, per `specs/infrastructure.md` How It Works section):
-  - Trigger on push to `main`
-  - Steps: checkout, install Bun, install dependencies, run tests (`bun test`), type check (`bunx tsc --noEmit`), lint (`bunx biome check .`), build Docker image, push to GHCR, run `kamal deploy`
-- [ ] **NOT IMPLEMENTED** -- Document crontab entry for daily send job. The job runs inside the Docker container via `docker exec`: `0 14 * * * docker exec platypus-facts bun run src/jobs/daily-send.ts >> /var/log/platypus-facts-cron.log 2>&1` (since Bun, app code, and dependencies live inside the container, not on the host). Note: `docker exec` is fragile (depends on container name stability, fails silently if container is down). Evaluate in-container scheduling (e.g., supercronic) as a post-launch improvement.
-- [ ] **NOT IMPLEMENTED** -- Add `CRON_SETUP.md` or section in README with crontab provisioning instructions for the VPS, including: installing the crontab on the host, the `docker exec` invocation pattern, log rotation, and verifying the cron job runs correctly
+- [x] **IMPLEMENTED** -- Create `Dockerfile` (multi-stage, per `specs/infrastructure.md` Dockerfile section):
+  - Build stage: `FROM oven/bun:1` as builder, `COPY package.json bun.lock`, `RUN bun install --frozen-lockfile`, `COPY .`
+  - Production stage: `FROM oven/bun:1`, copy from builder, expose 3000, `CMD` runs fact sync then starts server
+- [x] **IMPLEMENTED** -- Create `.dockerignore` (node_modules, .git, .env, *.db, *.db-shm, *.db-wal, specs/)
+- [x] **IMPLEMENTED** -- Create `config/deploy.yml` (Kamal configuration, per `specs/infrastructure.md` Configuration section):
+  - Docker image registry (GHCR), server IP placeholder, service name `platypus-facts`
+  - Health check endpoint (`GET /health`), SSL proxy config
+  - Volume mount for SQLite database (`/opt/platypus-facts/data:/app/data`)
+  - Environment variables (clear + secret) for all required config
+- [x] **IMPLEMENTED** -- Create `.github/workflows/deploy.yml` (GitHub Actions CI/CD, per `specs/infrastructure.md` How It Works section):
+  - Trigger on push to `main` with concurrency control
+  - Test job: checkout, setup Bun, install deps, run tests, type check, lint
+  - Deploy job: build/push Docker image to GHCR with caching, install Kamal, deploy
+- [x] **IMPLEMENTED** -- Document crontab entry for daily send job in `CRON_SETUP.md`: `docker exec` pattern, log rotation, verification steps, fragility notes
+- [x] **IMPLEMENTED** -- Created `CRON_SETUP.md` with crontab provisioning instructions, log rotation config, and troubleshooting guidance
 
 ---
 

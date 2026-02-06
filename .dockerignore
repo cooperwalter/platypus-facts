@@ -1,0 +1,10 @@
+node_modules
+.git
+.env
+*.db
+*.db-shm
+*.db-wal
+specs/
+IMPLEMENTATION_PLAN.md
+*.md
+!AGENTS.md
