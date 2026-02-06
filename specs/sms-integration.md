@@ -7,7 +7,7 @@ How the application sends and receives SMS messages.
 The SMS functionality is accessed through a provider interface so the underlying service (Twilio initially) can be swapped without changing application logic.
 
 The interface should support:
-- **Send SMS**: Given a phone number and message body, send an SMS.
+- **Send message**: Given a phone number, message body, and an optional image URL, send an SMS or MMS.
 - **Incoming message webhook handler**: Parse incoming SMS replies from the provider's webhook format.
 
 ## Twilio Implementation
@@ -33,20 +33,32 @@ The webhook handler:
 
 Twilio's Advanced Opt-Out handles STOP/START/HELP keywords at the carrier level. Additionally, configure the account's opt-out webhook to update subscriber status in the database.
 
-## Daily Fact SMS Format
+## Daily Fact Message Format
 
-The daily fact SMS includes the fact text and a link to the fact's web page (which shows the full fact with sources).
+The daily fact message is sent as an **MMS** (Multimedia Messaging Service) when the fact has a generated illustration, or as a plain SMS if no image is available.
+
+### MMS (with image)
+
+The message includes the fact text, a link to the fact's web page, and the fact's AI-generated platypus illustration as a media attachment.
 
 > 🦆 Daily Platypus Fact:
 > {fact_text}
 >
 > Sources: {base_url}/facts/{fact_id}
 
-The linked page displays the fact with all its sources. This keeps the SMS concise while making sources accessible.
+The image is attached via its publicly accessible URL (`{base_url}/images/facts/{fact_id}.png`). Twilio's MMS API accepts a `MediaUrl` parameter for this.
+
+### SMS fallback (no image)
+
+If a fact does not have a generated image, the message is sent as a plain SMS with the same text format above.
+
+The linked page displays the fact with its illustration and all its sources.
 
 ## Cost Considerations
 
 - Twilio SMS pricing: ~$0.0079 per outbound SMS segment (US).
-- Messages over 160 characters (GSM-7) or 70 characters (UCS-2/emoji) are split into multiple segments.
-- Keep fact text + message framing under 160 characters when possible to minimize multi-segment messages.
+- Twilio MMS pricing: ~$0.02 per outbound MMS (US). MMS messages are not split into segments — a single MMS can include text + image.
+- When an image is available, MMS is used. Although MMS costs more per message than a single SMS segment (~$0.02 vs ~$0.008), it avoids multi-segment concerns and delivers the illustration inline.
+- When no image is available, plain SMS is used at the standard rate.
 - Twilio phone number: ~$1.15/month.
+- See `cost-estimate.md` for full cost projections with MMS pricing.

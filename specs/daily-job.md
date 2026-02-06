@@ -10,7 +10,7 @@ Runs once per day at a configured UTC time via system cron (e.g., `crontab`). Th
 
 1. **Select today's fact** using the fact cycling algorithm (see `fact-cycling.md`).
 2. **Query all active Platypus Fans** (status = `active` in `subscribers` table).
-3. **Send the SMS** to each Platypus Fan via the SMS provider. The message includes the fact text and a link to the fact's web page.
+3. **Send the message** to each Platypus Fan via the SMS provider. The message includes the fact text, a link to the fact's web page, and — if the fact has a generated illustration — the image as an MMS attachment (see `sms-integration.md` and `fact-images.md`).
 4. **Record the send** in `sent_facts` with today's date and current cycle number.
 5. **Log results**: total Platypus Fans messaged, any delivery failures.
 

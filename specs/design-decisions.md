@@ -58,6 +58,18 @@ The signup page and fact pages have a themed design inspired by the aesthetic of
 
 Active Platypus Fans are capped at a configurable limit (`MAX_SUBSCRIBERS` env var, default 1,000) to control SMS costs. The cap is enforced both at signup and at confirmation time. The home page displays the current active count and the limit so visitors can see availability. Only `active` Platypus Fans count toward the cap — when someone unsubscribes, a slot opens up.
 
+## Fact illustrations: AI-generated at sync time
+
+Each fact gets one AI-generated illustration in a consistent minimalist line-drawing style (platypus character, hand-drawn aesthetic, rosy pink accents). Images are generated during the fact sync process — not on-demand or on a schedule — so each fact is illustrated exactly once. This keeps generation costs proportional to the fact library (not the subscriber count) and ensures images are ready before any fact is sent. If generation fails for a fact, the system gracefully degrades to text-only (SMS instead of MMS, no image on the web page).
+
+## Daily messages: MMS with image
+
+Daily fact messages are sent as MMS when an image is available, attaching the platypus illustration inline. This costs ~2.5x more per message than a single SMS segment (~$0.02 vs ~$0.008), but the visual experience is a core part of the service's charm. Falls back to plain SMS when no image exists.
+
+## Image storage: Local filesystem
+
+Images are stored in `public/images/facts/` and served as static assets. No CDN or object storage. This matches the project's philosophy of simplicity and low operational cost. If the project scales beyond what a single VPS can serve, images could be moved to a CDN later.
+
 ## Daily send time: Fixed UTC
 
 All Platypus Fans receive their fact at the same configured UTC time. No per-fan timezone handling. Keeps the cron job and data model simple.

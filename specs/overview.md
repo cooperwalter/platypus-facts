@@ -15,9 +15,10 @@ A service that sends one platypus fact per day via SMS to all confirmed Platypus
 ## High-Level Components
 
 1. **Web application** — Signup page and individual fact display pages, served by Bun's built-in HTTP server.
-2. **SMS integration** — Abstracted SMS provider for sending messages and receiving webhook replies (confirmation, STOP).
-3. **Daily send job** — A scheduled cron job that selects the day's fact and sends it to all active Platypus Fans.
+2. **SMS integration** — Abstracted SMS provider for sending messages (with images via MMS) and receiving webhook replies (confirmation, STOP).
+3. **Daily send job** — A scheduled cron job that selects the day's fact and sends it (with its illustration) to all active Platypus Fans.
 4. **Fact seed data** — A JSON file in the repo containing all platypus facts with their sources.
+5. **Fact illustrations** — AI-generated minimalist line drawings of a platypus, one per fact, generated at sync time and displayed on fact pages and in daily MMS messages.
 
 ## Project Attribution
 

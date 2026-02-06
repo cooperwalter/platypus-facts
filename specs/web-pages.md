@@ -37,6 +37,7 @@ Displays a single platypus fact with its sources. Linked from the daily SMS.
 
 ### Content
 
+- The AI-generated platypus illustration for this fact, displayed prominently above the fact text (see `fact-images.md` for style details). If no image exists for the fact, this section is omitted.
 - The fact text prominently displayed
 - A list of sources with clickable links (and titles if available)
 - "Daily Platypus Facts" branding
@@ -45,7 +46,7 @@ Displays a single platypus fact with its sources. Linked from the daily SMS.
 
 ### Design
 
-Consistent with the signup page theme. Clean, focused on the fact content.
+Consistent with the signup page theme. Clean, focused on the illustration and fact content. The image should be centered and sized appropriately (max-width constrained, responsive).
 
 ## API Endpoints
 
@@ -67,4 +68,4 @@ Consistent with the signup page theme. Clean, focused on the fact content.
 
 ## Static Assets
 
-Serve static assets (CSS, images) from a `public/` directory.
+Serve static assets (CSS, images) from a `public/` directory. This includes AI-generated fact illustrations stored in `public/images/facts/` (see `fact-images.md`).

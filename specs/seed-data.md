@@ -49,6 +49,7 @@ A sync script (e.g., `src/scripts/sync-facts.ts`) loads `data/facts.json` and up
 - **New facts**: Inserted into `facts` and `fact_sources` tables. They have no `sent_facts` entries, so the cycling algorithm will prioritize them.
 - **Existing facts**: Sources are updated if changed.
 - **Removed facts**: Facts present in the database but absent from the seed file are left in place (not deleted). They continue to participate in cycling.
+- **Image generation**: After upserting a fact, if it does not yet have a generated image (`image_path` is NULL), the sync script generates one using the AI image generation API and saves it to `public/images/facts/{fact_id}.png`. See `fact-images.md` for style and generation details.
 
 The sync script runs as part of the deployment process.
 

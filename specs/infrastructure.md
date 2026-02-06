@@ -45,7 +45,7 @@ Kamal is configured via `config/deploy.yml` in the repo:
 
 ### Volumes
 
-The SQLite database file must persist across deploys. Kamal supports Docker volume mounts — the database path is mounted from the host filesystem into the container.
+The SQLite database file and generated fact images must persist across deploys. Kamal supports Docker volume mounts — the database path and the `public/images/facts/` directory are mounted from the host filesystem into the container. This prevents re-generating images on every deploy.
 
 ### Health Check
 
@@ -71,6 +71,7 @@ The daily send job is scheduled via system `crontab` on the VPS. The cron entry 
 | `TWILIO_PHONE_NUMBER`  | Twilio sending phone number (E.164)      | `+15551234567`                 |
 | `DAILY_SEND_TIME_UTC`  | Time to send daily facts (HH:MM UTC)     | `14:00`                        |
 | `MAX_SUBSCRIBERS`      | Maximum number of active Platypus Fans   | `1000`                         |
+| `OPENAI_API_KEY`       | API key for AI image generation           | `sk-...`                       |
 
 ## Backups
 

@@ -10,6 +10,7 @@ SQLite database with the following tables.
 | ------------ | ------- | ------------------------ | ---------------------------------- |
 | `id`         | INTEGER | PRIMARY KEY AUTOINCREMENT | Unique fact identifier             |
 | `text`       | TEXT    | NOT NULL                 | The platypus fact content          |
+| `image_path` | TEXT    |                          | Relative path to AI-generated illustration (e.g., `images/facts/7.png`), or NULL if not yet generated |
 | `created_at` | TEXT    | NOT NULL DEFAULT (datetime('now')) | When the fact was added |
 
 Every fact MUST have at least one associated source.
