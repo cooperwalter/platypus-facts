@@ -35,7 +35,7 @@ function updateStatus(
 	db: Database,
 	id: number,
 	status: "pending" | "active" | "unsubscribed",
-	timestamps?: { confirmed_at?: string; unsubscribed_at?: string },
+	timestamps?: { confirmed_at?: string; unsubscribed_at?: string | null },
 ): void {
 	const params: (number | string | null)[] = [status];
 	let sql = "UPDATE subscribers SET status = ?";

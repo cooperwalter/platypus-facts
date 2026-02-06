@@ -281,5 +281,25 @@ describe("TwilioSmsProvider", () => {
 
 			expect(result).toBe("<Response/>");
 		});
+
+		test("should escape XML special characters in message to produce valid TwiML", () => {
+			const { provider } = makeTwilioProvider();
+
+			const result = provider.createWebhookResponse("Hello <world> & \"test\" 'quote'");
+
+			expect(result).toBe(
+				"<Response><Message>Hello &lt;world&gt; &amp; &quot;test&quot; &apos;quote&apos;</Message></Response>",
+			);
+		});
+
+		test("should escape ampersands in URLs within message text", () => {
+			const { provider } = makeTwilioProvider();
+
+			const result = provider.createWebhookResponse(
+				"Visit https://example.com/search?a=1&b=2 for more",
+			);
+
+			expect(result).toContain("https://example.com/search?a=1&amp;b=2");
+		});
 	});
 });

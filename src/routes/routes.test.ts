@@ -201,6 +201,132 @@ describe("GET /", () => {
 	});
 });
 
+describe("GET / - tagline", () => {
+	test("renders Life is Strange: Double Exposure tagline on signup page", async () => {
+		const db = makeTestDatabase();
+		const response = renderSignupPage(db, 1000);
+		const html = await response.text();
+
+		expect(html).toContain("Inspired by");
+		expect(html).toContain("Life is Strange: Double Exposure");
+	});
+});
+
+describe("escapeHtml on fact page", () => {
+	test("escapes HTML special characters in fact text to prevent XSS", async () => {
+		const db = makeTestDatabase();
+		const factId = makeFactRow(db, {
+			text: '<script>alert("xss")</script>',
+			sources: [{ url: "https://example.com/1", title: "Safe Source" }],
+		});
+
+		const response = renderFactPage(db, factId);
+		const html = await response.text();
+
+		expect(html).not.toContain("<script>");
+		expect(html).toContain("&lt;script&gt;");
+		expect(html).toContain("&quot;xss&quot;");
+	});
+
+	test("escapes HTML special characters in source titles to prevent XSS", async () => {
+		const db = makeTestDatabase();
+		const factId = makeFactRow(db, {
+			text: "Normal fact",
+			sources: [{ url: "https://example.com/1", title: '<img src=x onerror="alert(1)">' }],
+		});
+
+		const response = renderFactPage(db, factId);
+		const html = await response.text();
+
+		expect(html).not.toContain('<img src=x onerror="alert(1)">');
+		expect(html).toContain("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;");
+	});
+
+	test("escapes ampersands and quotes in source URLs in href attributes", async () => {
+		const db = makeTestDatabase();
+		const factId = makeFactRow(db, {
+			text: "Normal fact",
+			sources: [{ url: "https://example.com/search?a=1&b=2", title: "Search" }],
+		});
+
+		const response = renderFactPage(db, factId);
+		const html = await response.text();
+
+		expect(html).toContain("https://example.com/search?a=1&amp;b=2");
+	});
+});
+
+describe("isSafeUrl on fact page", () => {
+	test("filters out javascript: URLs from rendered sources", async () => {
+		const db = makeTestDatabase();
+		const factId = makeFactRow(db, {
+			text: "Normal fact",
+			sources: [
+				{ url: "javascript:alert(1)", title: "Malicious" },
+				{ url: "https://example.com/safe", title: "Safe Source" },
+			],
+		});
+
+		const response = renderFactPage(db, factId);
+		const html = await response.text();
+
+		expect(html).not.toContain("javascript:");
+		expect(html).toContain("https://example.com/safe");
+		expect(html).toContain("Safe Source");
+	});
+
+	test("filters out data: URLs from rendered sources", async () => {
+		const db = makeTestDatabase();
+		const factId = makeFactRow(db, {
+			text: "Normal fact",
+			sources: [
+				{ url: "data:text/html,<script>alert(1)</script>", title: "Data URL" },
+				{ url: "https://example.com/safe", title: "Safe" },
+			],
+		});
+
+		const response = renderFactPage(db, factId);
+		const html = await response.text();
+
+		expect(html).not.toContain("data:text/html");
+		expect(html).toContain("https://example.com/safe");
+	});
+
+	test("allows http: and https: URLs in rendered sources", async () => {
+		const db = makeTestDatabase();
+		const factId = makeFactRow(db, {
+			text: "Normal fact",
+			sources: [
+				{ url: "http://example.com/http", title: "HTTP Source" },
+				{ url: "https://example.com/https", title: "HTTPS Source" },
+			],
+		});
+
+		const response = renderFactPage(db, factId);
+		const html = await response.text();
+
+		expect(html).toContain("http://example.com/http");
+		expect(html).toContain("https://example.com/https");
+	});
+
+	test("filters out sources with invalid/malformed URLs", async () => {
+		const db = makeTestDatabase();
+		const factId = makeFactRow(db, {
+			text: "Normal fact",
+			sources: [
+				{ url: "not-a-url", title: "Invalid" },
+				{ url: "https://example.com/valid", title: "Valid" },
+			],
+		});
+
+		const response = renderFactPage(db, factId);
+		const html = await response.text();
+
+		expect(html).not.toContain("not-a-url");
+		expect(html).toContain("https://example.com/valid");
+	});
+});
+
 describe("GET /facts/:id", () => {
 	test("returns HTML with fact content and sources for valid ID", async () => {
 		const db = makeTestDatabase();

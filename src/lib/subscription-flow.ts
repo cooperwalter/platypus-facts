@@ -68,7 +68,7 @@ async function signup(
 				};
 			}
 			updateStatus(db, existing.id, "pending", {
-				unsubscribed_at: undefined,
+				unsubscribed_at: null,
 			});
 			await smsProvider.sendSms(phone, welcomeMessage());
 			return {

@@ -322,6 +322,62 @@ describe("syncFacts", () => {
 		}
 	});
 
+	test("sync rejects seed data that is not an array", async () => {
+		const db = makeTestDatabase();
+		const tmpFile = await makeTempFactsFile({ text: "Not an array" });
+		await expect(syncFacts(db, tmpFile)).rejects.toThrow("Seed data must be an array");
+	});
+
+	test("sync rejects a fact that is not an object", async () => {
+		const db = makeTestDatabase();
+		const tmpFile = await makeTempFactsFile(["just a string"]);
+		await expect(syncFacts(db, tmpFile)).rejects.toThrow("Fact at index 0 must be an object");
+	});
+
+	test("sync rejects a fact that is null", async () => {
+		const db = makeTestDatabase();
+		const tmpFile = await makeTempFactsFile([null]);
+		await expect(syncFacts(db, tmpFile)).rejects.toThrow("Fact at index 0 must be an object");
+	});
+
+	test("sync rejects a source that is not an object", async () => {
+		const db = makeTestDatabase();
+		const tmpFile = await makeTempFactsFile([{ text: "Fact 1", sources: ["https://example.com"] }]);
+		await expect(syncFacts(db, tmpFile)).rejects.toThrow(
+			"Source at index 0 for fact at index 0 must be an object",
+		);
+	});
+
+	test("sync rejects a source with non-string title type", async () => {
+		const db = makeTestDatabase();
+		const tmpFile = await makeTempFactsFile([
+			{ text: "Fact 1", sources: [{ url: "https://example.com/1", title: 123 }] },
+		]);
+		await expect(syncFacts(db, tmpFile)).rejects.toThrow(
+			"invalid title (must be string if present)",
+		);
+	});
+
+	test("sync rejects a fact with whitespace-only text", async () => {
+		const db = makeTestDatabase();
+		const tmpFile = await makeTempFactsFile([
+			{ text: "   \n\t  ", sources: [{ url: "https://example.com/1" }] },
+		]);
+		await expect(syncFacts(db, tmpFile)).rejects.toThrow("must have non-empty text");
+	});
+
+	test("sync rejects a source with whitespace-only URL", async () => {
+		const db = makeTestDatabase();
+		const tmpFile = await makeTempFactsFile([{ text: "Fact 1", sources: [{ url: "   \t  " }] }]);
+		await expect(syncFacts(db, tmpFile)).rejects.toThrow("must have non-empty url");
+	});
+
+	test("sync rejects a fact with zero sources", async () => {
+		const db = makeTestDatabase();
+		const tmpFile = await makeTempFactsFile([{ text: "Fact 1", sources: [] }]);
+		await expect(syncFacts(db, tmpFile)).rejects.toThrow("must have at least one source");
+	});
+
 	test("transaction rolls back all changes when a validation error occurs mid-sync", async () => {
 		const db = makeTestDatabase();
 

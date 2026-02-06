@@ -39,7 +39,7 @@ This means image generation happens once per fact, at sync time. Existing facts 
 ### Image Format and Size
 
 - Format: PNG
-- Dimensions: 512x512 pixels (sufficient for MMS and web display, keeps file size reasonable)
+- Dimensions: 1024x1024 pixels (DALL-E 3 minimum; provides good quality for MMS and web display)
 - Stored in `public/images/facts/` as `{fact_id}.png`
 
 ## Storage

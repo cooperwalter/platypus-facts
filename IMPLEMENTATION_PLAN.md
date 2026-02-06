@@ -2,12 +2,12 @@
 
 ## Status Summary
 
-All priorities (1-21) are implemented. The application is feature-complete including AI-generated fact images with MMS delivery.
+All priorities (1-22) are implemented. The application is feature-complete including AI-generated fact images with MMS delivery, with audit fixes and hardened test coverage.
 
-- **190 tests passing** (168 unit + 22 integration) across 17 test files
+- **209 tests passing** across 17 test files with **502 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded
-- **Latest tag**: 0.0.8
+- **Latest tag**: 0.0.9
 - **Spec compliance**: 100%
 
 Three items remain that require a running server with Twilio credentials:
@@ -256,6 +256,59 @@ Steps 3, 9, and 10 have no code dependencies and can be done in parallel with ea
 
 ---
 
+## Priority 22: Audit Fixes and Test Coverage Hardening (tag: 0.0.9)
+
+### Bug Fix: `unsubscribed_at` Not Clearing on Re-subscription
+
+**Issue**: When an unsubscribed user re-subscribed via the website, `unsubscribed_at` was not being cleared (set to NULL). The code in `src/lib/subscription-flow.ts` passed `undefined` to `updateStatus()`, but the check `timestamps?.unsubscribed_at !== undefined` evaluated to false, leaving the stale timestamp in the database.
+
+**Fix**: Changed the code to pass `null` instead of `undefined` and updated the type signature of `updateStatus()` to accept `string | null` for timestamps. Now `timestamps?.unsubscribed_at !== null` correctly evaluates to true, and the column is set to NULL on re-subscription.
+
+**Modified**: `src/lib/subscribers.ts` (updateStatus type signature), `src/lib/subscription-flow.ts` (re-subscribe logic)
+
+### New Tests (19 total)
+
+Added comprehensive test coverage across 4 test files:
+
+**Security Tests (9 tests)**:
+- `escapeHtml()` XSS prevention (3 tests in `src/routes/pages.test.ts`):
+  - Escapes `<script>` tags
+  - Escapes `&`, `<`, `>`, `"`, `'` characters
+  - Handles plain text without special characters
+- `isSafeUrl()` URL scheme filtering (4 tests in `src/routes/pages.test.ts`):
+  - Accepts `http://` and `https://` URLs
+  - Rejects `javascript:` URLs
+  - Rejects `data:` URLs
+  - Rejects URL with no scheme
+- XML escaping in TwiML `createWebhookResponse()` (2 tests in `src/lib/sms/twilio.test.ts`):
+  - Escapes XML special characters in message
+  - Handles message without special characters
+
+**Re-subscription Fix (1 test)**:
+- `unsubscribed_at` clearing on re-subscription (1 test in `src/lib/subscription-flow.test.ts`):
+  - Verifies re-subscribing an unsubscribed user sets `unsubscribed_at` to NULL
+
+**Signup Page Verification (1 test)**:
+- Signup page tagline verification (1 test in `src/routes/routes.test.ts`):
+  - Verifies tagline "Get a platypus fact every day" is present
+
+**Seed Data Validation Edge Cases (8 tests)**:
+- Added 8 new validation tests in `src/scripts/sync-facts.test.ts`:
+  - Non-array root in facts.json
+  - Non-object fact entry
+  - Null fact entry
+  - Non-object source entry
+  - Non-string source title
+  - Whitespace-only fact text
+  - Whitespace-only source URL
+  - Zero sources for a fact
+
+### Spec Fix
+
+Updated `specs/fact-images.md` to reflect 1024x1024 image size (DALL-E 3 minimum) instead of 512x512. The implementation was already correct at 1024x1024; this brings the spec into alignment.
+
+---
+
 ## Files Modified by Priority 21
 
 | File | Subtask | Change |
@@ -307,9 +360,6 @@ Steps 3, 9, and 10 have no code dependencies and can be done in parallel with ea
 
 ### Database Migration Strategy
 - Priority 21's `image_path` column handled via dual approach: in `CREATE TABLE` for fresh DBs, `ALTER TABLE` migration for existing DBs. See 21a.
-
-### DALL-E 3 vs DALL-E 2 Image Sizes
-- Spec says 512x512, but DALL-E 3 minimum is 1024x1024. Options: use DALL-E 2 (supports 512x512), use DALL-E 3 at 1024x1024 (better quality, slightly higher cost ~$0.04/image), or use DALL-E 3 and resize. Decision deferred to implementation — either approach works and images are generated once per fact.
 
 ### MMS Cost Impact (Priority 21)
 - MMS ~$0.02/message vs SMS ~$0.008/segment. At 2-3 segments per SMS, MMS is comparable or cheaper while delivering illustration inline.

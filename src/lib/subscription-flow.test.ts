@@ -65,6 +65,24 @@ describe("signup", () => {
 		expect(sms.sentMessages[0].body).toContain("Welcome to Daily Platypus Facts");
 	});
 
+	test("clears unsubscribed_at timestamp when re-signing up after unsubscribing", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		makeSubscriberRow(db, { phone_number: "+15558234567", status: "unsubscribed" });
+		db.prepare(
+			"UPDATE subscribers SET unsubscribed_at = '2024-01-15T00:00:00.000Z' WHERE phone_number = '+15558234567'",
+		).run();
+
+		const sub1 = findByPhoneNumber(db, "+15558234567");
+		expect(sub1?.unsubscribed_at).toBe("2024-01-15T00:00:00.000Z");
+
+		await signup(db, sms, "5558234567", 1000);
+
+		const sub2 = findByPhoneNumber(db, "+15558234567");
+		expect(sub2?.status).toBe("pending");
+		expect(sub2?.unsubscribed_at).toBeNull();
+	});
+
 	test("rejects signup when at capacity for new subscriber", async () => {
 		const db = makeTestDatabase();
 		const sms = makeMockSmsProvider();
