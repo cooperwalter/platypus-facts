@@ -1,5 +1,5 @@
 interface SmsProvider {
-	sendSms(to: string, body: string): Promise<void>;
+	sendSms(to: string, body: string, mediaUrl?: string): Promise<void>;
 	parseIncomingMessage(request: Request): Promise<{ from: string; body: string }>;
 	validateWebhookSignature(request: Request): Promise<boolean>;
 	createWebhookResponse(message?: string): string;

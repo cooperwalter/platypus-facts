@@ -1,0 +1,66 @@
+import * as path from "node:path";
+
+const STYLE_PROMPT =
+	"Minimalist black line drawing of a cute platypus on a white background. " +
+	"Hand-drawn sketchy style with occasional rosy pink cheek accents. " +
+	"Simple, whimsical, charming. ";
+
+const DALL_E_API_URL = "https://api.openai.com/v1/images/generations";
+
+interface DallEResponse {
+	data: Array<{ b64_json: string }>;
+}
+
+export async function generateFactImage(
+	factId: number,
+	factText: string,
+	apiKey: string,
+): Promise<string | null> {
+	const prompt = STYLE_PROMPT + factText;
+	const outputDir = path.join(process.cwd(), "public", "images", "facts");
+	const filePath = path.join(outputDir, `${factId}.png`);
+	const relativePath = `images/facts/${factId}.png`;
+
+	try {
+		const response = await fetch(DALL_E_API_URL, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${apiKey}`,
+			},
+			body: JSON.stringify({
+				model: "dall-e-3",
+				prompt,
+				size: "1024x1024",
+				response_format: "b64_json",
+				n: 1,
+			}),
+		});
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			console.error(`DALL-E API error (${response.status}): ${errorText}`);
+			return null;
+		}
+
+		const data = (await response.json()) as DallEResponse;
+		const b64 = data.data[0]?.b64_json;
+		if (!b64) {
+			console.error("DALL-E response missing b64_json data");
+			return null;
+		}
+
+		const buffer = Buffer.from(b64, "base64");
+		await Bun.write(filePath, buffer);
+
+		return relativePath;
+	} catch (error) {
+		console.error(
+			`Failed to generate image for fact ${factId}:`,
+			error instanceof Error ? error.message : error,
+		);
+		return null;
+	}
+}
+
+export { STYLE_PROMPT, DALL_E_API_URL };

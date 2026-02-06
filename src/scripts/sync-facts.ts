@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import * as path from "node:path";
 import { createDatabase } from "../lib/db";
+import { generateFactImage } from "../lib/image-generation";
 
 interface SeedSource {
 	url: string;
@@ -67,10 +68,19 @@ function validateSeedData(facts: unknown): asserts facts is SeedFact[] {
 	}
 }
 
+interface SyncResult {
+	added: number;
+	updated: number;
+	unchanged: number;
+	imagesGenerated: number;
+	imagesFailed: number;
+}
+
 export async function syncFacts(
 	db: Database,
 	factsFilePath?: string,
-): Promise<{ added: number; updated: number; unchanged: number }> {
+	openaiApiKey?: string | null,
+): Promise<SyncResult> {
 	const filePath = factsFilePath || path.join(process.cwd(), "data", "facts.json");
 
 	const fileContent = await Bun.file(filePath).text();
@@ -78,7 +88,13 @@ export async function syncFacts(
 
 	validateSeedData(parsedData);
 
-	const results = { added: 0, updated: 0, unchanged: 0 };
+	const results: SyncResult = {
+		added: 0,
+		updated: 0,
+		unchanged: 0,
+		imagesGenerated: 0,
+		imagesFailed: 0,
+	};
 
 	db.run("BEGIN TRANSACTION");
 
@@ -144,19 +160,61 @@ export async function syncFacts(
 		throw error;
 	}
 
+	if (openaiApiKey) {
+		const factsWithoutImages = db
+			.query<{ id: number; text: string }, []>(
+				"SELECT id, text FROM facts WHERE image_path IS NULL",
+			)
+			.all();
+
+		for (const fact of factsWithoutImages) {
+			try {
+				const imagePath = await generateFactImage(fact.id, fact.text, openaiApiKey);
+				if (imagePath) {
+					db.prepare("UPDATE facts SET image_path = ? WHERE id = ?").run(imagePath, fact.id);
+					results.imagesGenerated++;
+				} else {
+					results.imagesFailed++;
+				}
+			} catch (error) {
+				console.error(
+					`Image generation failed for fact ${fact.id}:`,
+					error instanceof Error ? error.message : error,
+				);
+				results.imagesFailed++;
+			}
+		}
+	} else if (openaiApiKey === undefined || openaiApiKey === null) {
+		const missingCount = (
+			db
+				.query<{ count: number }, []>(
+					"SELECT COUNT(*) as count FROM facts WHERE image_path IS NULL",
+				)
+				.get() ?? { count: 0 }
+		).count;
+		if (missingCount > 0) {
+			console.warn(
+				`Skipping image generation: no OPENAI_API_KEY provided (${missingCount} facts without images)`,
+			);
+		}
+	}
+
 	return results;
 }
 
 if (import.meta.main) {
 	const databasePath = process.env.DATABASE_PATH || "./data/platypus-facts.db";
+	const openaiApiKey = process.env.OPENAI_API_KEY ?? null;
 	const db = createDatabase(databasePath);
 
-	const results = await syncFacts(db);
+	const results = await syncFacts(db, undefined, openaiApiKey);
 
 	console.log("Sync complete:");
 	console.log(`  Facts added: ${results.added}`);
 	console.log(`  Facts updated: ${results.updated}`);
 	console.log(`  Facts unchanged: ${results.unchanged}`);
+	console.log(`  Images generated: ${results.imagesGenerated}`);
+	console.log(`  Images failed: ${results.imagesFailed}`);
 
 	db.close();
 }

@@ -23,12 +23,16 @@ class TwilioSmsProvider implements SmsProvider {
 		this.webhookUrl = webhookUrl;
 	}
 
-	async sendSms(to: string, body: string): Promise<void> {
-		await this.client.messages.create({
+	async sendSms(to: string, body: string, mediaUrl?: string): Promise<void> {
+		const params: { from: string; to: string; body: string; mediaUrl?: string[] } = {
 			from: this.phoneNumber,
 			to,
 			body,
-		});
+		};
+		if (mediaUrl) {
+			params.mediaUrl = [mediaUrl];
+		}
+		await this.client.messages.create(params);
 	}
 
 	async parseIncomingMessage(request: Request): Promise<{ from: string; body: string }> {

@@ -22,7 +22,7 @@ const cleanupInterval = setInterval(
 );
 
 try {
-	const syncResult = await syncFacts(db);
+	const syncResult = await syncFacts(db, undefined, config.openaiApiKey);
 	console.log(
 		`Fact sync complete: ${syncResult.added} added, ${syncResult.updated} updated, ${syncResult.unchanged} unchanged`,
 	);

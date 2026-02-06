@@ -89,12 +89,12 @@ describe("daily-send", () => {
 		makeSubscriberRow(db, { phone_number: "+15554567890", status: "active" });
 
 		let callCount = 0;
-		sms.sendSms = async (to: string, body: string) => {
+		sms.sendSms = async (to: string, body: string, mediaUrl?: string) => {
 			callCount++;
 			if (callCount === 2) {
 				throw new Error("SMS delivery failed");
 			}
-			sms.sentMessages.push({ to, body });
+			sms.sentMessages.push({ to, body, mediaUrl });
 		};
 
 		const result = await runDailySend(db, sms, "https://example.com", "2025-06-15");
@@ -155,6 +155,39 @@ describe("daily-send", () => {
 
 		expect(sms.sentMessages[0].body).toContain(`https://example.com/facts/${factId}`);
 		expect(sms.sentMessages[0].body).not.toContain("//facts/");
+	});
+
+	test("sends MMS with image URL when fact has image_path", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+
+		makeFactRow(db, {
+			text: "Platypuses glow under UV light",
+			image_path: "images/facts/1.png",
+			sources: [{ url: "https://example.com/uv" }],
+		});
+		makeSubscriberRow(db, { phone_number: "+15552345678", status: "active" });
+
+		await runDailySend(db, sms, "https://example.com", "2025-06-15");
+
+		expect(sms.sentMessages).toHaveLength(1);
+		expect(sms.sentMessages[0].mediaUrl).toBe("https://example.com/images/facts/1.png");
+	});
+
+	test("sends plain SMS without mediaUrl when fact has no image_path", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+
+		makeFactRow(db, {
+			text: "Platypuses are venomous",
+			sources: [{ url: "https://example.com/venom" }],
+		});
+		makeSubscriberRow(db, { phone_number: "+15552345678", status: "active" });
+
+		await runDailySend(db, sms, "https://example.com", "2025-06-15");
+
+		expect(sms.sentMessages).toHaveLength(1);
+		expect(sms.sentMessages[0].mediaUrl).toBeUndefined();
 	});
 
 	test("uses UTC today date when no override provided", async () => {

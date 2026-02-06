@@ -69,13 +69,15 @@ async function runDailySend(
 	const factUrl = `${baseUrl}/facts/${selected.factId}`;
 	const message = dailyFactMessage(factData.fact.text, factUrl);
 
+	const imageUrl = factData.fact.image_path ? `${baseUrl}/${factData.fact.image_path}` : undefined;
+
 	const subscribers = getActiveSubscribers(db);
 	let successCount = 0;
 	let failureCount = 0;
 
 	for (const subscriber of subscribers) {
 		try {
-			await smsProvider.sendSms(subscriber.phone_number, message);
+			await smsProvider.sendSms(subscriber.phone_number, message, imageUrl);
 			successCount++;
 		} catch (error) {
 			failureCount++;
@@ -110,7 +112,7 @@ if (import.meta.main) {
 	const smsProvider = createSmsProvider();
 
 	try {
-		const syncResult = await syncFacts(db);
+		const syncResult = await syncFacts(db, undefined, config.openaiApiKey);
 		console.log(
 			`Fact sync: ${syncResult.added} added, ${syncResult.updated} updated, ${syncResult.unchanged} unchanged`,
 		);

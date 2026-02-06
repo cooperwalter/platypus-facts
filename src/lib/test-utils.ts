@@ -9,6 +9,7 @@ function makeTestDatabase(): Database {
 interface SentMessage {
 	to: string;
 	body: string;
+	mediaUrl?: string;
 }
 
 interface MockSmsProvider extends SmsProvider {
@@ -22,8 +23,8 @@ function makeMockSmsProvider(): MockSmsProvider {
 	return {
 		sentMessages,
 
-		async sendSms(to: string, body: string): Promise<void> {
-			sentMessages.push({ to, body });
+		async sendSms(to: string, body: string, mediaUrl?: string): Promise<void> {
+			sentMessages.push({ to, body, mediaUrl });
 		},
 
 		async parseIncomingMessage(request: Request): Promise<{ from: string; body: string }> {
@@ -59,10 +60,17 @@ function makeMockSmsProvider(): MockSmsProvider {
 
 function makeFactRow(
 	db: Database,
-	overrides: { text?: string; sources?: Array<{ url: string; title?: string }> } = {},
+	overrides: {
+		text?: string;
+		image_path?: string;
+		sources?: Array<{ url: string; title?: string }>;
+	} = {},
 ): number {
 	const text = overrides.text ?? `Platypuses are amazing fact #${Date.now()}`;
-	const result = db.prepare("INSERT INTO facts (text) VALUES (?)").run(text);
+	const imagePath = overrides.image_path ?? null;
+	const result = db
+		.prepare("INSERT INTO facts (text, image_path) VALUES (?, ?)")
+		.run(text, imagePath);
 	const factId = Number(result.lastInsertRowid);
 
 	const sources = overrides.sources ?? [

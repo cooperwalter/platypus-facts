@@ -3,6 +3,7 @@ import type { Database } from "bun:sqlite";
 export interface Fact {
 	id: number;
 	text: string;
+	image_path: string | null;
 	created_at: string;
 }
 
@@ -14,7 +15,7 @@ export interface FactSource {
 }
 
 export function getFactById(db: Database, id: number): Fact | null {
-	const row = db.prepare("SELECT id, text, created_at FROM facts WHERE id = ?").get(id);
+	const row = db.prepare("SELECT id, text, image_path, created_at FROM facts WHERE id = ?").get(id);
 	return row ? (row as Fact) : null;
 }
 

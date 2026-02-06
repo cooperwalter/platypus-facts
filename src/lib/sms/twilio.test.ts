@@ -63,6 +63,31 @@ describe("TwilioSmsProvider", () => {
 				body,
 			});
 		});
+
+		test("should include mediaUrl array when mediaUrl is provided", async () => {
+			const { provider, phoneNumber, mockClient } = makeTwilioProvider();
+
+			await provider.sendSms("+15559876543", "Fact!", "https://example.com/img.png");
+
+			expect(mockClient.messages.create).toHaveBeenCalledWith({
+				from: phoneNumber,
+				to: "+15559876543",
+				body: "Fact!",
+				mediaUrl: ["https://example.com/img.png"],
+			});
+		});
+
+		test("should omit mediaUrl when not provided", async () => {
+			const { provider, phoneNumber, mockClient } = makeTwilioProvider();
+
+			await provider.sendSms("+15559876543", "Plain SMS");
+
+			expect(mockClient.messages.create).toHaveBeenCalledWith({
+				from: phoneNumber,
+				to: "+15559876543",
+				body: "Plain SMS",
+			});
+		});
 	});
 
 	describe("parseIncomingMessage", () => {

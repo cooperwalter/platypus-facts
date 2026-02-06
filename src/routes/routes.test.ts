@@ -221,6 +221,36 @@ describe("GET /facts/:id", () => {
 		expect(html).toContain("Life is Strange: Double Exposure");
 	});
 
+	test("renders img tag with correct src and alt when fact has image_path", async () => {
+		const db = makeTestDatabase();
+		const factId = makeFactRow(db, {
+			text: "Platypuses glow under UV light",
+			image_path: "images/facts/42.png",
+			sources: [{ url: "https://example.com/uv", title: "UV Study" }],
+		});
+
+		const response = renderFactPage(db, factId);
+		const html = await response.text();
+
+		expect(html).toContain('<img src="/images/facts/42.png"');
+		expect(html).toContain('alt="Illustration for this platypus fact"');
+		expect(html).toContain('class="fact-image"');
+	});
+
+	test("omits img tag when fact has no image_path", async () => {
+		const db = makeTestDatabase();
+		const factId = makeFactRow(db, {
+			text: "Platypuses are monotremes",
+			sources: [{ url: "https://example.com/mono", title: "Mono Study" }],
+		});
+
+		const response = renderFactPage(db, factId);
+		const html = await response.text();
+
+		expect(html).not.toContain("<img");
+		expect(html).not.toContain("fact-image");
+	});
+
 	test("returns 404 for nonexistent numeric ID", () => {
 		const db = makeTestDatabase();
 		const response = renderFactPage(db, 99999);

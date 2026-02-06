@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, mock, test } from "bun:test";
 import * as os from "node:os";
 import * as path from "node:path";
 import { makeTestDatabase } from "../lib/test-utils";
@@ -229,6 +229,97 @@ describe("syncFacts", () => {
 		const tmpFile = await makeTempFactsFile(duplicateData);
 
 		await expect(syncFacts(db, tmpFile)).rejects.toThrow("Duplicate fact text");
+	});
+
+	test("skips image generation and logs warning when no API key provided", async () => {
+		const db = makeTestDatabase();
+		const seedData = [{ text: "Fact 1", sources: [{ url: "https://example.com/1" }] }];
+		const tmpFile = await makeTempFactsFile(seedData);
+
+		const results = await syncFacts(db, tmpFile);
+
+		expect(results.imagesGenerated).toBe(0);
+		expect(results.imagesFailed).toBe(0);
+
+		const fact = db.query("SELECT image_path FROM facts").get() as { image_path: string | null };
+		expect(fact.image_path).toBeNull();
+	});
+
+	test("skips facts that already have image_path during image generation", async () => {
+		const db = makeTestDatabase();
+		const seedData = [{ text: "Fact 1", sources: [{ url: "https://example.com/1" }] }];
+		const tmpFile = await makeTempFactsFile(seedData);
+
+		await syncFacts(db, tmpFile);
+		db.prepare("UPDATE facts SET image_path = 'images/facts/1.png' WHERE text = 'Fact 1'").run();
+
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = mock(async () => {
+			throw new Error("Should not be called");
+		}) as unknown as typeof fetch;
+
+		try {
+			const results = await syncFacts(db, tmpFile, "sk-test");
+			expect(results.imagesGenerated).toBe(0);
+			expect(results.imagesFailed).toBe(0);
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	test("generates images for facts with NULL image_path when API key provided", async () => {
+		const db = makeTestDatabase();
+		const seedData = [{ text: "Fact 1", sources: [{ url: "https://example.com/1" }] }];
+		const tmpFile = await makeTempFactsFile(seedData);
+
+		const originalFetch = globalThis.fetch;
+		const originalBunWrite = Bun.write;
+		globalThis.fetch = mock(
+			async () => new Response(JSON.stringify({ data: [{ b64_json: "AQID" }] }), { status: 200 }),
+		) as unknown as typeof fetch;
+		Bun.write = mock(async () => 0) as typeof Bun.write;
+
+		try {
+			const results = await syncFacts(db, tmpFile, "sk-test");
+			expect(results.imagesGenerated).toBe(1);
+			expect(results.imagesFailed).toBe(0);
+
+			const fact = db.query("SELECT image_path FROM facts").get() as { image_path: string | null };
+			expect(fact.image_path).toMatch(/^images\/facts\/\d+\.png$/);
+		} finally {
+			globalThis.fetch = originalFetch;
+			Bun.write = originalBunWrite;
+		}
+	});
+
+	test("continues generating images for other facts when one fails", async () => {
+		const db = makeTestDatabase();
+		const seedData = [
+			{ text: "Fact 1", sources: [{ url: "https://example.com/1" }] },
+			{ text: "Fact 2", sources: [{ url: "https://example.com/2" }] },
+		];
+		const tmpFile = await makeTempFactsFile(seedData);
+
+		const originalFetch = globalThis.fetch;
+		const originalBunWrite = Bun.write;
+		let callCount = 0;
+		globalThis.fetch = mock(async () => {
+			callCount++;
+			if (callCount === 1) {
+				return new Response("Error", { status: 500 });
+			}
+			return new Response(JSON.stringify({ data: [{ b64_json: "AQID" }] }), { status: 200 });
+		}) as unknown as typeof fetch;
+		Bun.write = mock(async () => 0) as typeof Bun.write;
+
+		try {
+			const results = await syncFacts(db, tmpFile, "sk-test");
+			expect(results.imagesGenerated).toBe(1);
+			expect(results.imagesFailed).toBe(1);
+		} finally {
+			globalThis.fetch = originalFetch;
+			Bun.write = originalBunWrite;
+		}
 	});
 
 	test("transaction rolls back all changes when a validation error occurs mid-sync", async () => {

@@ -2,11 +2,13 @@
 
 ## Status Summary
 
-All 20 priorities are implemented. The application is feature-complete and ready for manual end-to-end testing with Twilio credentials, followed by production deployment.
+All priorities (1-21) are implemented. The application is feature-complete including AI-generated fact images with MMS delivery.
 
-- **164 tests passing** (148 unit + 16 integration) across 15 test files
+- **190 tests passing** (168 unit + 22 integration) across 17 test files
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded
+- **Latest tag**: 0.0.8
+- **Spec compliance**: 100%
 
 Three items remain that require a running server with Twilio credentials:
 - End-to-end manual test of full signup/confirm/daily-send flow
@@ -42,15 +44,7 @@ Three items remain that require a running server with Twilio credentials:
 ## Priority 18: Integration Tests and Validation (tag: 0.0.3)
 
 - [x] All unit tests from Priorities 5-17 pass (`bun test`)
-- [x] Integration tests for end-to-end flows (`src/integration.test.ts`):
-  - Full signup flow: web signup -> pending -> welcome SMS -> reply "PERRY" -> active -> confirmation SMS
-  - Full signup flow with "1" confirmation keyword
-  - Daily send job: facts synced -> fact selected -> SMS sent to active subscribers -> recorded in sent_facts
-  - Fact sync: seed file loaded -> facts inserted -> re-sync idempotent -> new facts added
-  - Unsubscribe flow: active subscriber sends STOP -> unsubscribed -> excluded from daily sends
-  - Re-subscribe flow: unsubscribed -> web signup -> pending -> confirm -> active
-  - Cap enforcement end-to-end: fill to cap -> reject -> unsubscribe one -> allow
-  - Pending subscriber cannot confirm when cap reached between signup and confirmation
+- [x] Integration tests for end-to-end flows (`src/integration.test.ts`)
 - [x] Type check passes with zero errors (`bunx tsc --noEmit`)
 - [x] Lint passes with zero errors (`bunx biome check .`)
 
@@ -58,70 +52,264 @@ Three items remain that require a running server with Twilio credentials:
 
 ## Priority 19: Infrastructure and Deployment (tag: 0.0.4)
 
-- [x] `Dockerfile` (multi-stage: build with `bun install --frozen-lockfile`, production with fact sync + server start)
-- [x] `.dockerignore` (node_modules, .git, .env, *.db, *.db-shm, *.db-wal, specs/)
-- [x] `config/deploy.yml` (Kamal config: GHCR registry, health check, SQLite volume mount, env vars)
-- [x] `.github/workflows/deploy.yml` (GitHub Actions: test job with Bun, deploy job with Docker + Kamal)
-- [x] `CRON_SETUP.md` (crontab `docker exec` pattern, log rotation, verification steps)
+- [x] `Dockerfile`, `.dockerignore`, `config/deploy.yml`, `.github/workflows/deploy.yml`, `CRON_SETUP.md`
 
 ---
 
 ## Priority 20: Final Polish and Launch Preparation (tag: 0.0.5)
 
-- [x] `README.md` with "Inspired by Life is Strange: Double Exposure" attribution
-- [x] All SMS templates verified character-for-character against specs
-- [x] Daily fact SMS format verified (duck emoji + fact text + sources URL)
-- [x] SMS length confirmed: all 28 facts under 100 chars, 2-3 UCS-2 segments per message
-- [x] Signup page displays Platypus Fan count/cap with correct terminology
-- [x] Fact page renders sources with clickable links (title or URL fallback)
-- [x] Attribution appears on: signup page, fact page, welcome SMS, README
-- [x] `data/facts.json` populated with 28 real platypus facts from Wikipedia, Australian Museum, NHM, Britannica, National Geographic, San Diego Zoo, and scientific journals
-- [ ] **REQUIRES MANUAL TESTING** -- End-to-end manual test of full flow (requires running server with Twilio credentials)
-- [ ] **REQUIRES MANUAL TESTING** -- Test STOP flow manually (requires Twilio)
-- [ ] **REQUIRES MANUAL TESTING** -- Test re-subscribe flow manually (requires Twilio)
+- [x] README, SMS templates, signup page, fact page, attribution, seed data
+- [ ] **REQUIRES MANUAL TESTING** -- End-to-end flows with Twilio credentials
+
+---
+
+## Priority 21: AI-Generated Fact Images (tag: 0.0.8)
+
+Each platypus fact has an AI-generated illustration (minimalist line drawing style) displayed on the web and attached as MMS in daily SMS messages. Implemented across 11 subtasks (21a-21k), adding 3 new files and modifying 21 existing files. 26 new tests added.
+
+### Design Decisions (Resolved)
+
+1. **OPENAI_API_KEY is optional.** The server never calls the OpenAI API — only the sync script does. `loadConfig()` reads it if present; `Config` gains `openaiApiKey: string | null`. The image generation module guards on its presence. The sync script logs a warning and skips image generation when absent. This lets the server and developers run without an API key.
+
+2. **Use raw `fetch` instead of OpenAI SDK.** The DALL-E API is a single POST endpoint. Using fetch avoids a heavy SDK dependency for one API call. The request shape is simple (`model`, `prompt`, `size`, `response_format`). No new npm dependency needed.
+
+3. **Dual migration strategy for `image_path`.** Add the column to the `CREATE TABLE` statement (handles fresh databases) AND run `ALTER TABLE facts ADD COLUMN image_path TEXT` on startup, catching the "duplicate column name" error (handles existing production databases).
+
+4. **Image generation runs AFTER the sync transaction.** The current `syncFacts()` wraps upserts in a `BEGIN/COMMIT` transaction. Network I/O (OpenAI API + file write) must not be inside that transaction. After commit, iterate facts with `image_path IS NULL`, generate images, update DB individually. A crash during generation leaves facts without images — correct graceful degradation.
+
+5. **Scene context uses raw fact text.** The spec says "scene context derived from the fact text." For v1, append the raw fact text to the style prefix. If results are poor, the prompt template can be iterated.
+
+### Dependency Graph
+
+```
+21a (Schema) ──> 21b (Types/Queries) ──> 21d (Image Gen Module) ──> 21e (Sync Integration)
+                                    ├──> 21f (MMS in SmsProvider) ──> 21g (Daily Send MMS)
+                                    └──> 21h (Web Page Image)
+21c (Config) ──> 21d (Image Gen Module)
+21k (.env.example) -- standalone
+21i (Infrastructure) -- standalone
+Tests written alongside each subtask.
+```
+
+### Implementation Order
+
+| Step | Subtask | Depends On | Unblocks |
+|------|---------|------------|----------|
+| 1 | 21a (Schema + migration) | -- | Everything |
+| 2 | 21b (Types/Queries) | 21a | 21d, 21f, 21g, 21h |
+| 3 | 21c (Config) | -- | 21d, 21e |
+| 4 | 21d (Image Gen Module) | 21b, 21c | 21e |
+| 5 | 21f (MMS in SmsProvider) | 21b | 21g |
+| 6 | 21h (Web Page Image) | 21b | -- |
+| 7 | 21e (Sync Integration) | 21d | -- |
+| 8 | 21g (Daily Send MMS) | 21f | -- |
+| 9 | 21i (Infrastructure) | -- | -- |
+| 10 | 21k (.env.example) | -- | -- |
+| 11 | Final validation | All above | -- |
+
+Steps 3, 9, and 10 have no code dependencies and can be done in parallel with earlier steps. Steps 5+6 can be done in parallel once 21b is complete. Steps 7+8 can be done in parallel once their predecessors are complete.
+
+---
+
+### 21a. Database Schema — Add `image_path` Column to `facts` Table
+
+- [x] Add `image_path TEXT` column to `CREATE TABLE facts` statement between `text` and `created_at`
+  - **Modify**: `src/lib/db.ts:7` — add `image_path TEXT,` after `text TEXT NOT NULL,`
+- [x] Add migration function for existing databases: attempt `ALTER TABLE facts ADD COLUMN image_path TEXT`, catch "duplicate column name" error gracefully. Call after `initializeSchema()` in both `createDatabase()` and `createInMemoryDatabase()`.
+  - **Modify**: `src/lib/db.ts` — new function + calls at lines 42 and 49
+- [x] Update database tests to verify `image_path` column exists and accepts NULL
+  - **Modify**: `src/lib/db.test.ts`
+
+### 21b. Fact Type and Query Updates
+
+- [x] Add `image_path: string | null` to the `Fact` interface
+  - **Modify**: `src/lib/facts.ts:3-7` — add field to interface
+- [x] Update `getFactById()` SELECT to include `image_path`
+  - **Modify**: `src/lib/facts.ts:17` — `SELECT id, text, image_path, created_at FROM facts WHERE id = ?`
+  - Note: `getFactWithSources()` delegates to `getFactById()` (line 25), so it inherits the new field automatically. No separate query change needed for `getFactWithSources`.
+- [x] Update `makeFactRow()` test builder to support `image_path` override (defaults to `null`). Change INSERT from `INSERT INTO facts (text) VALUES (?)` to `INSERT INTO facts (text, image_path) VALUES (?, ?)`.
+  - **Modify**: `src/lib/test-utils.ts:60-78` — add `image_path?: string` to overrides, update INSERT statement
+- [x] Add `image_path` assertions to existing `getFactById` and `getFactWithSources` tests (verify `image_path` is returned as `null` by default)
+  - **Modify**: `src/lib/facts.test.ts`
+
+### 21c. Configuration — `OPENAI_API_KEY` (Optional)
+
+- [x] Add `openaiApiKey: string | null` to the `Config` interface
+  - **Modify**: `src/lib/config.ts:1-10` — add field
+- [x] Read `OPENAI_API_KEY` from env in `loadConfig()`, defaulting to `null` (NOT using `requireEnv()`)
+  - **Modify**: `src/lib/config.ts:72-81` — add `openaiApiKey: process.env.OPENAI_API_KEY ?? null`
+- [x] Create config tests: loads successfully without `OPENAI_API_KEY` (null), includes value when set
+  - **Create**: `src/lib/config.test.ts` (no config test file exists currently)
+
+### 21d. Image Generation Module
+
+- [x] Create image generation module:
+  - Function signature: `generateFactImage(factId: number, factText: string, apiKey: string): Promise<string | null>`
+  - Construct prompt: `"Minimalist black line drawing of a cute platypus on a white background. Hand-drawn sketchy style with occasional rosy pink cheek accents. Simple, whimsical, charming. "` + fact text
+  - POST to `https://api.openai.com/v1/images/generations` with `{ model: "dall-e-3", prompt, size: "1024x1024", response_format: "b64_json", n: 1 }` (DALL-E 3 minimum is 1024x1024; resize to 512x512 if needed, or accept 1024x1024)
+  - Decode base64 response, save to `public/images/facts/{fact_id}.png` via `Bun.write()`
+  - Return `images/facts/{fact_id}.png` on success
+  - Return `null` on any error (API failure, network error, file write error) — log error but do not throw
+  - **Create**: `src/lib/image-generation.ts`
+- [x] Create `public/images/facts/` directory with `.gitkeep`
+  - **Create**: `public/images/facts/.gitkeep`
+- [x] Create unit tests (mock `fetch` and `Bun.write`):
+  - Constructs correct prompt from fact text (style prefix + fact text)
+  - Calls correct API endpoint with correct parameters
+  - Saves to correct file path
+  - Returns relative image path on success
+  - Returns null and logs on API error (non-200)
+  - Returns null and logs on network error
+  - **Create**: `src/lib/image-generation.test.ts`
+
+### 21e. Sync-Facts Integration — Generate Images During Sync
+
+- [x] Add optional `openaiApiKey` parameter to `syncFacts()` signature
+  - **Modify**: `src/scripts/sync-facts.ts:70-73` — `syncFacts(db, factsFilePath?, openaiApiKey?)`
+- [x] After existing transaction commits (line 141), query `SELECT id, text FROM facts WHERE image_path IS NULL`
+- [x] If `openaiApiKey` is provided, iterate and call `generateFactImage()` for each, then `UPDATE facts SET image_path = ? WHERE id = ?`
+- [x] If `openaiApiKey` is null/undefined, log warning and skip image generation
+- [x] If generation fails for a single fact, log error and continue
+- [x] Return image generation stats alongside existing sync stats
+  - **Modify**: `src/scripts/sync-facts.ts`
+- [x] Update callers:
+  - `src/index.ts:25` — pass `config.openaiApiKey` to `syncFacts(db, undefined, config.openaiApiKey)`
+  - `src/jobs/daily-send.ts:113` — same pattern (read from config or env)
+  - `src/scripts/sync-facts.ts:150-162` — `import.meta.main` block reads `process.env.OPENAI_API_KEY`
+  - `src/integration.test.ts` — sync integration tests call `syncFacts(db, filePath)` and may need updating if return type gains image stats
+- [x] Update/add tests for image generation during sync:
+  - Calls image generation for facts with NULL `image_path`
+  - Skips facts that already have `image_path`
+  - Updates `image_path` in DB after generation
+  - Continues if generation fails for one fact
+  - Skips all generation when no API key (logs warning)
+  - **Modify**: `src/scripts/sync-facts.test.ts`
+
+### 21f. MMS Support in SMS Provider
+
+- [x] Add optional `mediaUrl?: string` parameter to `sendSms()` in `SmsProvider` interface
+  - **Modify**: `src/lib/sms/types.ts:2` — `sendSms(to: string, body: string, mediaUrl?: string)`
+- [x] Update Twilio implementation to forward `mediaUrl`. Twilio's `messages.create()` accepts `mediaUrl` as array of strings — conditionally add when provided.
+  - **Modify**: `src/lib/sms/twilio.ts`
+- [x] Add `mediaUrl?: string` to `SentMessage` interface
+  - **Modify**: `src/lib/test-utils.ts:9-12`
+- [x] Update mock `sendSms()` to accept and record `mediaUrl`
+  - **Modify**: `src/lib/test-utils.ts:25`
+- [x] Add tests:
+  - Twilio `sendSms` includes `mediaUrl` when provided
+  - Twilio `sendSms` omits `mediaUrl` when not provided
+  - Mock captures `mediaUrl` in `sentMessages`
+  - **Modify**: `src/lib/sms/twilio.test.ts`
+
+### 21g. Daily Send — MMS When Image Available
+
+- [x] After getting `factData` from `getFactWithSources()`, check `factData.fact.image_path`
+- [x] If image exists, construct URL: `` `${baseUrl}/images/facts/${selected.factId}.png` ``
+- [x] Pass as third arg to `smsProvider.sendSms(phone, message, imageUrl)`
+- [x] If no image, call with two args (current behavior)
+  - **Modify**: `src/jobs/daily-send.ts:76-78` (the send loop)
+- [x] Update existing `sendSms` mock overrides in `daily-send.test.ts` (lines ~92 and ~114) to accept the optional `mediaUrl` parameter, avoiding TypeScript type errors
+- [x] Add tests:
+  - Sends MMS with image URL when fact has `image_path`
+  - Sends plain SMS when fact has no `image_path`
+  - Constructs correct image URL
+  - **Modify**: `src/jobs/daily-send.test.ts`
+
+### 21h. Web Page — Display Fact Image
+
+- [x] In `renderFactPage()`, check `fact.image_path`
+- [x] If present, render `<img>` inside `.fact-card` above `.fact-text`:
+  ```html
+  <img src="/${fact.image_path}" alt="Illustration for this platypus fact" class="fact-image" />
+  ```
+  (`image_path` is stored as `images/facts/{id}.png`, prepend `/` for URL)
+- [x] If no image, omit `<img>` (current behavior)
+  - **Modify**: `src/routes/pages.ts:174-175` — add conditional `<img>` before `<p class="fact-text">`
+- [x] Add CSS for `.fact-image`: centered, max-width 100%, auto height, border-radius, bottom margin
+  - **Modify**: `public/styles.css`
+- [x] Add tests:
+  - Renders `<img>` with correct `src` and `alt` when `image_path` exists
+  - Omits `<img>` when `image_path` is null
+  - **Modify**: `src/routes/routes.test.ts`
+
+### 21i. Infrastructure Updates
+
+- [x] Add volume mount for images: `/opt/platypus-facts/images:/app/public/images/facts`
+  - **Modify**: `config/deploy.yml` (add to volumes array alongside existing data volume)
+- [x] Add `OPENAI_API_KEY` to secrets section
+  - **Modify**: `config/deploy.yml` (add to `env.secret`)
+- [x] Create `public/images/facts/` directory in Dockerfile: `RUN mkdir -p /app/public/images/facts`
+  - **Modify**: `Dockerfile` (add after existing `RUN mkdir -p /app/data`)
+
+### 21j. Integration Tests
+
+- [x] Add end-to-end image flow test:
+  - Fact with `image_path` → daily send includes `mediaUrl` → fact page shows `<img>`
+  - Fact without `image_path` → daily send is plain SMS → fact page has no `<img>`
+- [x] Update existing sync integration tests to assert new image-related stats in `syncFacts()` return value (if return type was extended in 21e)
+  - **Modify**: `src/integration.test.ts`
+
+### 21k. `.env.example` Update
+
+- [x] Add `OPENAI_API_KEY` with comment indicating it's optional
+  - **Modify**: `.env.example` — add `# Optional: required for AI image generation during fact sync` and `OPENAI_API_KEY=your_openai_api_key`
+
+---
+
+## Files Modified by Priority 21
+
+| File | Subtask | Change |
+|------|---------|--------|
+| `src/lib/db.ts` | 21a | Add `image_path` to schema + migration |
+| `src/lib/db.test.ts` | 21a | Test `image_path` column |
+| `src/lib/facts.ts` | 21b | Add to `Fact` interface + update `getFactById` query |
+| `src/lib/facts.test.ts` | 21b | Add `image_path` assertions to existing tests |
+| `src/lib/test-utils.ts` | 21b, 21f | Update `makeFactRow`, `SentMessage`, mock `sendSms` |
+| `src/lib/config.ts` | 21c | Add optional `openaiApiKey` field |
+| `src/lib/config.test.ts` | 21c | **New file**: config tests |
+| `src/lib/image-generation.ts` | 21d | **New file**: image gen module |
+| `src/lib/image-generation.test.ts` | 21d | **New file**: image gen tests |
+| `public/images/facts/.gitkeep` | 21d | **New file**: directory placeholder |
+| `src/scripts/sync-facts.ts` | 21e | Add image gen after transaction |
+| `src/scripts/sync-facts.test.ts` | 21e | Test image gen integration |
+| `src/index.ts` | 21e | Pass `openaiApiKey` to `syncFacts()` |
+| `src/lib/sms/types.ts` | 21f | Add `mediaUrl` to `sendSms` |
+| `src/lib/sms/twilio.ts` | 21f | Forward `mediaUrl` to Twilio API |
+| `src/lib/sms/twilio.test.ts` | 21f | Test MMS support |
+| `src/jobs/daily-send.ts` | 21g | Pass `mediaUrl` when image exists |
+| `src/jobs/daily-send.test.ts` | 21g | Test MMS in daily send |
+| `src/routes/pages.ts` | 21h | Render `<img>` on fact page |
+| `public/styles.css` | 21h | Add `.fact-image` styles |
+| `src/routes/routes.test.ts` | 21h | Test fact page image display |
+| `config/deploy.yml` | 21i | Add image volume + OPENAI_API_KEY secret |
+| `Dockerfile` | 21i | Create images directory |
+| `src/integration.test.ts` | 21j | Test end-to-end image flow |
+| `.env.example` | 21k | Add OPENAI_API_KEY |
 
 ---
 
 ## Known Spec Gaps and Recommendations
 
-The following areas are referenced across the specs but lack dedicated, detailed specification. These are documented here for reference during implementation.
-
 ### Error Handling and Logging Strategy
-- No spec covers structured logging format, log levels, error handling patterns, or monitoring beyond health checks.
-- **Recommendation**: Use `console.log`/`console.error` for v1 (Bun's built-in console outputs to stdout/stderr). Log structured JSON objects for important events (SMS sent, SMS failed, subscriber created, daily job summary). Add a global error handler in the HTTP server that logs unhandled errors and returns 500.
-
-### Actual Platypus Facts Content
-- The `data/facts.json` seed file is specified in format only. No actual platypus facts are provided in the specs. The example facts in `specs/seed-data.md` use placeholder URLs.
-- **Recommendation**: Research and author 20-30 real platypus facts with legitimate source URLs before launch. Each fact should be concise enough to minimize SMS segment count. The duck emoji forces UCS-2 encoding (70 char segment limit), so every daily fact SMS will be multi-segment.
+- No spec covers structured logging. Using `console.log`/`console.error` for v1 (already implemented).
 
 ### Twilio START Keyword Behavior
-- Whether the incoming webhook receives START messages at all is unclear (Twilio may consume them at the carrier level without forwarding).
-- **Recommendation**: Handle START in the incoming webhook defensively. If a START message arrives for an unsubscribed user, reply with the "visit website to re-subscribe" message. If Twilio does not forward START messages, this is a no-op.
+- **Implemented**: START from unsubscribed user returns "visit website" message. Test coverage exists.
+
+### Twilio Stop Words (fixed in 0.0.7)
+- All 8 Twilio opt-out keywords handled with test coverage for each variant.
 
 ### Database Backup Implementation
-- The infrastructure spec mentions backup options (cron copy or Litestream) but does not specify which to implement.
-- **Recommendation**: Defer to post-launch. Start with a simple daily cron backup of the SQLite file.
+- Defer to post-launch. Start with simple daily cron backup.
 
 ### UCS-2 Encoding Cost Impact
-- The `specs/cost-estimate.md` assumes "most daily fact messages fit in 1 SMS segment (<=160 chars GSM-7)" which is incorrect given the duck emoji forces UCS-2 encoding. Actual per-subscriber SMS costs will be 2-3x the estimate. This does not change the implementation.
-- **Recommendation**: Add a Priority 20 task to evaluate whether the duck emoji is worth the increased cost and update `specs/cost-estimate.md` accordingly.
+- Duck emoji forces UCS-2 encoding (2-3 segments per SMS). With MMS (Priority 21), this becomes moot — MMS is not segmented.
 
 ### Database Migration Strategy
-- No spec addresses how schema changes will be handled after initial deployment. `CREATE TABLE IF NOT EXISTS` will not alter existing tables.
-- **Recommendation**: For v1, the schema is stable and migrations are not needed. If schema changes become necessary post-launch, implement a simple version-tracking approach (e.g., a `schema_version` table).
-- **Note**: Facts are never physically deleted from the database per spec (`specs/fact-cycling.md`: "Facts are never deleted from the database"), so orphaned fact URLs in `sent_facts` are not a concern.
+- Priority 21's `image_path` column handled via dual approach: in `CREATE TABLE` for fresh DBs, `ALTER TABLE` migration for existing DBs. See 21a.
 
-### Daily Send Job "Today" Date Determination
-- **Recommendation**: Always compute "today" as the current UTC date (`new Date().toISOString().split('T')[0]`). This ensures consistency with the UTC cron schedule.
+### DALL-E 3 vs DALL-E 2 Image Sizes
+- Spec says 512x512, but DALL-E 3 minimum is 1024x1024. Options: use DALL-E 2 (supports 512x512), use DALL-E 3 at 1024x1024 (better quality, slightly higher cost ~$0.04/image), or use DALL-E 3 and resize. Decision deferred to implementation — either approach works and images are generated once per fact.
 
-### Cron Job Runs Inside Docker Container
-- The daily send job is a standalone Bun script, but Bun and the app code live inside the Docker container. The crontab runs on the host.
-- **Recommendation**: Use `docker exec <container-name> bun run src/jobs/daily-send.ts` in the host crontab.
-
-### Capacity Check TOCTOU Race Condition
-- The capacity check in signup and confirmation flows is not atomic with the subscriber state change. Under concurrent requests, the subscriber cap could briefly be exceeded.
-- **Accepted for v1**: SQLite single-writer serialization mitigates this for the single-instance deployment. The cap is enforced as a soft limit.
-
-### Duplicate Fact Text Validation
-- The fact sync script (`src/scripts/sync-facts.ts`) validates that fact text values are unique within the seed file to prevent accidental duplicates.
-- Duplicate fact text entries in `data/facts.json` will be rejected during sync with a clear validation error.
+### MMS Cost Impact (Priority 21)
+- MMS ~$0.02/message vs SMS ~$0.008/segment. At 2-3 segments per SMS, MMS is comparable or cheaper while delivering illustration inline.

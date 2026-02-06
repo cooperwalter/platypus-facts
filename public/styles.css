@@ -244,6 +244,14 @@ button[type="submit"]:disabled {
 	margin-bottom: 1.5rem;
 }
 
+.fact-image {
+	display: block;
+	max-width: 100%;
+	height: auto;
+	margin: 0 auto 1.25rem;
+	border-radius: var(--radius);
+}
+
 .fact-text {
 	font-size: 1.2rem;
 	line-height: 1.7;

@@ -12,7 +12,7 @@ Run these after implementing to get immediate feedback:
 
 - Tests: `bun test`
 - Typecheck: `bunx tsc --noEmit`
-- Lint: (configure during project setup — Biome recommended for Bun/TS projects)
+- Lint: `bun lint`
 
 ## Pre-Commit
 

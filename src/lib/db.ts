@@ -5,6 +5,7 @@ function initializeSchema(db: Database): void {
 		CREATE TABLE IF NOT EXISTS facts (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			text TEXT NOT NULL,
+			image_path TEXT,
 			created_at TEXT NOT NULL DEFAULT (datetime('now'))
 		);
 
@@ -35,11 +36,23 @@ function initializeSchema(db: Database): void {
 	`);
 }
 
+function migrateSchema(db: Database): void {
+	try {
+		db.exec("ALTER TABLE facts ADD COLUMN image_path TEXT");
+	} catch (error) {
+		if (error instanceof Error && error.message.includes("duplicate column name")) {
+			return;
+		}
+		throw error;
+	}
+}
+
 function createDatabase(path: string): Database {
 	const db = new Database(path);
 	db.exec("PRAGMA journal_mode=WAL");
 	db.exec("PRAGMA foreign_keys=ON");
 	initializeSchema(db);
+	migrateSchema(db);
 	return db;
 }
 
@@ -47,6 +60,7 @@ function createInMemoryDatabase(): Database {
 	const db = new Database(":memory:");
 	db.exec("PRAGMA foreign_keys=ON");
 	initializeSchema(db);
+	migrateSchema(db);
 	return db;
 }
 

@@ -21,7 +21,20 @@ describe("getFactById", () => {
 		expect(result).toBeDefined();
 		expect(result?.id).toBe(factId);
 		expect(result?.text).toBe("Platypuses have venomous spurs");
+		expect(result?.image_path).toBeNull();
 		expect(result?.created_at).toBeDefined();
+	});
+
+	test("returns image_path when fact has an associated image", () => {
+		const db = makeTestDatabase();
+		const factId = makeFactRow(db, {
+			text: "Platypuses glow under UV light",
+			image_path: "images/facts/1.png",
+		});
+
+		const result = getFactById(db, factId);
+
+		expect(result?.image_path).toBe("images/facts/1.png");
 	});
 
 	test("returns null when the fact ID does not exist", () => {
@@ -50,6 +63,7 @@ describe("getFactWithSources", () => {
 		expect(result).toBeDefined();
 		expect(result?.fact.id).toBe(factId);
 		expect(result?.fact.text).toBe("Platypuses are monotremes");
+		expect(result?.fact.image_path).toBeNull();
 		expect(result?.sources).toHaveLength(3);
 		expect(result?.sources[0].url).toBe("https://example.com/source1");
 		expect(result?.sources[0].title).toBe("Source 1");

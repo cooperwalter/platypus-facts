@@ -7,6 +7,7 @@ interface Config {
 	twilioPhoneNumber: string;
 	dailySendTimeUtc: string;
 	maxSubscribers: number;
+	openaiApiKey: string | null;
 }
 
 function validateTimeFormat(time: string): boolean {
@@ -69,6 +70,8 @@ function loadConfig(): Config {
 
 	const databasePath = process.env.DATABASE_PATH ?? "./data/platypus-facts.db";
 
+	const openaiApiKey = process.env.OPENAI_API_KEY ?? null;
+
 	return {
 		port,
 		baseUrl,
@@ -78,6 +81,7 @@ function loadConfig(): Config {
 		twilioPhoneNumber,
 		dailySendTimeUtc,
 		maxSubscribers,
+		openaiApiKey,
 	};
 }
 

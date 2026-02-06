@@ -122,4 +122,20 @@ describe("database setup", () => {
 		const result = db.query("PRAGMA foreign_keys").get() as { foreign_keys: number };
 		expect(result.foreign_keys).toBe(1);
 	});
+
+	test("facts table includes image_path column that accepts NULL values", () => {
+		const db = makeTestDatabase();
+		db.prepare("INSERT INTO facts (text) VALUES ('test fact')").run();
+		const row = db.query("SELECT image_path FROM facts").get() as { image_path: string | null };
+		expect(row.image_path).toBeNull();
+	});
+
+	test("facts table image_path column accepts text values", () => {
+		const db = makeTestDatabase();
+		db.prepare(
+			"INSERT INTO facts (text, image_path) VALUES ('test fact', 'images/facts/1.png')",
+		).run();
+		const row = db.query("SELECT image_path FROM facts").get() as { image_path: string | null };
+		expect(row.image_path).toBe("images/facts/1.png");
+	});
 });

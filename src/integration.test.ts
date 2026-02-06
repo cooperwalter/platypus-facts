@@ -241,6 +241,81 @@ describe("integration: re-subscribe flow", () => {
 	});
 });
 
+describe("integration: image in daily send", () => {
+	test("daily send includes mediaUrl when fact has image_path, omits when no image", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+
+		const factWithImage = makeFactRow(db, {
+			text: "Platypuses glow under UV light",
+			image_path: "images/facts/1.png",
+			sources: [{ url: "https://example.com/uv" }],
+		});
+		makeFactRow(db, {
+			text: "Platypuses are venomous",
+			sources: [{ url: "https://example.com/venom" }],
+		});
+
+		db.prepare(
+			"INSERT INTO subscribers (phone_number, status, confirmed_at) VALUES (?, 'active', datetime('now'))",
+		).run("+15558234567");
+
+		const result1 = await runDailySend(db, sms, BASE_URL, "2025-09-01");
+		if (result1.factId === null) throw new Error("Expected factId");
+
+		const firstMsg = sms.sentMessages[0];
+		if (result1.factId === factWithImage) {
+			expect(firstMsg.mediaUrl).toBe(`${BASE_URL}/images/facts/1.png`);
+		} else {
+			expect(firstMsg.mediaUrl).toBeUndefined();
+		}
+
+		sms.reset();
+		const result2 = await runDailySend(db, sms, BASE_URL, "2025-09-02");
+		if (result2.factId === null) throw new Error("Expected factId");
+
+		const secondMsg = sms.sentMessages[0];
+		if (result2.factId === factWithImage) {
+			expect(secondMsg.mediaUrl).toBe(`${BASE_URL}/images/facts/1.png`);
+		} else {
+			expect(secondMsg.mediaUrl).toBeUndefined();
+		}
+	});
+});
+
+describe("integration: fact page image display", () => {
+	test("fact page renders img tag when fact has image_path", async () => {
+		const db = makeTestDatabase();
+		const factId = makeFactRow(db, {
+			text: "Platypuses glow under UV light",
+			image_path: "images/facts/42.png",
+			sources: [{ url: "https://example.com/uv" }],
+		});
+
+		const { renderFactPage } = await import("./routes/pages");
+		const response = renderFactPage(db, factId);
+		const html = await response.text();
+
+		expect(html).toContain('<img src="/images/facts/42.png"');
+		expect(html).toContain("fact-image");
+	});
+
+	test("fact page has no img tag when fact has no image_path", async () => {
+		const db = makeTestDatabase();
+		const factId = makeFactRow(db, {
+			text: "Platypuses are monotremes",
+			sources: [{ url: "https://example.com/mono" }],
+		});
+
+		const { renderFactPage } = await import("./routes/pages");
+		const response = renderFactPage(db, factId);
+		const html = await response.text();
+
+		expect(html).not.toContain("<img");
+		expect(html).not.toContain("fact-image");
+	});
+});
+
 describe("integration: cap enforcement end-to-end", () => {
 	test("fill to cap, new signup rejected, unsubscribe one, new signup allowed", async () => {
 		const db = makeTestDatabase();
