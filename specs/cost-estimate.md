@@ -31,7 +31,7 @@ Confirmation SMS (one-time per Platypus Fan): ~$0.016 (welcome + confirmation re
 
 ## One-Time Costs (Image Generation)
 
-AI image generation (e.g., OpenAI DALL-E) costs ~$0.02–0.04 per image at 512x512. With 28 facts, initial generation costs ~$0.56–1.12. Additional facts incur the same per-image cost at sync time. This is a one-time cost per fact, not per subscriber.
+AI image generation (OpenAI DALL-E 3) costs ~$0.04 per image at 1024x1024 (the minimum size for DALL-E 3). With 28 facts, initial generation costs ~$1.12. Additional facts incur the same per-image cost at sync time. This is a one-time cost per fact, not per subscriber.
 
 ## Total Monthly Estimates
 
