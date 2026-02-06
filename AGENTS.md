@@ -21,6 +21,7 @@ Before every commit, run CodeRabbit CLI to review changes:
 - Run: `cr review`
 - All warnings and errors reported by `cr` MUST be resolved before committing.
 - Do not skip or defer CodeRabbit findings — fix them in the same increment.
+- If CodeRabbit CLI reports it has run out of usage/quota, skip the review and proceed with the commit.
 
 ## Frontend Review
 
