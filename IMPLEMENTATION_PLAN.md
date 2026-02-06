@@ -516,17 +516,17 @@ Containerization, CI/CD, and deployment configuration. Per `specs/infrastructure
 
 ## Priority 20: Final Polish and Launch Preparation
 
-- [ ] **NOT IMPLEMENTED** -- Create README.md with "Inspired by Life is Strange: Double Exposure" attribution (per `specs/overview.md`: attribution must appear in README, signup page, and welcome SMS)
-- [ ] **NOT IMPLEMENTED** -- Verify all SMS templates match `specs/subscription-flow.md` exactly (character-for-character comparison of each template)
-- [ ] **NOT IMPLEMENTED** -- Verify daily fact SMS format matches `specs/sms-integration.md` (duck emoji + "Daily Platypus Fact:" + fact text + "Sources:" + URL)
-- [ ] **NOT IMPLEMENTED** -- Verify SMS length considerations: the daily fact message uses a duck emoji (UCS-2 encoding), which reduces the segment limit to 70 characters per segment (per `specs/sms-integration.md` Cost Considerations). With the duck emoji, message prefix, fact text, and URL, every daily fact SMS will likely be multi-segment. Ensure fact texts are concise to minimize segment count.
-- [ ] **NOT IMPLEMENTED** -- Verify signup page displays Platypus Fan count and cap correctly using "Platypus Fans" terminology (per `specs/design-decisions.md` Terminology section)
-- [ ] **NOT IMPLEMENTED** -- Verify fact page renders sources with clickable links and titles
-- [ ] **NOT IMPLEMENTED** -- Verify "Inspired by Life is Strange: Double Exposure" attribution appears on: signup page, fact page, and welcome SMS (per `specs/overview.md` Project Attribution section)
-- [ ] **NOT IMPLEMENTED** -- Populate `data/facts.json` with a meaningful set of real, sourced platypus facts (aim for 20-30 facts with legitimate source URLs, not placeholder examples). Each fact text should be concise (under ~100 characters) to leave room for message framing within SMS segment limits.
-- [ ] **NOT IMPLEMENTED** -- End-to-end manual test of full flow: visit signup page -> enter phone number -> receive welcome SMS -> reply PERRY -> receive confirmation success SMS -> daily job sends fact SMS -> click source link to fact page -> verify fact and sources display correctly
-- [ ] **NOT IMPLEMENTED** -- Test STOP flow manually: reply STOP -> verify Twilio carrier-level opt-out -> verify database status updated to `unsubscribed`
-- [ ] **NOT IMPLEMENTED** -- Test re-subscribe flow manually: visit website after unsubscribe -> enter same phone -> verify reset to pending -> confirm -> verify active again
+- [x] **IMPLEMENTED** -- Create README.md with "Inspired by Life is Strange: Double Exposure" attribution
+- [x] **VERIFIED** -- All SMS templates match `specs/subscription-flow.md` exactly (character-for-character comparison confirmed)
+- [x] **VERIFIED** -- Daily fact SMS format matches `specs/sms-integration.md` (duck emoji + "Daily Platypus Fact:" + fact text + "Sources:" + URL)
+- [x] **VERIFIED** -- SMS length considerations: all 28 fact texts are under 100 characters, keeping full messages to 2-3 UCS-2 segments
+- [x] **VERIFIED** -- Signup page displays Platypus Fan count and cap correctly using "Platypus Fans" terminology
+- [x] **VERIFIED** -- Fact page renders sources with clickable links (titles displayed when available, URL fallback)
+- [x] **VERIFIED** -- "Inspired by Life is Strange: Double Exposure" attribution appears on: signup page, fact page, welcome SMS, and README
+- [x] **IMPLEMENTED** -- Populated `data/facts.json` with 28 real, sourced platypus facts from Wikipedia, Australian Museum, NHM, Britannica, National Geographic, San Diego Zoo, and scientific journals
+- [ ] **REQUIRES MANUAL TESTING** -- End-to-end manual test of full flow (requires running server with Twilio credentials)
+- [ ] **REQUIRES MANUAL TESTING** -- Test STOP flow manually (requires Twilio)
+- [ ] **REQUIRES MANUAL TESTING** -- Test re-subscribe flow manually (requires Twilio)
 
 ---
 

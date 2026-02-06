@@ -1,20 +1,170 @@
 [
   {
-    "text": "Platypuses are one of only five species of egg-laying mammals.",
+    "text": "Platypuses are one of only five species of egg-laying mammals, called monotremes.",
     "sources": [
-      { "url": "https://en.wikipedia.org/wiki/Platypus", "title": "Wikipedia - Platypus" }
+      { "url": "https://en.wikipedia.org/wiki/Monotreme", "title": "Wikipedia - Monotreme" }
     ]
   },
   {
-    "text": "Male platypuses have venomous spurs on their hind legs that can cause severe pain.",
+    "text": "Male platypuses have venomous spurs on their hind legs that cause excruciating pain.",
     "sources": [
       { "url": "https://en.wikipedia.org/wiki/Platypus_venom", "title": "Wikipedia - Platypus venom" }
     ]
   },
   {
-    "text": "Platypuses use electroreception to detect prey underwater by sensing electrical signals from muscle contractions.",
+    "text": "Platypuses close their eyes, ears, and nose underwater, navigating entirely by bill.",
+    "sources": [
+      { "url": "https://australian.museum/learn/animals/mammals/platypus/", "title": "Australian Museum - Platypus" }
+    ]
+  },
+  {
+    "text": "The platypus bill has over 40,000 electroreceptors that detect prey's muscle signals.",
+    "sources": [
+      { "url": "https://platypus.asn.au/the-platypus-bill-push-rods-and-electroreception/", "title": "Australian Platypus Conservancy - Bill and Electroreception" }
+    ]
+  },
+  {
+    "text": "Platypus fur glows blue-green under UV light. This was discovered in 2020.",
+    "sources": [
+      { "url": "https://www.degruyterbrill.com/document/doi/10.1515/mammalia-2020-0027/html", "title": "Mammalia - Biofluorescence in the platypus" }
+    ]
+  },
+  {
+    "text": "Platypuses have no stomach. Food goes directly from the esophagus to the intestine.",
+    "sources": [
+      { "url": "https://blog.nature.org/2019/10/07/the-platypus-is-weirder-than-you-ever-imagined/", "title": "The Nature Conservancy - The Platypus Is Weirder Than You Imagined" }
+    ]
+  },
+  {
+    "text": "Female platypuses nurse their young without nipples, sweating milk through skin pores.",
+    "sources": [
+      { "url": "https://australian.museum/learn/animals/mammals/platypus/", "title": "Australian Museum - Platypus" }
+    ]
+  },
+  {
+    "text": "Baby platypuses are called puggles and are the size of a jellybean when they hatch.",
+    "sources": [
+      { "url": "https://www.britannica.com/animal/platypus/Life-cycle-and-reproduction", "title": "Britannica - Platypus reproduction" }
+    ]
+  },
+  {
+    "text": "The platypus has 10 sex chromosomes, compared to 2 in most mammals.",
+    "sources": [
+      { "url": "https://science.ku.dk/english/press/news/2021/how-earths-oddest-mammal-got-to-be-so-bizarre", "title": "University of Copenhagen - Platypus genome" }
+    ]
+  },
+  {
+    "text": "The platypus stores fat in its beaver-like tail as an energy reserve.",
+    "sources": [
+      { "url": "https://www.bushheritage.org.au/species/platypus", "title": "Bush Heritage Australia - Platypus" }
+    ]
+  },
+  {
+    "text": "When Europeans first saw a platypus specimen in 1799, they thought it was a hoax.",
+    "sources": [
+      { "url": "https://www.nhm.ac.uk/discover/the-platypus-puzzle.html", "title": "Natural History Museum - The platypus puzzle" }
+    ]
+  },
+  {
+    "text": "Platypus venom is powerful enough to kill a dog but is not lethal to humans.",
+    "sources": [
+      { "url": "https://en.wikipedia.org/wiki/Platypus_venom", "title": "Wikipedia - Platypus venom" }
+    ]
+  },
+  {
+    "text": "A platypus must eat about 20% of its body weight in food every day.",
+    "sources": [
+      { "url": "https://animals.sandiegozoo.org/animals/platypus", "title": "San Diego Zoo - Platypus" }
+    ]
+  },
+  {
+    "text": "Platypuses use gravel to grind their food because they have no teeth as adults.",
+    "sources": [
+      { "url": "https://animals.sandiegozoo.org/animals/platypus", "title": "San Diego Zoo - Platypus" }
+    ]
+  },
+  {
+    "text": "Platypuses store caught prey in cheek pouches and chew it at the surface.",
+    "sources": [
+      { "url": "https://australian.museum/learn/animals/mammals/platypus/", "title": "Australian Museum - Platypus" }
+    ]
+  },
+  {
+    "text": "A platypus's body temperature is 32°C, five degrees lower than most mammals.",
+    "sources": [
+      { "url": "https://platypus.asn.au/platypus-body-temperature/", "title": "Australian Platypus Conservancy - Body temperature" }
+    ]
+  },
+  {
+    "text": "The platypus's waterproof fur traps air for insulation, even in near-freezing water.",
+    "sources": [
+      { "url": "https://www.nationalgeographic.com/animals/mammals/facts/platypus", "title": "National Geographic - Platypus" }
+    ]
+  },
+  {
+    "text": "Platypus milk contains a unique protein that can fight antibiotic-resistant bacteria.",
+    "sources": [
+      { "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5947691/", "title": "PMC - Antimicrobial protein from platypus milk" }
+    ]
+  },
+  {
+    "text": "A platypus can detect a shrimp's tail flick from the electric field it generates.",
     "sources": [
       { "url": "https://en.wikipedia.org/wiki/Electroreception_and_electrogenesis", "title": "Wikipedia - Electroreception" }
+    ]
+  },
+  {
+    "text": "Front feet of a platypus have extra webbing that retracts on land to expose claws.",
+    "sources": [
+      { "url": "https://australian.museum/learn/animals/mammals/platypus/", "title": "Australian Museum - Platypus" }
+    ]
+  },
+  {
+    "text": "The platypus spends about 12 hours a day foraging underwater for food.",
+    "sources": [
+      { "url": "https://animals.sandiegozoo.org/animals/platypus", "title": "San Diego Zoo - Platypus" }
+    ]
+  },
+  {
+    "text": "Platypuses are only found in the wild in eastern Australia and Tasmania.",
+    "sources": [
+      { "url": "https://en.wikipedia.org/wiki/Platypus", "title": "Wikipedia - Platypus" }
+    ]
+  },
+  {
+    "text": "Female platypuses lay 1-3 leathery eggs and incubate them for about 10 days.",
+    "sources": [
+      { "url": "https://www.britannica.com/animal/platypus/Life-cycle-and-reproduction", "title": "Britannica - Platypus reproduction" }
+    ]
+  },
+  {
+    "text": "Platypus sex chromosomes are more similar to birds than to other mammals.",
+    "sources": [
+      { "url": "https://science.ku.dk/english/press/news/2021/how-earths-oddest-mammal-got-to-be-so-bizarre", "title": "University of Copenhagen - Platypus genome" }
+    ]
+  },
+  {
+    "text": "George Shaw, who first described the platypus in 1799, cut the pelt looking for stitches.",
+    "sources": [
+      { "url": "https://www.nhm.ac.uk/discover/the-platypus-puzzle.html", "title": "Natural History Museum - The platypus puzzle" }
+    ]
+  },
+  {
+    "text": "The platypus is listed as Near Threatened due to habitat loss and declining numbers.",
+    "sources": [
+      { "url": "https://platypus.asn.au/conservation-status/", "title": "Australian Platypus Conservancy - Conservation status" }
+    ]
+  },
+  {
+    "text": "Platypuses can live over 20 years in the wild, long for a small mammal.",
+    "sources": [
+      { "url": "https://en.wikipedia.org/wiki/Platypus", "title": "Wikipedia - Platypus" }
+    ]
+  },
+  {
+    "text": "Platypus venom is made from defensin-like proteins produced by the immune system.",
+    "sources": [
+      { "url": "https://en.wikipedia.org/wiki/Platypus_venom", "title": "Wikipedia - Platypus venom" }
     ]
   }
 ]
