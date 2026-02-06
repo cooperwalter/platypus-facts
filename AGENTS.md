@@ -22,6 +22,18 @@ Before every commit, run CodeRabbit CLI to review changes:
 - All warnings and errors reported by `cr` MUST be resolved before committing.
 - Do not skip or defer CodeRabbit findings — fix them in the same increment.
 
+## Frontend Review
+
+After any change to frontend pages (HTML, CSS, templates, or UI-related code), use an Opus subagent acting as a UX/UI expert to review the changes. The subagent should:
+
+- Evaluate visual hierarchy, spacing, and layout consistency
+- Check accessibility (contrast, focus states, semantic HTML, screen reader compatibility)
+- Verify the design matches the *Life is Strange: Double Exposure* themed aesthetic from the specs
+- Flag usability issues (confusing flows, missing feedback states, unclear CTAs)
+- Review responsive behavior across mobile and desktop viewports
+
+Resolve all issues raised by the UX/UI review subagent before committing.
+
 ## Operational Notes
 
 - Database: SQLite file at path configured by `DATABASE_PATH` env var (default `./data/platypus-facts.db`)

@@ -1,0 +1,20 @@
+[
+  {
+    "text": "Platypuses are one of only five species of egg-laying mammals.",
+    "sources": [
+      { "url": "https://en.wikipedia.org/wiki/Platypus", "title": "Wikipedia - Platypus" }
+    ]
+  },
+  {
+    "text": "Male platypuses have venomous spurs on their hind legs that can cause severe pain.",
+    "sources": [
+      { "url": "https://en.wikipedia.org/wiki/Platypus_venom", "title": "Wikipedia - Platypus venom" }
+    ]
+  },
+  {
+    "text": "Platypuses use electroreception to detect prey underwater by sensing electrical signals from muscle contractions.",
+    "sources": [
+      { "url": "https://en.wikipedia.org/wiki/Electroreception_and_electrogenesis", "title": "Wikipedia - Electroreception" }
+    ]
+  }
+]
