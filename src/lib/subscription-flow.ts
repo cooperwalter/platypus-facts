@@ -16,7 +16,16 @@ interface SignupResult {
 	message: string;
 }
 
-const STOP_WORDS = new Set(["stop", "stopall", "unsubscribe", "cancel", "end", "quit"]);
+const STOP_WORDS = new Set([
+	"stop",
+	"stopall",
+	"unsubscribe",
+	"cancel",
+	"end",
+	"quit",
+	"revoke",
+	"optout",
+]);
 
 async function signup(
 	db: Database,

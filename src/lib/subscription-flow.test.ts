@@ -207,6 +207,31 @@ describe("handleIncomingMessage - STOP handling", () => {
 		const sub = findByPhoneNumber(db, "+15558234567");
 		expect(sub?.status).toBe("unsubscribed");
 	});
+
+	test.each(["STOPALL", "UNSUBSCRIBE", "CANCEL", "END", "QUIT", "REVOKE", "OPTOUT"])(
+		"unsubscribes active subscriber when they send Twilio stop word '%s'",
+		async (stopWord) => {
+			const db = makeTestDatabase();
+			makeSubscriberRow(db, { phone_number: "+15558234567", status: "active" });
+
+			const reply = await handleIncomingMessage(db, "+15558234567", stopWord, BASE_URL, 1000);
+			expect(reply).toBeUndefined();
+
+			const sub = findByPhoneNumber(db, "+15558234567");
+			expect(sub?.status).toBe("unsubscribed");
+		},
+	);
+
+	test("unsubscribes subscriber when stop word is lowercase", async () => {
+		const db = makeTestDatabase();
+		makeSubscriberRow(db, { phone_number: "+15558234567", status: "active" });
+
+		const reply = await handleIncomingMessage(db, "+15558234567", "optout", BASE_URL, 1000);
+		expect(reply).toBeUndefined();
+
+		const sub = findByPhoneNumber(db, "+15558234567");
+		expect(sub?.status).toBe("unsubscribed");
+	});
 });
 
 describe("handleIncomingMessage - other messages", () => {
