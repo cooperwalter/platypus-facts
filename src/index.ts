@@ -1,14 +1,18 @@
 import * as path from "node:path";
 import { loadConfig } from "./lib/config";
 import { createDatabase } from "./lib/db";
+import { DevEmailProvider } from "./lib/email/dev";
 import { createEmailProvider } from "./lib/email/index";
 import { createRateLimiter } from "./lib/rate-limiter";
+import { DevSmsProvider } from "./lib/sms/dev";
 import { createSmsProvider } from "./lib/sms/index";
 import { handleHealthCheck } from "./routes/health";
 import {
 	handleUnsubscribe,
 	render404Page,
 	renderConfirmationPage,
+	renderDevMessage,
+	renderDevMessageList,
 	renderFactPage,
 	renderSignupPage,
 	renderUnsubscribePage,
@@ -39,9 +43,14 @@ try {
 	console.error("Fact sync failed on startup:", error);
 }
 
+const devSmsProvider = smsProvider instanceof DevSmsProvider ? smsProvider : null;
+const devEmailProvider = emailProvider instanceof DevEmailProvider ? emailProvider : null;
+const devRoutesEnabled = devSmsProvider !== null || devEmailProvider !== null;
+
 const FACTS_ROUTE_PATTERN = /^\/facts\/(\d+)$/;
 const CONFIRM_ROUTE_PATTERN = /^\/confirm\/([a-f0-9-]{36})$/;
 const UNSUBSCRIBE_ROUTE_PATTERN = /^\/unsubscribe\/([a-f0-9-]{36})$/;
+const DEV_MESSAGE_DETAIL_PATTERN = /^\/dev\/messages\/((?:sms|email)-\d+)$/;
 
 async function handleRequest(request: Request): Promise<Response> {
 	const url = new URL(request.url);
@@ -70,6 +79,21 @@ async function handleRequest(request: Request): Promise<Response> {
 
 	if (method === "POST" && pathname === "/api/webhooks/twilio/incoming") {
 		return handleTwilioWebhook(request, db, smsProvider, config.baseUrl, config.maxSubscribers);
+	}
+
+	if (devRoutesEnabled && method === "GET" && pathname === "/dev/messages") {
+		const smsMessages = devSmsProvider?.getStoredMessages() ?? [];
+		const emailMessages = devEmailProvider?.getStoredEmails() ?? [];
+		return renderDevMessageList(smsMessages, emailMessages);
+	}
+
+	if (devRoutesEnabled && method === "GET") {
+		const devDetailMatch = pathname.match(DEV_MESSAGE_DETAIL_PATTERN);
+		if (devDetailMatch) {
+			const smsMessages = devSmsProvider?.getStoredMessages() ?? [];
+			const emailMessages = devEmailProvider?.getStoredEmails() ?? [];
+			return renderDevMessage(devDetailMatch[1], smsMessages, emailMessages);
+		}
 	}
 
 	const unsubMatch = pathname.match(UNSUBSCRIBE_ROUTE_PATTERN);

@@ -369,6 +369,116 @@ button[type="submit"]:disabled {
 	margin-bottom: 1rem;
 }
 
+.dev-messages {
+	background: var(--color-surface);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	padding: 1.5rem;
+}
+
+.dev-messages h2 {
+	font-size: 1.2rem;
+	margin-bottom: 1rem;
+}
+
+.dev-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.85rem;
+}
+
+.dev-table th,
+.dev-table td {
+	padding: 0.5rem 0.5rem;
+	text-align: left;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.dev-table th {
+	font-weight: bold;
+	color: var(--color-text-muted);
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.dev-empty {
+	text-align: center;
+	color: var(--color-text-muted);
+	font-style: italic;
+	padding: 2rem 0.5rem;
+}
+
+.dev-badge {
+	display: inline-block;
+	padding: 0.15rem 0.4rem;
+	border-radius: 4px;
+	font-size: 0.7rem;
+	font-weight: bold;
+	letter-spacing: 0.05em;
+}
+
+.dev-badge-sms {
+	background: #e0f0e0;
+	color: var(--color-success);
+}
+
+.dev-badge-email {
+	background: #e0e8f0;
+	color: #3d5a80;
+}
+
+.dev-detail {
+	background: var(--color-surface);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	padding: 1.5rem;
+}
+
+.dev-detail h2 {
+	font-size: 1.2rem;
+	margin-bottom: 1rem;
+}
+
+.dev-detail h3 {
+	font-size: 1rem;
+	margin: 1rem 0 0.5rem;
+	color: var(--color-text-muted);
+}
+
+.dev-detail dl {
+	margin-bottom: 1rem;
+}
+
+.dev-detail dt {
+	font-weight: bold;
+	color: var(--color-text-muted);
+	font-size: 0.85rem;
+	margin-top: 0.5rem;
+}
+
+.dev-detail dd {
+	margin-left: 0;
+	margin-bottom: 0.25rem;
+}
+
+.dev-body {
+	background: var(--color-bg);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	padding: 1rem;
+	white-space: pre-wrap;
+	word-break: break-word;
+	font-size: 0.9rem;
+}
+
+.dev-email-preview {
+	background: #fff;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	padding: 1rem;
+}
+
 @media (max-width: 480px) {
 	body {
 		padding: 1rem 0.75rem;

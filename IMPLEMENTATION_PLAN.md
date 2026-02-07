@@ -2,14 +2,14 @@
 
 ## Status Summary
 
-Priorities 1-38 are implemented and committed. A comprehensive spec-vs-implementation audit has identified **4 remaining priorities** covering dev viewer, CLI, animated platypus, and infrastructure.
+Priorities 1-39 are implemented and committed. A comprehensive spec-vs-implementation audit has identified **3 remaining priorities** covering CLI, animated platypus, and infrastructure.
 
-- **406 tests passing** across 23 test files with **889 expect() calls**
+- **417 tests passing** across 23 test files with **928 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations
-- **Latest tag**: 0.0.25
+- **Latest tag**: 0.0.26
 - **SMS-only spec compliance**: ~100%
-- **Full spec compliance**: ~95% (dev viewer, CLI --force, animated platypus still remaining)
+- **Full spec compliance**: ~97% (CLI --force, animated platypus still remaining)
 
 ### What Exists (Priorities 1-27)
 
@@ -26,7 +26,7 @@ Priorities 1-38 are implemented and committed. A comprehensive spec-vs-implement
 - Daily send supports both SMS and email channels with per-channel result breakdown (`smsSuccess`, `smsFail`, `emailSuccess`, `emailFail`). Accepts optional `EmailProvider`. No `--force` flag. No `NODE_ENV` check.
 - `GET /confirm/:token` route with all confirmation states (P36 complete). Reusable `renderMessagePage` helper for status pages.
 - `GET/POST /unsubscribe/:token` routes with confirmation form, all states (P37 complete).
-- No routes for `/dev/messages`.
+- Dev message viewer: `GET /dev/messages` (list) and `GET /dev/messages/:id` (detail) routes, only active when dev providers are in use (P39 complete).
 
 ---
 
@@ -42,17 +42,7 @@ Priorities 1-38 are implemented and committed. A comprehensive spec-vs-implement
 
 ### ~~Priority 38: Daily send job -- email channel support~~ -- DONE (0.0.25)
 
-### Priority 39: Dev message viewer routes
-
-**Spec**: `specs/web-pages.md`, `specs/design-decisions.md`
-**Gap**: No `/dev/messages` or `/dev/messages/:id` routes exist in `src/index.ts`.
-
-- Add routes to `index.ts` (only when dev providers are active / `nodeEnv === "development"`):
-  - `GET /dev/messages` -- lists all sent messages (SMS + email, newest first) with recipient, type, subject/preview, and timestamp
-  - `GET /dev/messages/:id` -- displays specific message (renders HTML for email, text for SMS)
-- Create page rendering functions for dev message viewer
-- Never available in production (guard on `nodeEnv`)
-- Tests for dev viewer routes
+### ~~Priority 39: Dev message viewer routes~~ -- DONE (0.0.26)
 
 ### Priority 40: CLI `--force` flag for daily-send
 
@@ -146,6 +136,7 @@ Priorities 1-38 are implemented and committed. A comprehensive spec-vs-implement
 | 36 | Email confirmation route (`GET /confirm/:token`) with all states, reusable message page helper | 0.0.23 |
 | 37 | Unsubscribe routes (`GET/POST /unsubscribe/:token`) with confirmation form and all states | 0.0.24 |
 | 38 | Daily send email channel (dual SMS+email, per-channel counts, null phone guard, unsubscribe headers) | 0.0.25 |
+| 39 | Dev message viewer (`/dev/messages` list + `/dev/messages/:id` detail, SMS + email, dev-only) | 0.0.26 |
 
 ---
 
@@ -154,10 +145,7 @@ Priorities 1-38 are implemented and committed. A comprehensive spec-vs-implement
 ```
 P41 (Animated swimming platypus) ─── independent, can be done anytime
 
-P30-38 (DB + DAL + Email + Sub flow + Routes + Daily send) ─ DONE ──┐
-                                                  │
-                                                  │
-P39 (Dev message viewer) ──────────────────────┤
+P30-39 (DB + DAL + Email + Sub flow + Routes + Daily send + Dev viewer) ─ DONE ──┐
                                                   │
 P40 (CLI --force flag) ─────────────────────────┤
                                                   │
@@ -168,8 +156,7 @@ P43 (Infra configs for email) ─── last
 
 ### Dependency Details
 
-- **P30-38** (DB schema + DAL + email provider + dev SMS + subscription flow + form + confirm + unsubscribe + daily send email) are complete.
-- **P39** (dev viewer) depends on P32 (dev email provider) and P33 (dev SMS provider) for stored messages.
+- **P30-39** (DB schema + DAL + email provider + dev SMS + subscription flow + form + confirm + unsubscribe + daily send email + dev viewer) are complete.
 - **P40** (--force) depends on P29 (NODE_ENV for production rejection).
 - **P41** (animated platypus) is fully independent. Can be done at any time.
 - **P42** (integration tests) depends on all feature work being complete.
@@ -232,9 +219,9 @@ For reference, here is the complete gap inventory mapped to their priorities:
 ~~39. `subscriber.phone_number.slice(-4)` crashes for email-only subscribers (null)~~
 ~~40. `DailySendResult` has no per-channel breakdown~~
 
-### In P39 (Dev message viewer):
-41. No `/dev/messages` route
-42. No `/dev/messages/:id` route
+### ~~In P39 (Dev message viewer)~~ -- DONE:
+~~41. No `/dev/messages` route~~
+~~42. No `/dev/messages/:id` route~~
 
 ### In P40 (CLI --force):
 43. No `--force` flag parsing in daily-send `import.meta.main` block

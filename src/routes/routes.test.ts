@@ -11,6 +11,8 @@ import {
 	handleUnsubscribe,
 	render404Page,
 	renderConfirmationPage,
+	renderDevMessage,
+	renderDevMessageList,
 	renderFactPage,
 	renderSignupPage,
 	renderUnsubscribePage,
@@ -976,5 +978,195 @@ describe("POST /unsubscribe/:token", () => {
 		expect(response.status).toBe(404);
 		const html = await response.text();
 		expect(html).toContain("Invalid Link");
+	});
+});
+
+describe("GET /dev/messages", () => {
+	test("renders empty state when no messages have been sent", async () => {
+		const response = renderDevMessageList([], []);
+		const html = await response.text();
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
+		expect(html).toContain("Sent Messages (0)");
+		expect(html).toContain("No messages sent yet.");
+	});
+
+	test("lists SMS messages with recipient, type badge, preview, and timestamp", async () => {
+		const smsMessages = [
+			{
+				id: 1,
+				to: "+15552345678",
+				body: "Daily Platypus Fact: They glow!",
+				mediaUrl: undefined,
+				timestamp: "2025-06-15T14:00:00Z",
+			},
+		];
+		const response = renderDevMessageList(smsMessages, []);
+		const html = await response.text();
+
+		expect(html).toContain("Sent Messages (1)");
+		expect(html).toContain("+15552345678");
+		expect(html).toContain("SMS");
+		expect(html).toContain("They glow!");
+		expect(html).toContain("2025-06-15T14:00:00Z");
+		expect(html).toContain('href="/dev/messages/sms-1"');
+	});
+
+	test("lists email messages with recipient, type badge, subject, and timestamp", async () => {
+		const emailMessages = [
+			{
+				id: 1,
+				recipient: "fan@example.com",
+				subject: "Your Daily Platypus Fact",
+				htmlBody: "<p>Fact</p>",
+				plainBody: "Fact",
+				headers: undefined,
+				timestamp: "2025-06-15T14:00:00Z",
+			},
+		];
+		const response = renderDevMessageList([], emailMessages);
+		const html = await response.text();
+
+		expect(html).toContain("Sent Messages (1)");
+		expect(html).toContain("fan@example.com");
+		expect(html).toContain("EMAIL");
+		expect(html).toContain("Your Daily Platypus Fact");
+		expect(html).toContain('href="/dev/messages/email-1"');
+	});
+
+	test("combines SMS and email messages sorted newest first", async () => {
+		const smsMessages = [
+			{
+				id: 1,
+				to: "+15552345678",
+				body: "Old SMS",
+				mediaUrl: undefined,
+				timestamp: "2025-06-15T12:00:00Z",
+			},
+		];
+		const emailMessages = [
+			{
+				id: 1,
+				recipient: "fan@example.com",
+				subject: "New Email",
+				htmlBody: "<p>Fact</p>",
+				plainBody: "Fact",
+				headers: undefined,
+				timestamp: "2025-06-15T14:00:00Z",
+			},
+		];
+		const response = renderDevMessageList(smsMessages, emailMessages);
+		const html = await response.text();
+
+		expect(html).toContain("Sent Messages (2)");
+		const emailPos = html.indexOf("fan@example.com");
+		const smsPos = html.indexOf("+15552345678");
+		expect(emailPos).toBeLessThan(smsPos);
+	});
+
+	test("truncates SMS body preview to 80 characters", async () => {
+		const longBody = "A".repeat(100);
+		const smsMessages = [
+			{
+				id: 1,
+				to: "+15552345678",
+				body: longBody,
+				mediaUrl: undefined,
+				timestamp: "2025-06-15T14:00:00Z",
+			},
+		];
+		const response = renderDevMessageList(smsMessages, []);
+		const html = await response.text();
+
+		expect(html).toContain(`${"A".repeat(80)}...`);
+		expect(html).not.toContain("A".repeat(81));
+	});
+});
+
+describe("GET /dev/messages/:id", () => {
+	test("renders SMS detail with recipient, timestamp, and full body text", async () => {
+		const smsMessages = [
+			{
+				id: 1,
+				to: "+15552345678",
+				body: "Daily Platypus Fact: They glow under UV!",
+				mediaUrl: undefined,
+				timestamp: "2025-06-15T14:00:00Z",
+			},
+		];
+		const response = renderDevMessage("sms-1", smsMessages, []);
+		const html = await response.text();
+
+		expect(response.status).toBe(200);
+		expect(html).toContain("SMS Message");
+		expect(html).toContain("+15552345678");
+		expect(html).toContain("Daily Platypus Fact: They glow under UV!");
+		expect(html).toContain("2025-06-15T14:00:00Z");
+		expect(html).toContain('href="/dev/messages"');
+	});
+
+	test("renders SMS detail with media URL when present", async () => {
+		const smsMessages = [
+			{
+				id: 1,
+				to: "+15552345678",
+				body: "Fact with image",
+				mediaUrl: "https://example.com/images/facts/1.png",
+				timestamp: "2025-06-15T14:00:00Z",
+			},
+		];
+		const response = renderDevMessage("sms-1", smsMessages, []);
+		const html = await response.text();
+
+		expect(html).toContain("Media");
+		expect(html).toContain("https://example.com/images/facts/1.png");
+	});
+
+	test("renders email detail with recipient, subject, timestamp, and HTML body", async () => {
+		const emailMessages = [
+			{
+				id: 1,
+				recipient: "fan@example.com",
+				subject: "Your Daily Platypus Fact",
+				htmlBody: "<p>Platypuses glow under UV light!</p>",
+				plainBody: "Platypuses glow under UV light!",
+				headers: undefined,
+				timestamp: "2025-06-15T14:00:00Z",
+			},
+		];
+		const response = renderDevMessage("email-1", [], emailMessages);
+		const html = await response.text();
+
+		expect(response.status).toBe(200);
+		expect(html).toContain("Email Message");
+		expect(html).toContain("fan@example.com");
+		expect(html).toContain("Your Daily Platypus Fact");
+		expect(html).toContain("<p>Platypuses glow under UV light!</p>");
+		expect(html).toContain("2025-06-15T14:00:00Z");
+	});
+
+	test("returns 404 for nonexistent SMS message ID", async () => {
+		const response = renderDevMessage("sms-999", [], []);
+
+		expect(response.status).toBe(404);
+		const html = await response.text();
+		expect(html).toContain("Not Found");
+	});
+
+	test("returns 404 for nonexistent email message ID", async () => {
+		const response = renderDevMessage("email-999", [], []);
+
+		expect(response.status).toBe(404);
+		const html = await response.text();
+		expect(html).toContain("Not Found");
+	});
+
+	test("returns 404 for invalid message ID format", async () => {
+		const response = renderDevMessage("invalid-id", [], []);
+
+		expect(response.status).toBe(404);
+		const html = await response.text();
+		expect(html).toContain("Not Found");
 	});
 });
