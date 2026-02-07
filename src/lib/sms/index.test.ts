@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { DevSmsProvider } from "./dev";
 import { createSmsProvider } from "./index";
 
 describe("createSmsProvider", () => {
@@ -33,27 +34,29 @@ describe("createSmsProvider", () => {
 		expect(typeof provider.validateWebhookSignature).toBe("function");
 	});
 
-	test("should throw an error when TWILIO_ACCOUNT_SID is missing", () => {
+	test("should return DevSmsProvider when TWILIO_ACCOUNT_SID is missing", () => {
 		process.env.TWILIO_ACCOUNT_SID = undefined;
-
-		expect(() => createSmsProvider()).toThrow(
-			"Missing required Twilio configuration: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER must be set",
-		);
+		const provider = createSmsProvider();
+		expect(provider).toBeInstanceOf(DevSmsProvider);
 	});
 
-	test("should throw an error when TWILIO_AUTH_TOKEN is missing", () => {
+	test("should return DevSmsProvider when TWILIO_AUTH_TOKEN is missing", () => {
 		process.env.TWILIO_AUTH_TOKEN = undefined;
-
-		expect(() => createSmsProvider()).toThrow(
-			"Missing required Twilio configuration: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER must be set",
-		);
+		const provider = createSmsProvider();
+		expect(provider).toBeInstanceOf(DevSmsProvider);
 	});
 
-	test("should throw an error when TWILIO_PHONE_NUMBER is missing", () => {
+	test("should return DevSmsProvider when TWILIO_PHONE_NUMBER is missing", () => {
 		process.env.TWILIO_PHONE_NUMBER = undefined;
+		const provider = createSmsProvider();
+		expect(provider).toBeInstanceOf(DevSmsProvider);
+	});
 
-		expect(() => createSmsProvider()).toThrow(
-			"Missing required Twilio configuration: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER must be set",
-		);
+	test("should return DevSmsProvider when all Twilio vars are missing", () => {
+		process.env.TWILIO_ACCOUNT_SID = undefined;
+		process.env.TWILIO_AUTH_TOKEN = undefined;
+		process.env.TWILIO_PHONE_NUMBER = undefined;
+		const provider = createSmsProvider();
+		expect(provider).toBeInstanceOf(DevSmsProvider);
 	});
 });

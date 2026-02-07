@@ -2,14 +2,14 @@
 
 ## Status Summary
 
-Priorities 1-32 are implemented and committed. A comprehensive spec-vs-implementation audit has identified **10 remaining priorities** covering dev providers, subscription flow email awareness, new routes, animated platypus, and CLI enhancements.
+Priorities 1-33 are implemented and committed. A comprehensive spec-vs-implementation audit has identified **9 remaining priorities** covering subscription flow email awareness, new routes, animated platypus, and CLI enhancements.
 
-- **348 tests passing** across 21 test files with **739 expect() calls**
+- **363 tests passing** across 22 test files with **764 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations
-- **Latest tag**: 0.0.19
+- **Latest tag**: 0.0.20
 - **SMS-only spec compliance**: ~100%
-- **Full spec compliance**: ~78% (subscription flow, routes, dev providers, animated platypus still missing)
+- **Full spec compliance**: ~80% (subscription flow, routes, animated platypus still missing)
 
 ### What Exists (Priorities 1-27)
 
@@ -17,7 +17,7 @@ Priorities 1-32 are implemented and committed. A comprehensive spec-vs-implement
 - Database has 4 tables. `subscribers` has `phone_number TEXT UNIQUE` (nullable), `email TEXT UNIQUE`, `token TEXT NOT NULL UNIQUE` (P30 complete).
 - Subscriber DAL has `findByPhoneNumber`, `findByEmail`, `findByToken`, `createSubscriber(db, { phone?, email? })`, `updateStatus`, `updateContactInfo`, `getActiveCount`, `getActiveSubscribers` (P31 complete).
 - Subscription flow is phone-only: `signup(db, smsProvider, phoneInput, maxSubscribers)`, `handleIncomingMessage(db, from, body, baseUrl, maxSubscribers)`.
-- SMS provider throws if Twilio vars are missing. No dev SMS provider.
+- SMS provider falls back to DevSmsProvider when Twilio vars are missing (P33 complete). Dev provider stores messages in memory with sequential IDs, logs to console, validates all webhooks.
 - Image generation uses fixed style prompt with no-text instruction (P28 complete).
 - Email provider abstraction complete (P32): `EmailProvider` interface, Postmark implementation, dev email provider, factory function `createEmailProvider(config)`. Email templates for daily fact, confirmation, and already-subscribed. `escapeHtml`/`isSafeUrl` extracted to shared `src/lib/html-utils.ts`. `makeMockEmailProvider()` in test-utils. `unsubscribeHeaders()` for RFC 8058 List-Unsubscribe support.
 - Daily send is SMS-only with null phone guard. No email sending. No `--force` flag. No `NODE_ENV` check.
@@ -29,20 +29,6 @@ Priorities 1-32 are implemented and committed. A comprehensive spec-vs-implement
 ---
 
 ## Remaining Work -- Prioritized
-
-### Priority 33: Dev SMS provider
-
-**Spec**: `specs/sms-integration.md`, `specs/design-decisions.md`
-**Gap**: `createSmsProvider()` in `src/lib/sms/index.ts` throws when Twilio env vars are missing. Spec says a dev SMS provider should be used instead.
-
-- Create `src/lib/sms/dev.ts` -- dev SMS provider that:
-  - Logs a summary of each sent message to console
-  - Stores sent messages in memory (with timestamps, IDs)
-  - Export function to get stored messages (for dev message viewer)
-  - `validateWebhookSignature` returns true (for dev testing)
-- Update `src/lib/sms/index.ts` to return dev provider when Twilio env vars are not configured (instead of throwing)
-- Update existing tests that depend on the throw behavior
-- Tests for dev SMS provider
 
 ### Priority 34: Subscription flow -- email awareness
 
@@ -228,6 +214,7 @@ Priorities 1-32 are implemented and committed. A comprehensive spec-vs-implement
 | 29 | NODE_ENV-based config: nodeEnv field, Twilio/Postmark nullable in dev, required in production | 0.0.17 |
 | 30-31 | DB schema (email, token, nullable phone) + subscriber DAL (findByEmail/Token, updateContactInfo) | 0.0.18 |
 | 32 | Email provider (EmailProvider interface, Postmark, dev provider, factory, templates, html-utils extraction) | 0.0.19 |
+| 33 | Dev SMS provider (DevSmsProvider with in-memory storage, factory fallback) | 0.0.20 |
 
 ---
 
@@ -236,9 +223,7 @@ Priorities 1-32 are implemented and committed. A comprehensive spec-vs-implement
 ```
 P41 (Animated swimming platypus) ─── independent, can be done anytime
 
-P30-32 (DB + DAL + Email provider) ── DONE ──┐
-                                                  │
-P33 (Dev SMS provider) ─────────────────────────┤
+P30-33 (DB + DAL + Email + Dev SMS) ─ DONE ──┐
                                                   │
 P34 (Subscription flow: email awareness) ───────┤
                                                   │
@@ -261,7 +246,7 @@ P43 (Infra configs for email) ─── last
 
 ### Dependency Details
 
-- **P30-32** (DB schema + DAL + email provider) are complete. All downstream priorities can now use subscriber DAL functions, email provider, and email templates.
+- **P30-33** (DB schema + DAL + email provider + dev SMS provider) are complete. All downstream priorities can now use subscriber DAL functions, email/SMS providers, and email templates.
 - **P34** (subscription flow) must precede P35 (signup form calls into subscription flow with email).
   - **Includes email validation** (basic `@` + domain check) and **conflict detection** (phone→subscriber A, email→subscriber B).
   - **Includes updating success messages** to mention email channel.
@@ -302,8 +287,8 @@ For reference, here is the complete gap inventory mapped to their priorities:
 ~~20. `escapeHtml` / `isSafeUrl` not in shared utility (locked in pages.ts)~~
 ~~21. No `makeMockEmailProvider()` in test-utils~~
 
-### In P33 (Dev SMS provider):
-22. `createSmsProvider()` throws instead of falling back to dev provider
+### ~~In P33 (Dev SMS provider)~~ -- DONE (0.0.20):
+~~22. `createSmsProvider()` throws instead of falling back to dev provider~~
 
 ### In P34 (Subscription flow email awareness):
 23. `signup()` is phone-only (no email param, no EmailProvider param)
