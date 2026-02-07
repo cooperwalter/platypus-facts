@@ -2,13 +2,13 @@
 
 ## Status Summary
 
-All 48 priorities are implemented and committed. The project is feature-complete.
+50 priorities implemented and committed. **All spec compliance gaps resolved.**
 
 - **429 tests passing** across 23 test files with **1016 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations
-- **Latest tag**: 0.0.34
-- **Full spec compliance**: 100%
+- **Latest tag**: 0.0.35
+- **Spec compliance**: 100%
 
 ---
 
@@ -63,6 +63,8 @@ All 48 priorities are implemented and committed. The project is feature-complete
 | 46 | Fix SQLite migration: use hasColumn check instead of catching ALTER TABLE UNIQUE error | 0.0.32 |
 | 47 | Cross-channel confirmation integration tests (SMS/email confirm activates all channels) | 0.0.33 |
 | 48 | Fix animated platypus: full-viewport swim path, fixed positioning, direction flipping, a11y | 0.0.34 |
+| 49 | Add repeating platypus background pattern (inline SVG data URI, 6% opacity, tiled on body) | 0.0.35 |
+| 50 | Fix animated platypus timing: ease-in-out to linear for smooth constant-speed movement | 0.0.35 |
 
 ---
 
@@ -112,9 +114,11 @@ Full audit of all 15 spec files against the implementation. **429 tests passing,
 
 **Dev Providers**: In-memory storage, console logging, dev viewer routes conditionally registered.
 
-### Remaining Items
+### No Remaining Items
 
-No spec compliance gaps found. Animated platypus viewport swim fixed in 0.0.34. All cleanup items (P44, P45, P46) resolved in 0.0.32.
+All spec compliance gaps have been resolved.
+
+---
 
 Note: `DAILY_SEND_TIME_UTC` is validated in config but not programmatically used by the daily send script — cron handles scheduling externally. This is by design.
 

@@ -47,6 +47,8 @@ Bun HTTP server (`Bun.serve()`) that sends daily platypus facts via SMS (Twilio)
 
 Four SQLite tables: `facts`, `fact_sources` (FK→facts, CASCADE DELETE), `subscribers` (UNIQUE phone_number, UNIQUE email, UNIQUE confirmation_token), `sent_facts` (UNIQUE sent_date, FK→facts, NO CASCADE). WAL mode and foreign keys enabled. Schema auto-initializes on connection.
 
+Prefer `db.run()` over `db.exec()` for executing SQL statements. `db.run()` uses prepared statements (safer, supports parameters), while `db.exec()` runs raw SQL strings.
+
 ## Testing Patterns
 
 Tests use Bun's test runner (`describe`/`test`/`expect`). Test utilities in `src/lib/test-utils.ts`:

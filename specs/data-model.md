@@ -29,8 +29,8 @@ Every fact MUST have at least one associated source.
 | Column           | Type    | Constraints                         | Description                                  |
 | ---------------- | ------- | ----------------------------------- | -------------------------------------------- |
 | `id`             | INTEGER | PRIMARY KEY AUTOINCREMENT           | Unique subscriber identifier                 |
-| `phone_number`   | TEXT    | UNIQUE                              | E.164 formatted phone number (nullable — NULL if email-only) |
-| `email`          | TEXT    | UNIQUE                              | Email address (nullable — NULL if phone-only) |
+| `phone_number`   | TEXT    | UNIQUE (nullable)                   | E.164 formatted phone number, or NULL if email-only. **No NOT NULL constraint** — the application enforces that at least one of phone/email is present. |
+| `email`          | TEXT    | UNIQUE (nullable)                   | Email address, or NULL if phone-only. **No NOT NULL constraint** — the application enforces that at least one of phone/email is present. |
 | `token`          | TEXT    | NOT NULL, UNIQUE                    | Random token for email confirmation and unsubscribe links |
 | `status`         | TEXT    | NOT NULL DEFAULT 'pending'          | One of: `pending`, `active`, `unsubscribed`  |
 | `created_at`     | TEXT    | NOT NULL DEFAULT (datetime('now'))  | When the subscriber signed up                |

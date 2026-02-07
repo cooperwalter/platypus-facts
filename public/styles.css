@@ -29,7 +29,10 @@ html {
 
 body {
 	font-family: var(--font-body);
-	background: var(--color-bg);
+	background-color: var(--color-bg);
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='40' viewBox='0 0 60 40'%3E%3Cpath d='M30 12c-4 0-7 2-9 5l-6 1c-2 0-3 2-3 3s1 2 3 2l1 0c1 2 3 4 6 5l-1 3c0 1 1 1 2 1s1-1 1-1l1-2c2 0 3 0 5-1l1 2c0 1 1 1 2 1s1-1 1-1l-1-3c3-1 5-3 6-5l1 0c2 0 3-1 3-2s-1-3-3-3l-6-1c-2-3-5-5-9-5z' fill='none' stroke='%233d2c1e' stroke-width='0.8' opacity='0.06'/%3E%3Ccircle cx='24' cy='18' r='0.8' fill='%233d2c1e' opacity='0.06'/%3E%3C/svg%3E");
+	background-repeat: repeat;
+	background-size: 60px 40px;
 	color: var(--color-text);
 	line-height: 1.6;
 	min-height: 100vh;
@@ -122,7 +125,7 @@ a:focus-visible {
 	height: 60px;
 	position: absolute;
 	opacity: 0.18;
-	animation: swim-path 20s ease-in-out infinite;
+	animation: swim-path 20s linear infinite;
 }
 
 .platypus-body {
