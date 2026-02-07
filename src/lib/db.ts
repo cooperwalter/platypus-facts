@@ -38,20 +38,27 @@ function initializeSchema(db: Database): void {
 	`);
 }
 
+function hasColumn(db: Database, table: string, column: string): boolean {
+	const info = db
+		.query<{ name: string }, [string]>("SELECT name FROM pragma_table_info(?)")
+		.all(table);
+	return info.some((col) => col.name === column);
+}
+
 function tryAddColumn(db: Database, table: string, columnDef: string): void {
-	try {
-		db.exec(`ALTER TABLE ${table} ADD COLUMN ${columnDef}`);
-	} catch (error) {
-		if (error instanceof Error && error.message.includes("duplicate column name")) {
-			return;
-		}
-		throw error;
+	const columnName = columnDef.split(" ")[0];
+	if (columnName && hasColumn(db, table, columnName)) {
+		return;
 	}
+	db.exec(`ALTER TABLE ${table} ADD COLUMN ${columnDef}`);
 }
 
 function migrateSchema(db: Database): void {
 	tryAddColumn(db, "facts", "image_path TEXT");
-	tryAddColumn(db, "subscribers", "email TEXT UNIQUE");
+	tryAddColumn(db, "subscribers", "email TEXT");
+	if (hasColumn(db, "subscribers", "email")) {
+		db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_subscribers_email ON subscribers(email)");
+	}
 	tryAddColumn(db, "subscribers", "token TEXT");
 
 	const needsToken = db

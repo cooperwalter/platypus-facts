@@ -9,4 +9,4 @@ WORKDIR /app
 COPY --from=builder /app /app
 RUN mkdir -p /app/data /app/public/images/facts
 EXPOSE 3000
-CMD ["sh", "-c", "bun run src/scripts/sync-facts.ts && bun run src/index.ts"]
+CMD ["bun", "run", "src/index.ts"]

@@ -16,12 +16,25 @@ Run these after implementing to get immediate feedback:
 
 ## Pre-Commit
 
-Before every commit, run CodeRabbit CLI to review changes:
+Before every commit:
 
-- Run: `cr review`
-- All warnings and errors reported by `cr` MUST be resolved before committing.
-- Do not skip or defer CodeRabbit findings — fix them in the same increment.
-- If CodeRabbit CLI reports it has run out of usage/quota, skip the review and proceed with the commit.
+1. **Restart the dev server fresh** — stop any running server and start a new one to ensure you are not testing against stale code. Run the Server Smoke Test (below) with this fresh server.
+2. **Run CodeRabbit CLI** to review changes:
+   - Run: `cr review`
+   - All warnings and errors reported by `cr` MUST be resolved before committing.
+   - Do not skip or defer CodeRabbit findings — fix them in the same increment.
+   - If CodeRabbit CLI reports it has run out of usage/quota, skip the review and proceed with the commit.
+
+## Server Smoke Test
+
+Verify the server starts and the home page loads without errors:
+
+1. Start the server: `bun run start` (runs on port 3090)
+2. Verify no errors in the server console output
+3. Visit `http://localhost:3090` in the browser
+4. Verify no errors in the browser (check the page renders correctly)
+5. Verify no errors in the server console from serving the page
+6. Stop the server
 
 ## Frontend Review
 
