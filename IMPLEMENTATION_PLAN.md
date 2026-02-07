@@ -2,14 +2,14 @@
 
 ## Status Summary
 
-Priorities 1-35 are implemented and committed. A comprehensive spec-vs-implementation audit has identified **7 remaining priorities** covering new routes, animated platypus, and CLI enhancements.
+Priorities 1-36 are implemented and committed. A comprehensive spec-vs-implementation audit has identified **6 remaining priorities** covering unsubscribe routes, daily send email, animated platypus, and CLI enhancements.
 
-- **385 tests passing** across 23 test files with **816 expect() calls**
+- **391 tests passing** across 23 test files with **835 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations
-- **Latest tag**: 0.0.22
+- **Latest tag**: 0.0.23
 - **SMS-only spec compliance**: ~100%
-- **Full spec compliance**: ~88% (confirmation/unsubscribe routes, daily send email, animated platypus still remaining)
+- **Full spec compliance**: ~90% (unsubscribe routes, daily send email, animated platypus still remaining)
 
 ### What Exists (Priorities 1-27)
 
@@ -24,7 +24,8 @@ Priorities 1-35 are implemented and committed. A comprehensive spec-vs-implement
 - Subscribe endpoint accepts `{ phoneNumber?, email? }` (at least one required). Passes baseUrl and emailProvider to subscription flow (P34 complete).
 - Signup page has phone and email inputs, "and / or" divider, client-side validation (at least one required), description says "via SMS and/or email" (P35 complete). No animated swimming platypus.
 - Daily send is SMS-only with null phone guard. No email sending. No `--force` flag. No `NODE_ENV` check.
-- No routes for `/confirm/:token`, `/unsubscribe/:token`, `/dev/messages`.
+- `GET /confirm/:token` route with all confirmation states (P36 complete). Reusable `renderMessagePage` helper for status pages.
+- No routes for `/unsubscribe/:token`, `/dev/messages`.
 
 ---
 
@@ -34,20 +35,7 @@ Priorities 1-35 are implemented and committed. A comprehensive spec-vs-implement
 
 ### ~~Priority 35: Signup form -- accept email~~ -- DONE (0.0.22)
 
-### Priority 36: Email confirmation route (`GET /confirm/:token`)
-
-**Spec**: `specs/web-pages.md`, `specs/subscription-flow.md`
-**Gap**: No route for `/confirm/:token` exists in `src/index.ts`.
-
-- Add route pattern matching for `GET /confirm/:token` in `index.ts`
-- Create `renderConfirmationPage` in `pages.ts` (or new route handler file):
-  - Look up subscriber by token
-  - Pending: check cap -> activate if under cap -> show success page
-  - Active: show "You're already confirmed!" page
-  - Unsubscribed/not found: show appropriate message
-  - Cap reached: show "sorry, at capacity" page
-- CSS for confirmation pages (consistent with existing LiS:DE theme)
-- Tests for all confirmation states
+### ~~Priority 36: Email confirmation route (`GET /confirm/:token`)~~ -- DONE (0.0.23)
 
 ### Priority 37: Unsubscribe routes (`GET/POST /unsubscribe/:token`)
 
@@ -180,6 +168,7 @@ Priorities 1-35 are implemented and committed. A comprehensive spec-vs-implement
 | 33 | Dev SMS provider (DevSmsProvider with in-memory storage, factory fallback) | 0.0.20 |
 | 34 | Subscription flow email awareness (email validation, conflict detection, dual-channel confirmations, channel-aware messages) | 0.0.21 |
 | 35 | Signup form email support (email input, "and / or" divider, client-side validation, updated description) | 0.0.22 |
+| 36 | Email confirmation route (`GET /confirm/:token`) with all states, reusable message page helper | 0.0.23 |
 
 ---
 
@@ -188,9 +177,7 @@ Priorities 1-35 are implemented and committed. A comprehensive spec-vs-implement
 ```
 P41 (Animated swimming platypus) ─── independent, can be done anytime
 
-P30-35 (DB + DAL + Email + Dev SMS + Sub flow + Form) ─ DONE ──┐
-                                                  │
-P36 (Email confirmation route) ─────────────────┤
+P30-36 (DB + DAL + Email + Dev SMS + Sub flow + Form + Confirm) ─ DONE ──┐
                                                   │
 P37 (Unsubscribe routes) ──────────────────────┤
                                                   │
@@ -261,9 +248,9 @@ For reference, here is the complete gap inventory mapped to their priorities:
 ~~30. Signup page has no email input field~~
 ~~31. Signup page description says "via SMS" not "via SMS and/or email"~~
 
-### In P36 (Confirmation route):
-33. No `GET /confirm/:token` route
-34. No confirmation page HTML templates (success, already-confirmed, invalid, at-capacity)
+### ~~In P36 (Confirmation route)~~ -- DONE (0.0.23):
+~~33. No `GET /confirm/:token` route~~
+~~34. No confirmation page HTML templates (success, already-confirmed, invalid, at-capacity)~~
 
 ### In P37 (Unsubscribe routes):
 35. No `GET /unsubscribe/:token` route

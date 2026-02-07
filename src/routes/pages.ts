@@ -1,7 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { getFactWithSources } from "../lib/facts";
 import { escapeHtml, isSafeUrl } from "../lib/html-utils";
-import { getActiveCount } from "../lib/subscribers";
+import { findByToken, getActiveCount, updateStatus } from "../lib/subscribers";
 
 function renderSignupPage(db: Database, maxSubscribers: number): Response {
 	const activeCount = getActiveCount(db);
@@ -203,6 +203,79 @@ function renderFactPage(db: Database, factId: number): Response {
 	});
 }
 
+function renderConfirmationPage(db: Database, token: string, maxSubscribers: number): Response {
+	const subscriber = findByToken(db, token);
+
+	if (!subscriber) {
+		return renderMessagePage(
+			"Invalid Link",
+			"This confirmation link is invalid or has expired.",
+			404,
+		);
+	}
+
+	if (subscriber.status === "active") {
+		return renderMessagePage(
+			"Already Confirmed",
+			"You're already confirmed as a Platypus Fan! You'll receive daily platypus facts.",
+		);
+	}
+
+	if (subscriber.status === "unsubscribed") {
+		return renderMessagePage(
+			"Subscription Inactive",
+			'This subscription has been cancelled. Visit the <a href="/">signup page</a> to re-subscribe.',
+		);
+	}
+
+	const activeCount = getActiveCount(db);
+	if (activeCount >= maxSubscribers) {
+		return renderMessagePage(
+			"At Capacity",
+			"Sorry, Daily Platypus Facts is currently at capacity! We can't confirm your subscription right now. Please try again later.",
+		);
+	}
+
+	updateStatus(db, subscriber.id, "active", { confirmed_at: new Date().toISOString() });
+
+	return renderMessagePage(
+		"Welcome, Platypus Fan!",
+		"You're now confirmed! You'll receive one fascinating platypus fact every day.",
+	);
+}
+
+function renderMessagePage(heading: string, body: string, status = 200): Response {
+	const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>${escapeHtml(heading)} - Daily Platypus Facts</title>
+	<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦆</text></svg>">
+	<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+	<main class="container">
+		<header class="hero">
+			<h1><a href="/">Daily Platypus Facts</a></h1>
+			<p class="tagline">Inspired by <em>Life is Strange: Double Exposure</em></p>
+		</header>
+
+		<section class="message-card">
+			<h2>${heading}</h2>
+			<p>${body}</p>
+			<a href="/">Back to home</a>
+		</section>
+	</main>
+</body>
+</html>`;
+
+	return new Response(html, {
+		status,
+		headers: { "Content-Type": "text/html; charset=utf-8" },
+	});
+}
+
 function render404Page(): Response {
 	const html = `<!DOCTYPE html>
 <html lang="en">
@@ -235,4 +308,4 @@ function render404Page(): Response {
 	});
 }
 
-export { renderSignupPage, renderFactPage, render404Page };
+export { renderSignupPage, renderFactPage, renderConfirmationPage, render404Page };

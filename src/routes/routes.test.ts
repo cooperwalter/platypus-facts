@@ -7,7 +7,7 @@ import {
 	makeTestDatabase,
 } from "../lib/test-utils";
 import { handleHealthCheck } from "./health";
-import { render404Page, renderFactPage, renderSignupPage } from "./pages";
+import { render404Page, renderConfirmationPage, renderFactPage, renderSignupPage } from "./pages";
 import { getClientIp, handleSubscribe } from "./subscribe";
 import { handleTwilioWebhook } from "./webhook";
 
@@ -724,5 +724,115 @@ describe("GET / - signup page at capacity details", () => {
 		expect(html).toContain(
 			"Get one fascinating platypus fact delivered every day via SMS and/or email",
 		);
+	});
+});
+
+describe("GET /confirm/:token", () => {
+	test("activates pending subscriber and shows success page", async () => {
+		const db = makeTestDatabase();
+		const id = makeSubscriberRow(db, {
+			phone_number: "+15552345678",
+			token: "11111111-1111-1111-1111-111111111111",
+			status: "pending",
+		});
+
+		const response = renderConfirmationPage(db, "11111111-1111-1111-1111-111111111111", 1000);
+		const html = await response.text();
+
+		expect(response.status).toBe(200);
+		expect(html).toContain("Welcome, Platypus Fan!");
+		expect(html).toContain("confirmed");
+
+		const row = db.prepare("SELECT status, confirmed_at FROM subscribers WHERE id = ?").get(id) as {
+			status: string;
+			confirmed_at: string | null;
+		};
+		expect(row.status).toBe("active");
+		expect(row.confirmed_at).toBeTruthy();
+	});
+
+	test("shows 'already confirmed' page for active subscriber", async () => {
+		const db = makeTestDatabase();
+		makeSubscriberRow(db, {
+			phone_number: "+15552345678",
+			token: "22222222-2222-2222-2222-222222222222",
+			status: "active",
+			confirmed_at: "2025-01-01T00:00:00Z",
+		});
+
+		const response = renderConfirmationPage(db, "22222222-2222-2222-2222-222222222222", 1000);
+		const html = await response.text();
+
+		expect(response.status).toBe(200);
+		expect(html).toContain("Already Confirmed");
+	});
+
+	test("shows inactive message for unsubscribed subscriber", async () => {
+		const db = makeTestDatabase();
+		makeSubscriberRow(db, {
+			phone_number: "+15552345678",
+			token: "33333333-3333-3333-3333-333333333333",
+			status: "unsubscribed",
+			unsubscribed_at: "2025-01-01T00:00:00Z",
+		});
+
+		const response = renderConfirmationPage(db, "33333333-3333-3333-3333-333333333333", 1000);
+		const html = await response.text();
+
+		expect(response.status).toBe(200);
+		expect(html).toContain("Subscription Inactive");
+		expect(html).toContain("signup page");
+	});
+
+	test("returns 404 for invalid/nonexistent token", async () => {
+		const db = makeTestDatabase();
+
+		const response = renderConfirmationPage(db, "99999999-9999-9999-9999-999999999999", 1000);
+		const html = await response.text();
+
+		expect(response.status).toBe(404);
+		expect(html).toContain("Invalid Link");
+	});
+
+	test("shows at-capacity page when cap reached during confirmation", async () => {
+		const db = makeTestDatabase();
+		makeSubscriberRow(db, {
+			phone_number: "+15559999999",
+			status: "active",
+			confirmed_at: "2025-01-01T00:00:00Z",
+		});
+		makeSubscriberRow(db, {
+			phone_number: "+15552345678",
+			token: "44444444-4444-4444-4444-444444444444",
+			status: "pending",
+		});
+
+		const response = renderConfirmationPage(db, "44444444-4444-4444-4444-444444444444", 1);
+		const html = await response.text();
+
+		expect(response.status).toBe(200);
+		expect(html).toContain("At Capacity");
+		expect(html).toContain("at capacity");
+
+		const row = db
+			.prepare("SELECT status FROM subscribers WHERE token = ?")
+			.get("44444444-4444-4444-4444-444444444444") as { status: string };
+		expect(row.status).toBe("pending");
+	});
+
+	test("confirmation page includes Daily Platypus Facts branding", async () => {
+		const db = makeTestDatabase();
+		makeSubscriberRow(db, {
+			phone_number: "+15552345678",
+			token: "55555555-5555-5555-5555-555555555555",
+			status: "pending",
+		});
+
+		const response = renderConfirmationPage(db, "55555555-5555-5555-5555-555555555555", 1000);
+		const html = await response.text();
+
+		expect(html).toContain("Daily Platypus Facts");
+		expect(html).toContain("Life is Strange: Double Exposure");
+		expect(html).toContain('href="/"');
 	});
 });

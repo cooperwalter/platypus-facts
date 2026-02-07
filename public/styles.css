@@ -316,6 +316,25 @@ button[type="submit"]:disabled {
 	font-size: 0.95rem;
 }
 
+.message-card {
+	background: var(--color-surface);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	padding: 2rem 1.5rem;
+	text-align: center;
+}
+
+.message-card h2 {
+	font-size: 1.4rem;
+	margin-bottom: 0.75rem;
+}
+
+.message-card p {
+	color: var(--color-text-muted);
+	margin-bottom: 1.25rem;
+	line-height: 1.6;
+}
+
 .not-found {
 	text-align: center;
 	padding: 2rem 1rem;

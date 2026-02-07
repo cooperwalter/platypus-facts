@@ -5,7 +5,12 @@ import { createEmailProvider } from "./lib/email/index";
 import { createRateLimiter } from "./lib/rate-limiter";
 import { createSmsProvider } from "./lib/sms/index";
 import { handleHealthCheck } from "./routes/health";
-import { render404Page, renderFactPage, renderSignupPage } from "./routes/pages";
+import {
+	render404Page,
+	renderConfirmationPage,
+	renderFactPage,
+	renderSignupPage,
+} from "./routes/pages";
 import { handleSubscribe } from "./routes/subscribe";
 import { handleTwilioWebhook } from "./routes/webhook";
 import { syncFacts } from "./scripts/sync-facts";
@@ -33,6 +38,7 @@ try {
 }
 
 const FACTS_ROUTE_PATTERN = /^\/facts\/(\d+)$/;
+const CONFIRM_ROUTE_PATTERN = /^\/confirm\/([a-f0-9-]{36})$/;
 
 async function handleRequest(request: Request): Promise<Response> {
 	const url = new URL(request.url);
@@ -64,6 +70,11 @@ async function handleRequest(request: Request): Promise<Response> {
 	}
 
 	if (method === "GET") {
+		const confirmMatch = pathname.match(CONFIRM_ROUTE_PATTERN);
+		if (confirmMatch) {
+			return renderConfirmationPage(db, confirmMatch[1], config.maxSubscribers);
+		}
+
 		const factsMatch = pathname.match(FACTS_ROUTE_PATTERN);
 		if (factsMatch) {
 			const factId = Number.parseInt(factsMatch[1], 10);
