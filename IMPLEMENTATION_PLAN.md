@@ -2,14 +2,14 @@
 
 ## Status Summary
 
-Priorities 1-39 are implemented and committed. A comprehensive spec-vs-implementation audit has identified **3 remaining priorities** covering CLI, animated platypus, and infrastructure.
+Priorities 1-40 are implemented and committed. A comprehensive spec-vs-implementation audit has identified **2 remaining priorities** covering animated platypus and infrastructure.
 
-- **417 tests passing** across 23 test files with **928 expect() calls**
+- **421 tests passing** across 23 test files with **940 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations
-- **Latest tag**: 0.0.26
+- **Latest tag**: 0.0.27
 - **SMS-only spec compliance**: ~100%
-- **Full spec compliance**: ~97% (CLI --force, animated platypus still remaining)
+- **Full spec compliance**: ~98% (animated platypus still remaining)
 
 ### What Exists (Priorities 1-27)
 
@@ -23,7 +23,7 @@ Priorities 1-39 are implemented and committed. A comprehensive spec-vs-implement
 - Email provider abstraction complete (P32): `EmailProvider` interface, Postmark implementation, dev email provider, factory function `createEmailProvider(config)`. Email templates for daily fact, confirmation, and already-subscribed. `escapeHtml`/`isSafeUrl` extracted to shared `src/lib/html-utils.ts`. `makeMockEmailProvider()` in test-utils. `unsubscribeHeaders()` for RFC 8058 List-Unsubscribe support.
 - Subscribe endpoint accepts `{ phoneNumber?, email? }` (at least one required). Passes baseUrl and emailProvider to subscription flow (P34 complete).
 - Signup page has phone and email inputs, "and / or" divider, client-side validation (at least one required), description says "via SMS and/or email" (P35 complete). No animated swimming platypus.
-- Daily send supports both SMS and email channels with per-channel result breakdown (`smsSuccess`, `smsFail`, `emailSuccess`, `emailFail`). Accepts optional `EmailProvider`. No `--force` flag. No `NODE_ENV` check.
+- Daily send supports both SMS and email channels with per-channel result breakdown. Accepts optional `EmailProvider`. `--force` flag bypasses idempotency in dev, rejected in production (P40 complete).
 - `GET /confirm/:token` route with all confirmation states (P36 complete). Reusable `renderMessagePage` helper for status pages.
 - `GET/POST /unsubscribe/:token` routes with confirmation form, all states (P37 complete).
 - Dev message viewer: `GET /dev/messages` (list) and `GET /dev/messages/:id` (detail) routes, only active when dev providers are in use (P39 complete).
@@ -44,17 +44,7 @@ Priorities 1-39 are implemented and committed. A comprehensive spec-vs-implement
 
 ### ~~Priority 39: Dev message viewer routes~~ -- DONE (0.0.26)
 
-### Priority 40: CLI `--force` flag for daily-send
-
-**Spec**: `specs/cli.md`
-**Gap**: No `--force` flag parsing in `src/jobs/daily-send.ts` CLI entry point (`import.meta.main` block).
-
-- Parse `process.argv` for `--force` in the `import.meta.main` block
-- When `--force`: bypass idempotency check (send even if already sent today)
-- Reject `--force` when `NODE_ENV=production`: exit with error "The --force flag is not allowed in production."
-- When `--force` re-sends, do NOT create duplicate `sent_facts` entry (skip recording if today already has an entry)
-- Update `runDailySend` to accept a `force?: boolean` parameter
-- Tests for --force behavior and production rejection
+### ~~Priority 40: CLI `--force` flag for daily-send~~ -- DONE (0.0.27)
 
 ### Priority 41: Animated swimming platypus on signup page
 
@@ -137,6 +127,7 @@ Priorities 1-39 are implemented and committed. A comprehensive spec-vs-implement
 | 37 | Unsubscribe routes (`GET/POST /unsubscribe/:token`) with confirmation form and all states | 0.0.24 |
 | 38 | Daily send email channel (dual SMS+email, per-channel counts, null phone guard, unsubscribe headers) | 0.0.25 |
 | 39 | Dev message viewer (`/dev/messages` list + `/dev/messages/:id` detail, SMS + email, dev-only) | 0.0.26 |
+| 40 | CLI `--force` flag (bypass idempotency in dev, rejected in production, no duplicate sent_facts) | 0.0.27 |
 
 ---
 
@@ -145,9 +136,7 @@ Priorities 1-39 are implemented and committed. A comprehensive spec-vs-implement
 ```
 P41 (Animated swimming platypus) ─── independent, can be done anytime
 
-P30-39 (DB + DAL + Email + Sub flow + Routes + Daily send + Dev viewer) ─ DONE ──┐
-                                                  │
-P40 (CLI --force flag) ─────────────────────────┤
+P30-40 (DB + DAL + Email + Sub flow + Routes + Daily send + Dev viewer + CLI) ─ DONE ──┐
                                                   │
 P42 (Integration tests for email) ──────────────┘
 
@@ -156,8 +145,7 @@ P43 (Infra configs for email) ─── last
 
 ### Dependency Details
 
-- **P30-39** (DB schema + DAL + email provider + dev SMS + subscription flow + form + confirm + unsubscribe + daily send email + dev viewer) are complete.
-- **P40** (--force) depends on P29 (NODE_ENV for production rejection).
+- **P30-40** (DB schema + DAL + email provider + dev SMS + subscription flow + form + confirm + unsubscribe + daily send email + dev viewer + CLI --force) are complete.
 - **P41** (animated platypus) is fully independent. Can be done at any time.
 - **P42** (integration tests) depends on all feature work being complete.
 - **P43** (infra configs) is intentionally last -- updates deploy configs and documentation.
@@ -223,8 +211,8 @@ For reference, here is the complete gap inventory mapped to their priorities:
 ~~41. No `/dev/messages` route~~
 ~~42. No `/dev/messages/:id` route~~
 
-### In P40 (CLI --force):
-43. No `--force` flag parsing in daily-send `import.meta.main` block
+### ~~In P40 (CLI --force)~~ -- DONE:
+~~43. No `--force` flag parsing in daily-send `import.meta.main` block~~
 
 ### In P41 (Animated platypus):
 44. No animated swimming platypus on signup page (spec requires CSS keyframe animation on SVG)

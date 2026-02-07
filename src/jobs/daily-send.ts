@@ -38,6 +38,7 @@ async function runDailySend(
 	baseUrl: string,
 	todayOverride?: string,
 	emailProvider?: EmailProvider | null,
+	force?: boolean,
 ): Promise<DailySendResult> {
 	const emptyResult: DailySendResult = {
 		alreadySent: false,
@@ -54,26 +55,45 @@ async function runDailySend(
 	const today = todayOverride ?? getUtcToday();
 
 	const existingSend = getSentFactByDate(db, today);
-	if (existingSend) {
+	if (existingSend && !force) {
 		console.log(`Fact already sent for ${today} (fact_id=${existingSend.fact_id}), skipping.`);
 		return { ...emptyResult, alreadySent: true, factId: existingSend.fact_id };
 	}
 
-	let selected: ReturnType<typeof selectAndRecordFact>;
-	try {
-		selected = selectAndRecordFact(db, today);
-	} catch (error: unknown) {
-		const msg = error instanceof Error ? error.message : String(error);
-		if (msg.includes("UNIQUE constraint failed")) {
-			const existingAfterRace = getSentFactByDate(db, today);
-			if (existingAfterRace) {
-				console.log(
-					`Fact already sent for ${today} (race detected, fact_id=${existingAfterRace.fact_id}), skipping.`,
-				);
-				return { ...emptyResult, alreadySent: true, factId: existingAfterRace.fact_id };
+	let selected: { factId: number; cycle: number } | null;
+	if (existingSend && force) {
+		selected = { factId: existingSend.fact_id, cycle: 0 };
+		console.log(`Force mode: re-sending fact_id=${existingSend.fact_id} for ${today}.`);
+	} else {
+		try {
+			selected = selectAndRecordFact(db, today);
+		} catch (error: unknown) {
+			const msg = error instanceof Error ? error.message : String(error);
+			if (msg.includes("UNIQUE constraint failed")) {
+				const existingAfterRace = getSentFactByDate(db, today);
+				if (existingAfterRace) {
+					if (force) {
+						selected = { factId: existingAfterRace.fact_id, cycle: 0 };
+						console.log(
+							`Force mode (race): re-sending fact_id=${existingAfterRace.fact_id} for ${today}.`,
+						);
+					} else {
+						console.log(
+							`Fact already sent for ${today} (race detected, fact_id=${existingAfterRace.fact_id}), skipping.`,
+						);
+						return {
+							...emptyResult,
+							alreadySent: true,
+							factId: existingAfterRace.fact_id,
+						};
+					}
+				} else {
+					throw error;
+				}
+			} else {
+				throw error;
 			}
 		}
-		throw error;
 	}
 	if (!selected) {
 		console.warn("No facts in database. Skipping daily send.");
@@ -171,7 +191,14 @@ export { runDailySend };
 if (import.meta.main) {
 	const { createEmailProvider } = await import("../lib/email/index");
 
+	const force = process.argv.includes("--force");
 	const config = loadConfig();
+
+	if (force && config.nodeEnv === "production") {
+		console.error("The --force flag is not allowed in production.");
+		process.exit(1);
+	}
+
 	const db = createDatabase(config.databasePath);
 	const smsProvider = createSmsProvider();
 	const ep = createEmailProvider(config);
@@ -188,7 +215,7 @@ if (import.meta.main) {
 	}
 
 	try {
-		await runDailySend(db, smsProvider, config.baseUrl, undefined, ep);
+		await runDailySend(db, smsProvider, config.baseUrl, undefined, ep, force);
 	} catch (error) {
 		console.error("Daily send failed:", error);
 		db.close();

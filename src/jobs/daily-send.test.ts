@@ -359,4 +359,70 @@ describe("daily-send", () => {
 		expect(result.emailSuccess).toBe(0);
 		expect(result.emailFail).toBe(0);
 	});
+
+	test("force mode re-sends to all subscribers even when fact already sent today", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+
+		const factId = makeFactRow(db, { text: "Force re-send fact" });
+		makeSentFactRow(db, { fact_id: factId, sent_date: "2025-06-15", cycle: 1 });
+		makeSubscriberRow(db, { phone_number: "+15552345678", status: "active" });
+
+		const result = await runDailySend(db, sms, "https://example.com", "2025-06-15", null, true);
+
+		expect(result.alreadySent).toBe(false);
+		expect(result.factId).toBe(factId);
+		expect(result.successCount).toBe(1);
+		expect(sms.sentMessages).toHaveLength(1);
+		expect(sms.sentMessages[0].body).toContain("Force re-send fact");
+	});
+
+	test("force mode does not create duplicate sent_facts entry", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+
+		const factId = makeFactRow(db, { text: "No duplicate fact" });
+		makeSentFactRow(db, { fact_id: factId, sent_date: "2025-06-15", cycle: 1 });
+		makeSubscriberRow(db, { phone_number: "+15552345678", status: "active" });
+
+		await runDailySend(db, sms, "https://example.com", "2025-06-15", null, true);
+
+		const rows = db
+			.prepare("SELECT COUNT(*) as count FROM sent_facts WHERE sent_date = ?")
+			.get("2025-06-15") as { count: number };
+		expect(rows.count).toBe(1);
+	});
+
+	test("force mode works normally when no fact has been sent today yet", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+
+		makeFactRow(db, { text: "First send with force" });
+		makeSubscriberRow(db, { phone_number: "+15552345678", status: "active" });
+
+		const result = await runDailySend(db, sms, "https://example.com", "2025-06-15", null, true);
+
+		expect(result.alreadySent).toBe(false);
+		expect(result.factId).toBeGreaterThan(0);
+		expect(result.successCount).toBe(1);
+
+		const rows = db
+			.prepare("SELECT COUNT(*) as count FROM sent_facts WHERE sent_date = ?")
+			.get("2025-06-15") as { count: number };
+		expect(rows.count).toBe(1);
+	});
+
+	test("without force flag, skips when fact already sent today", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+
+		const factId = makeFactRow(db, { text: "Already sent" });
+		makeSentFactRow(db, { fact_id: factId, sent_date: "2025-06-15", cycle: 1 });
+		makeSubscriberRow(db, { phone_number: "+15552345678", status: "active" });
+
+		const result = await runDailySend(db, sms, "https://example.com", "2025-06-15", null, false);
+
+		expect(result.alreadySent).toBe(true);
+		expect(sms.sentMessages).toHaveLength(0);
+	});
 });
