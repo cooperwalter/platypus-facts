@@ -2,14 +2,14 @@
 
 ## Status Summary
 
-Priorities 1-31 are implemented and committed. A comprehensive spec-vs-implementation audit has identified **11 remaining priorities** covering email integration, dev providers, animated platypus, and CLI enhancements.
+Priorities 1-32 are implemented and committed. A comprehensive spec-vs-implementation audit has identified **10 remaining priorities** covering dev providers, subscription flow email awareness, new routes, animated platypus, and CLI enhancements.
 
-- **295 tests passing** across 16 test files with **664 expect() calls**
+- **348 tests passing** across 21 test files with **739 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations
-- **Latest tag**: 0.0.18
+- **Latest tag**: 0.0.19
 - **SMS-only spec compliance**: ~100%
-- **Full spec compliance**: ~72% (email integration, dev providers, animated platypus, and several features missing)
+- **Full spec compliance**: ~78% (subscription flow, routes, dev providers, animated platypus still missing)
 
 ### What Exists (Priorities 1-27)
 
@@ -19,39 +19,16 @@ Priorities 1-31 are implemented and committed. A comprehensive spec-vs-implement
 - Subscription flow is phone-only: `signup(db, smsProvider, phoneInput, maxSubscribers)`, `handleIncomingMessage(db, from, body, baseUrl, maxSubscribers)`.
 - SMS provider throws if Twilio vars are missing. No dev SMS provider.
 - Image generation uses fixed style prompt with no-text instruction (P28 complete).
+- Email provider abstraction complete (P32): `EmailProvider` interface, Postmark implementation, dev email provider, factory function `createEmailProvider(config)`. Email templates for daily fact, confirmation, and already-subscribed. `escapeHtml`/`isSafeUrl` extracted to shared `src/lib/html-utils.ts`. `makeMockEmailProvider()` in test-utils. `unsubscribeHeaders()` for RFC 8058 List-Unsubscribe support.
 - Daily send is SMS-only with null phone guard. No email sending. No `--force` flag. No `NODE_ENV` check.
 - Subscribe endpoint accepts only `{ phoneNumber: string }`. No email field.
 - Signup page has phone input only, description says "via SMS" not "via SMS and/or email". No animated swimming platypus.
 - No routes for `/confirm/:token`, `/unsubscribe/:token`, `/dev/messages`.
-- No email code exists anywhere: no email provider, no Postmark, no email templates, no confirmation/unsubscribe routes.
-- `escapeHtml` and `isSafeUrl` are defined in `src/routes/pages.ts` but not exported -- will need extraction to shared utility for email templates and new pages.
+- Subscription flow is not yet email-aware (no email param on signup, no email confirmations).
 
 ---
 
 ## Remaining Work -- Prioritized
-
-### Priority 32: Email provider abstraction + Postmark implementation + dev email provider
-
-**Spec**: `specs/email-integration.md`, `specs/design-decisions.md`
-**Gap**: No email-related code exists anywhere in the project.
-
-- Create `src/lib/email/types.ts` with `EmailProvider` interface:
-  - `sendEmail(to, subject, htmlBody, plainBody?, imageUrl?): Promise<void>`
-- Create `src/lib/email/postmark.ts` -- Postmark implementation using `POSTMARK_API_TOKEN` and `EMAIL_FROM`
-  - Include `List-Unsubscribe` and `List-Unsubscribe-Post` headers (RFC 8058)
-  - Accept `unsubscribeUrl` parameter so each email can include the correct per-subscriber unsubscribe link
-- Create `src/lib/email/dev.ts` -- dev provider that logs to console, stores in memory
-  - Export function to get stored messages (for dev message viewer)
-  - Store messages with: id, recipient, subject, htmlBody, plainBody, imageUrl, timestamp
-- Create `src/lib/email/index.ts` -- factory function `createEmailProvider()` that returns Postmark or dev based on config
-- Create email templates (template literals, consistent with web page rendering):
-  - Daily fact email: subject "Daily Platypus Fact", HTML with illustration (if available -- omit `<img>` entirely when no image, no broken image, no placeholder), fact text, sources, branding, unsubscribe link
-  - Confirmation email: subject "Confirm your Daily Platypus Facts subscription", welcome message, confirmation button `{base_url}/confirm/{token}`
-  - Already subscribed email: subject "You're already a Platypus Fan!"
-- Create `src/lib/email-templates.ts` for email HTML template functions
-- **Extract `escapeHtml` and `isSafeUrl` from `src/routes/pages.ts` into a shared utility** (e.g., `src/lib/html-utils.ts`) so email templates and new pages can reuse them without circular dependencies
-- Add `makeMockEmailProvider()` to test-utils
-- Tests for all email provider functions and templates
 
 ### Priority 33: Dev SMS provider
 
@@ -250,6 +227,7 @@ Priorities 1-31 are implemented and committed. A comprehensive spec-vs-implement
 | 28 | Image generation prompt fix: fixed style prompt, no-text instruction, removed factText param | 0.0.16 |
 | 29 | NODE_ENV-based config: nodeEnv field, Twilio/Postmark nullable in dev, required in production | 0.0.17 |
 | 30-31 | DB schema (email, token, nullable phone) + subscriber DAL (findByEmail/Token, updateContactInfo) | 0.0.18 |
+| 32 | Email provider (EmailProvider interface, Postmark, dev provider, factory, templates, html-utils extraction) | 0.0.19 |
 
 ---
 
@@ -258,9 +236,7 @@ Priorities 1-31 are implemented and committed. A comprehensive spec-vs-implement
 ```
 P41 (Animated swimming platypus) ─── independent, can be done anytime
 
-P30-31 (DB schema + DAL) ──── DONE ──┐
-                                       │
-P32 (Email provider + Postmark + dev email) ────┤
+P30-32 (DB + DAL + Email provider) ── DONE ──┐
                                                   │
 P33 (Dev SMS provider) ─────────────────────────┤
                                                   │
@@ -285,9 +261,7 @@ P43 (Infra configs for email) ─── last
 
 ### Dependency Details
 
-- **P30-31** (DB schema + DAL) are complete. All downstream priorities can now use `findByEmail`, `findByToken`, `updateContactInfo`, `createSubscriber({ phone?, email? })`.
-- **P32** (email provider) must precede P34 (subscription flow sends confirmation/already-subscribed emails), P36 (confirmation page), P38 (daily send emails).
-  - **Includes extracting `escapeHtml`/`isSafeUrl` to shared utility** -- needed by email templates and new page templates.
+- **P30-32** (DB schema + DAL + email provider) are complete. All downstream priorities can now use subscriber DAL functions, email provider, and email templates.
 - **P34** (subscription flow) must precede P35 (signup form calls into subscription flow with email).
   - **Includes email validation** (basic `@` + domain check) and **conflict detection** (phone→subscriber A, email→subscriber B).
   - **Includes updating success messages** to mention email channel.
@@ -319,14 +293,14 @@ For reference, here is the complete gap inventory mapped to their priorities:
 ~~13. `createSubscriber()` doesn't accept email or generate token~~
 ~~14. No `updateContactInfo()` function~~
 
-### In P32 (Email provider):
-15. No `EmailProvider` interface
-16. No Postmark implementation
-17. No dev email provider
-18. No email templates (daily fact, confirmation, already subscribed)
-19. No `List-Unsubscribe` / `List-Unsubscribe-Post` headers
-20. `escapeHtml` / `isSafeUrl` not in shared utility (locked in pages.ts)
-21. No `makeMockEmailProvider()` in test-utils
+### ~~In P32 (Email provider)~~ -- DONE (0.0.19):
+~~15. No `EmailProvider` interface~~
+~~16. No Postmark implementation~~
+~~17. No dev email provider~~
+~~18. No email templates (daily fact, confirmation, already subscribed)~~
+~~19. No `List-Unsubscribe` / `List-Unsubscribe-Post` headers~~
+~~20. `escapeHtml` / `isSafeUrl` not in shared utility (locked in pages.ts)~~
+~~21. No `makeMockEmailProvider()` in test-utils~~
 
 ### In P33 (Dev SMS provider):
 22. `createSmsProvider()` throws instead of falling back to dev provider

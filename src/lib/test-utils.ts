@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { createInMemoryDatabase } from "./db";
+import type { EmailProvider } from "./email/types";
 import type { SmsProvider } from "./sms/types";
 
 function makeTestDatabase(): Database {
@@ -132,5 +133,47 @@ function makeSentFactRow(
 	return Number(result.lastInsertRowid);
 }
 
-export type { MockSmsProvider, SentMessage };
-export { makeTestDatabase, makeMockSmsProvider, makeFactRow, makeSubscriberRow, makeSentFactRow };
+interface SentEmail {
+	to: string;
+	subject: string;
+	htmlBody: string;
+	plainBody?: string;
+	headers?: Record<string, string>;
+}
+
+interface MockEmailProvider extends EmailProvider {
+	sentEmails: SentEmail[];
+	reset(): void;
+}
+
+function makeMockEmailProvider(): MockEmailProvider {
+	const sentEmails: SentEmail[] = [];
+
+	return {
+		sentEmails,
+
+		async sendEmail(
+			to: string,
+			subject: string,
+			htmlBody: string,
+			plainBody?: string,
+			headers?: Record<string, string>,
+		): Promise<void> {
+			sentEmails.push({ to, subject, htmlBody, plainBody, headers });
+		},
+
+		reset() {
+			sentEmails.length = 0;
+		},
+	};
+}
+
+export type { MockSmsProvider, SentMessage, MockEmailProvider, SentEmail };
+export {
+	makeTestDatabase,
+	makeMockSmsProvider,
+	makeMockEmailProvider,
+	makeFactRow,
+	makeSubscriberRow,
+	makeSentFactRow,
+};

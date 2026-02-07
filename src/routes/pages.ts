@@ -1,24 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { getFactWithSources } from "../lib/facts";
+import { escapeHtml, isSafeUrl } from "../lib/html-utils";
 import { getActiveCount } from "../lib/subscribers";
-
-function escapeHtml(str: string): string {
-	return str
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&#039;");
-}
-
-function isSafeUrl(url: string): boolean {
-	try {
-		const parsed = new URL(url);
-		return parsed.protocol === "http:" || parsed.protocol === "https:";
-	} catch {
-		return false;
-	}
-}
 
 function renderSignupPage(db: Database, maxSubscribers: number): Response {
 	const activeCount = getActiveCount(db);
