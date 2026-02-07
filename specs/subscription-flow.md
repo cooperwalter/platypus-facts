@@ -29,7 +29,7 @@ When a user signs up with contact info that matches an existing subscriber:
 
 When a matched existing subscriber is found:
 - **Status `pending`**: Update contact info, resend confirmation(s). (Does not count against the cap since the row already exists.)
-- **Status `active`**: Inform the user they are already a Platypus Fan via the web page. If they provided an email, also send the "already subscribed" email. (Does not count against the cap.)
+- **Status `active`**: Inform the user they are already a Platypus Fan via the web page. If they provided a phone, send the "already subscribed" SMS. If they provided an email, send the "already subscribed" email. (Does not count against the cap.)
 - **Status `unsubscribed`**: Update contact info, reset to `pending`, resend confirmation(s). (Does not count against the cap since the row already exists.)
 
 ## Double Opt-In Confirmation
