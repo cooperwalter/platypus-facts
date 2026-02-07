@@ -24,12 +24,15 @@ env:
     DATABASE_PATH: /app/data/platypus-facts.db
     DAILY_SEND_TIME_UTC: "14:00"
     MAX_SUBSCRIBERS: 1000
+    NODE_ENV: production
   secret:
     - BASE_URL
     - TWILIO_ACCOUNT_SID
     - TWILIO_AUTH_TOKEN
     - TWILIO_PHONE_NUMBER
     - OPENAI_API_KEY
+    - POSTMARK_API_TOKEN
+    - EMAIL_FROM
 
 volumes:
   - /opt/platypus-facts/data:/app/data

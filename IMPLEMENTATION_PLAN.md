@@ -2,15 +2,15 @@
 
 ## Status Summary
 
-Priorities 1-42 are implemented and committed. Only infrastructure config updates remain.
+All 43 priorities are implemented and committed. The project is feature-complete.
 
 - **427 tests passing** across 23 test files with **983 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations
-- **Latest tag**: 0.0.29
-- **Full spec compliance**: ~100% (all features complete, infra configs remaining)
+- **Latest tag**: 0.0.30
+- **Full spec compliance**: 100%
 
-### What Exists (Priorities 1-27)
+### What Exists
 
 - Config has `nodeEnv` field, Twilio/Postmark vars nullable in dev, required in production (P29 complete).
 - Database has 4 tables. `subscribers` has `phone_number TEXT UNIQUE` (nullable), `email TEXT UNIQUE`, `token TEXT NOT NULL UNIQUE` (P30 complete).
@@ -26,10 +26,11 @@ Priorities 1-42 are implemented and committed. Only infrastructure config update
 - `GET /confirm/:token` route with all confirmation states (P36 complete). Reusable `renderMessagePage` helper for status pages.
 - `GET/POST /unsubscribe/:token` routes with confirmation form, all states (P37 complete).
 - Dev message viewer: `GET /dev/messages` (list) and `GET /dev/messages/:id` (detail) routes, only active when dev providers are in use (P39 complete).
+- Infrastructure configs updated: `POSTMARK_API_TOKEN`, `EMAIL_FROM`, `NODE_ENV=production` in deploy configs. README and CLAUDE.md reflect email support (P43 complete).
 
 ---
 
-## Remaining Work -- Prioritized
+## All Priorities -- Complete
 
 ### ~~Priority 34: Subscription flow -- email awareness~~ -- DONE (0.0.21)
 
@@ -49,19 +50,11 @@ Priorities 1-42 are implemented and committed. Only infrastructure config update
 
 ### ~~Priority 42: Comprehensive integration tests for email flows~~ -- DONE (0.0.29)
 
-### Priority 43: Update infrastructure configs for email
-
-- Add `POSTMARK_API_TOKEN` and `EMAIL_FROM` to:
-  - `.env.example`
-  - `config/deploy.yml` (secret)
-  - `.github/workflows/deploy.yml` (secret passthrough)
-- Add `NODE_ENV=production` to `config/deploy.yml` `env.clear` section
-- Update `README.md` to mention email support and new env vars
-- Update `CLAUDE.md` architecture section to reflect email provider, dev providers, new routes
+### ~~Priority 43: Update infrastructure configs for email~~ -- DONE (0.0.30)
 
 ---
 
-## What Was Built (Priorities 1-27)
+## What Was Built (Priorities 1-43)
 
 | Priority | Description | Tag |
 |----------|-------------|-----|
@@ -106,6 +99,7 @@ Priorities 1-42 are implemented and committed. Only infrastructure config update
 | 40 | CLI `--force` flag (bypass idempotency in dev, rejected in production, no duplicate sent_facts) | 0.0.27 |
 | 41 | Animated swimming platypus (inline SVG, CSS keyframe animations, swim/bob/paddle/bubbles) | 0.0.28 |
 | 42 | Integration tests for email flows (signup, confirm, unsubscribe, dual-channel, conflict, re-subscribe) | 0.0.29 |
+| 43 | Infrastructure config updates (deploy configs, env vars, README, CLAUDE.md for email support) | 0.0.30 |
 
 ---
 
@@ -114,22 +108,14 @@ Priorities 1-42 are implemented and committed. Only infrastructure config update
 ```
 P30-41 (All features) ─ DONE ──┐
                                                   │
-P42 (Integration tests for email) ──────────────┘
+P42 (Integration tests for email) ─── DONE ──────┘
 
-P43 (Infra configs for email) ─── last
+P43 (Infra configs for email) ─── DONE
 ```
-
-### Dependency Details
-
-- **P30-41** (all features) are complete.
-- **P42** (integration tests) depends on all feature work being complete.
-- **P43** (infra configs) is intentionally last -- updates deploy configs and documentation.
 
 ---
 
-## Detailed Gap Inventory (43 items across 15 priorities)
-
-For reference, here is the complete gap inventory mapped to their priorities:
+## Detailed Gap Inventory (46 items across 15 priorities) -- ALL RESOLVED
 
 ### ~~In P30 (DB schema)~~ -- DONE (0.0.18):
 ~~7. `phone_number TEXT NOT NULL UNIQUE` should be `TEXT UNIQUE` (nullable)~~
@@ -177,24 +163,24 @@ For reference, here is the complete gap inventory mapped to their priorities:
 ~~36. No `POST /unsubscribe/:token` route~~
 ~~37. No unsubscribe page HTML templates (confirmation, success, invalid)~~
 
-### ~~In P38 (Daily send email)~~ -- DONE:
+### ~~In P38 (Daily send email)~~ -- DONE (0.0.25):
 ~~38. `runDailySend` is SMS-only (no EmailProvider param)~~
 ~~39. `subscriber.phone_number.slice(-4)` crashes for email-only subscribers (null)~~
 ~~40. `DailySendResult` has no per-channel breakdown~~
 
-### ~~In P39 (Dev message viewer)~~ -- DONE:
+### ~~In P39 (Dev message viewer)~~ -- DONE (0.0.26):
 ~~41. No `/dev/messages` route~~
 ~~42. No `/dev/messages/:id` route~~
 
-### ~~In P40 (CLI --force)~~ -- DONE:
+### ~~In P40 (CLI --force)~~ -- DONE (0.0.27):
 ~~43. No `--force` flag parsing in daily-send `import.meta.main` block~~
 
-### ~~In P41 (Animated platypus)~~ -- DONE:
+### ~~In P41 (Animated platypus)~~ -- DONE (0.0.28):
 ~~44. No animated swimming platypus on signup page (spec requires CSS keyframe animation on SVG)~~
 
-### In P43 (Infra configs):
-45. No `POSTMARK_API_TOKEN` / `EMAIL_FROM` in deploy configs
-46. No `NODE_ENV=production` in deploy config
+### ~~In P43 (Infra configs)~~ -- DONE (0.0.30):
+~~45. No `POSTMARK_API_TOKEN` / `EMAIL_FROM` in deploy configs~~
+~~46. No `NODE_ENV=production` in deploy config~~
 
 ---
 
