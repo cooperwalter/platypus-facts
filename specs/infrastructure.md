@@ -4,7 +4,13 @@ Hosting, deployment, and operational concerns.
 
 ## Hosting
 
-VPS (e.g., Hetzner or DigitalOcean, ~$4-6/month). Bun runs as a long-lived process serving HTTP requests. SQLite database is a file on disk.
+Raspberry Pi 5 on the local network, exposed to the internet via Cloudflare Tunnel. Bun runs as a long-lived process serving HTTP requests. SQLite database is a file on disk.
+
+## TLS and Networking
+
+TLS is handled by Cloudflare — the Cloudflare Tunnel terminates HTTPS and forwards plain HTTP to the Bun server on the Pi. There is **no Traefik proxy and no Let's Encrypt** — Cloudflare handles all of that. The Kamal proxy config should reflect this (SSL disabled, plain HTTP only between Cloudflare and the container).
+
+The public domain is `https://platypus-facts.cooperwalter.dev/`.
 
 ## CI/CD — Kamal
 
@@ -14,7 +20,6 @@ Deployment uses [Kamal](https://kamal-deploy.org/) for Docker-based zero-downtim
 
 - Zero-downtime deploys via rolling container replacement
 - Built-in rollback (`kamal rollback`) if a deploy goes wrong
-- Manages SSL via Traefik proxy (replaces Caddy)
 - Handles container lifecycle (replaces systemd for the app process)
 - Environment/secret management via `.env` files on the server
 - Single `kamal deploy` command from CI or local machine
@@ -22,26 +27,26 @@ Deployment uses [Kamal](https://kamal-deploy.org/) for Docker-based zero-downtim
 ### How It Works
 
 1. **GitHub Actions** workflow triggered on push to `main`:
-   1. Run tests and type checks
-   2. Build Docker image and push to GitHub Container Registry (GHCR)
-   3. Run `kamal deploy` which pulls the image on the VPS, starts the new container, health-checks it, and cuts over traffic
+   1. Run tests, type checks, and lint
+   2. Build Docker image for `linux/arm64` (Pi 5 architecture) and push to GitHub Container Registry (GHCR)
+   3. Run `kamal deploy` which pulls the image on the Pi, starts the new container, health-checks it, and cuts over traffic
 2. The Docker image includes the application code, dependencies, and the fact sync script (which runs on container startup).
-3. Kamal's Traefik proxy handles TLS termination via Let's Encrypt (replaces the need for a separate Caddy setup).
 
 ### Dockerfile
 
 A multi-stage Dockerfile:
 - **Build stage**: Install dependencies with `bun install`
 - **Production stage**: Copy built artifacts into a minimal `oven/bun` image
+- Must build for `linux/arm64` platform (Raspberry Pi 5)
 
 ### Configuration
 
 Kamal is configured via `config/deploy.yml` in the repo:
 - Docker image registry (GHCR)
-- Server IP address(es)
+- Pi 5 IP address on the local network (or hostname)
 - Environment variables and secrets
-- Health check endpoint (e.g., `GET /health`)
-- Traefik configuration for SSL
+- Health check endpoint (`GET /health`)
+- Proxy with SSL disabled (Cloudflare handles TLS)
 
 ### Volumes
 
@@ -57,26 +62,26 @@ If a deploy introduces a bug: `kamal rollback` reverts to the previous container
 
 ## Cron
 
-The daily send job is scheduled via system `crontab` on the VPS. The cron entry is provisioned as part of deployment setup.
+The daily send job is scheduled via system `crontab` on the Pi. The cron entry executes inside the running Docker container. See `CRON_SETUP.md` for setup instructions.
 
 ## Environment Variables
 
 | Variable               | Description                              | Example                        | Required |
 | ---------------------- | ---------------------------------------- | ------------------------------ | -------- |
-| `PORT`                 | HTTP server port                         | `3000`                         | No (default: 3000) |
-| `BASE_URL`             | Public URL of the application            | `https://platypusfacts.example.com` | Yes |
+| `PORT`                 | HTTP server port                         | `3090`                         | No (default: 3000) |
+| `BASE_URL`             | Public URL of the application            | `https://platypus-facts.cooperwalter.dev` | Yes |
 | `DATABASE_PATH`        | Path to SQLite database file             | `./data/platypus-facts.db`     | No (default: `./data/platypus-facts.db`) |
 | `NODE_ENV`             | Environment mode (`development` or `production`) | `production`            | No (default: `development`) |
 | `TWILIO_ACCOUNT_SID`   | Twilio account SID                       | `AC...`                        | Production only |
 | `TWILIO_AUTH_TOKEN`     | Twilio auth token                        | `...`                          | Production only |
 | `TWILIO_PHONE_NUMBER`  | Twilio sending phone number (E.164)      | `+15551234567`                 | Production only |
 | `POSTMARK_API_TOKEN`   | Postmark API token for sending email     | `...`                          | Production only |
-| `EMAIL_FROM`           | Sender email address for outbound emails | `facts@platypusfacts.example.com` | Production only |
+| `EMAIL_FROM`           | Sender email address for outbound emails | `facts@platypus-facts.cooperwalter.dev` | Production only |
 | `DAILY_SEND_TIME_UTC`  | Time to send daily facts (HH:MM UTC)     | `14:00`                        | No (default: 14:00) |
 | `MAX_SUBSCRIBERS`      | Maximum number of active Platypus Fans   | `1000`                         | No (default: 1000) |
 | `OPENAI_API_KEY`       | API key for AI image generation          | `sk-...`                       | No (images skipped if unset) |
 
-In development (`NODE_ENV` unset or `development`), provider API keys (Twilio, Postmark, OpenAI) are optional. When not configured, dev providers are used that log to the console and store messages in memory for the dev message viewer. In production (`NODE_ENV=production`), Twilio and Postmark variables are required and the server refuses to start without them.
+In development (`NODE_ENV` unset or `development`), provider API keys (Twilio, Postmark, OpenAI) are optional. When not configured, dev providers are used that log to the console and store messages in SQLite for the dev message viewer. In production (`NODE_ENV=production`), Twilio and Postmark variables are required and the server refuses to start without them.
 
 ### `.env.development`
 
@@ -99,5 +104,7 @@ SQLite database should be backed up regularly. Options:
 
 ## Domain and TLS
 
-- A domain is needed for the public-facing web pages and Twilio webhook URL.
-- TLS via Let's Encrypt is handled automatically by Kamal's built-in Traefik proxy.
+- Domain: `platypus-facts.cooperwalter.dev`
+- TLS is handled entirely by Cloudflare via Cloudflare Tunnel. No certificates are managed on the Pi.
+- The Twilio webhook URL must be set to `https://platypus-facts.cooperwalter.dev/api/webhooks/twilio/incoming` in the Twilio console.
+- Twilio signature validation uses `BASE_URL` to reconstruct the request URL, so `BASE_URL` must match the public domain exactly.

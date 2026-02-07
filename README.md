@@ -1,4 +1,4 @@
-# Daily Platypus Facts
+# 🦫🦆🥚 Daily Platypus Facts
 
 A service that sends one platypus fact per day via SMS and/or email to all confirmed Platypus Fans, ensuring every fact is shown before any are repeated.
 

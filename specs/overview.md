@@ -23,6 +23,14 @@ A service that sends one platypus fact per day via SMS and/or email to all confi
 6. **Fact illustrations** — AI-generated minimalist line drawings of a platypus, one per fact, generated at sync time and displayed on fact pages and in daily messages.
 7. **CLI** — Command-line tools for manually triggering the daily send (with a dev-only `--force` flag).
 
+## Architecture Diagram
+
+An architecture diagram (`ARCHITECTURE.md` in the repo root) must be maintained that visually represents the system's components and their relationships. The diagram should be kept up to date as the system evolves — any change that adds, removes, or restructures a component should include a corresponding diagram update.
+
+## Platypus Emoji
+
+Since there is no platypus emoji in Unicode, the platypus is represented using the combination 🦫+🦆+🥚 wherever emoji are appropriate (README, documentation, commit messages, etc.).
+
 ## Project Attribution
 
 The project should clearly note in its README, signup page, and initial welcome SMS that it is inspired by the Daily Platypus Facts from *Life is Strange: Double Exposure*.

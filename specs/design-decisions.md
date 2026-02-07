@@ -56,7 +56,7 @@ Eliminates database hosting costs entirely. The file lives on the VPS alongside 
 
 ## Hosting: VPS with Kamal deploys
 
-A cheap VPS (~$4-6/month) with Docker-based deploys via Kamal. Chosen over serverless because it's simpler with SQLite and costs are fixed rather than usage-based. Kamal was chosen over a raw SSH/git-pull deploy because it provides zero-downtime deploys, built-in rollback, health checks, and automatic TLS via Traefik — without the overhead of a full self-hosted PaaS like Coolify.
+A Raspberry Pi 5 on the local network with Docker-based deploys via Kamal. Chosen over serverless because it's simpler with SQLite and costs are fixed rather than usage-based. Kamal was chosen over a raw SSH/git-pull deploy because it provides zero-downtime deploys, built-in rollback, and health checks — without the overhead of a full self-hosted PaaS like Coolify. TLS is handled by Cloudflare Tunnel, not by the container or Kamal proxy.
 
 ## Rate limiting on signup
 

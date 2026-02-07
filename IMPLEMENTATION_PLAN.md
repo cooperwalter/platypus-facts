@@ -2,50 +2,47 @@
 
 ## Status Summary
 
-**All priorities through P61 implemented.**
+**All priorities through P67 implemented.** All application logic and infrastructure configuration complete. Only one placeholder remains (Pi 5 server IP in `config/deploy.yml`), which requires the physical network setup.
 
 - **434 tests passing** across 23 test files with **1015 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations (31 images in `public/images/facts/`)
-- **Latest tag**: 0.0.41
-- **Independent audit (2026-02-07)**: All 15 spec files audited line-by-line against all 51 source files. Zero TODOs/FIXMEs, zero `any` types, zero skipped tests.
+- **Latest tag**: 0.0.42
 
 ---
 
 ## Outstanding Items
 
-None.
+### Pi 5 Server IP — Deferred (requires physical setup)
+
+`config/deploy.yml` line 9 still has `<your-server-ip>` placeholder. This requires the Raspberry Pi 5 to be set up on the local network and its IP confirmed. All other deploy config values are filled in.
 
 ---
 
 ## Remaining
 
-Manual testing with Twilio and Postmark before production launch
+- Confirm Pi 5 server IP and update `config/deploy.yml`
+- Manual testing with Twilio and Postmark before production launch
+- Database backup strategy (post-launch, not spec-required)
 
 ---
 
-## Completed Priorities (1-61)
+## Completed Priorities (1-67)
 
-All 61 priorities shipped. See git history for details.
+All 67 priorities shipped. See git history for details.
 
 ### Recent Completions
 
 | Priority | Description | Notes |
 |----------|-------------|-------|
-| P61 | Background pattern spacing review | Expanded SVG viewBox from `0 0 512 512` to `-256 -256 1024 1024` for padding, increased CSS `background-size` from `48px 48px` to `80px 80px`. Fixed accessibility issue: removed conflicting `aria-hidden="true"` from phone prefix span. Visual review confirmed generously spaced pattern. |
-| P58 | Implement `dev_messages` SQLite table | Dev providers now persist to SQLite for cross-process visibility. 10 files updated. |
-| P59 | Fix lint error in db.ts:62 | Quote style fix. |
-| P57 | Remove animated swimming platypus | ~200 lines removed across pages.ts, styles.css, routes.test.ts. Spec violation resolved. |
-
-### P58 Implementation Details
-
-**Schema decision**: `dev_messages` table added to `initializeSchema()` with `CREATE TABLE IF NOT EXISTS` — harmless in production, simplifies migration.
-
-**MediaUrl handling**: SMS `mediaUrl` is stored inline in the body field as `\n[Media: URL]` suffix, parsed out on read. This avoids adding a column not in the spec while preserving the data.
-
-**PlainBody/Headers**: Email `plainBody` and `headers` are not persisted to `dev_messages` since the spec table doesn't include them. The dev message viewer only needs `htmlBody` for preview.
-
-**Factory changes**: `createSmsProvider()` and `createEmailProvider()` now accept optional `Database` parameter. Throws if dev mode but no database provided.
+| P62 | Create ARCHITECTURE.md | ASCII diagram with system components, data flow, deployment overview. |
+| P63 | GitHub Actions ARM64 build | Added QEMU setup + `platforms: linux/arm64` to build-push-action. |
+| P64 | Disable SSL in Kamal proxy | Changed `ssl: true` to `ssl: false` — Cloudflare handles TLS. |
+| P65 | Fill deploy.yml placeholders | Image → `ghcr.io/cooperwalter/platypus-facts`, host → `platypus-facts.cooperwalter.dev`. Server IP deferred. |
+| P66 | Platypus emoji in README | Added 🦫🦆🥚 to README heading per spec. |
+| P67 | Fix .env.example PORT | Changed PORT from 3090 to 3000 to match production deploy config. |
+| P61 | Background pattern spacing | Expanded SVG viewBox, increased CSS background-size, fixed aria conflict. |
+| P58 | `dev_messages` SQLite table | Dev providers persist to SQLite for cross-process visibility. |
 
 ---
 
@@ -53,25 +50,26 @@ All 61 priorities shipped. See git history for details.
 
 ### P53 — EmailProvider `imageUrl` parameter — CLOSED (intentional deviation)
 
-Image URL passed via HTML template data structure instead of interface parameter.
+Image URL passed via HTML template data structure instead of interface parameter. Functionally equivalent.
 
 ### P54 — Twilio opt-out webhook — CLOSED
 
 Twilio forwards STOP messages to the existing incoming message webhook.
 
-### Phone Number NOT NULL Migration — RESOLVED
+### sent_facts ON DELETE RESTRICT — NOT A GAP
 
-`migrateSubscribersConstraints()` in db.ts recreates subscribers table with nullable phone_number.
+SQLite's default NO ACTION behaves identically to RESTRICT. Correct behavior for historical send records.
+
+### Dockerfile fact sync — NOT A GAP
+
+`src/index.ts` calls `syncFacts()` on server startup, satisfying the spec requirement.
 
 ---
 
-## Known Spec Gaps and Recommendations
+## Known Non-Gaps
 
-### Error Handling and Logging Strategy
-No spec covers structured logging. Using `console.log`/`console.error` for v1.
-
-### Database Backup Implementation
-Defer to post-launch. Start with simple daily cron backup.
-
-### `.env.development` Loading
-Bun automatically loads `.env.development` when `NODE_ENV=development` (or unset). No code change needed.
+- **Logging**: No spec covers structured logging. Using `console.log`/`console.error` for v1.
+- **Backups**: Spec mentions options but doesn't require implementation. Deferred.
+- **`.env.development` Loading**: Bun handles automatically.
+- **`dev_messages` Table**: Created unconditionally. Harmless in production.
+- **`design-decisions.md` Traefik Reference**: Spec inconsistency; `infrastructure.md` is authoritative. Codebase correctly uses Cloudflare Tunnel.

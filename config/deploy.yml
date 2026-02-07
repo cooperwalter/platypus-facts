@@ -1,7 +1,6 @@
 service: platypus-facts
 
-# Replace with your GitHub username before first deploy
-image: ghcr.io/<your-github-username>/platypus-facts
+image: ghcr.io/cooperwalter/platypus-facts
 
 servers:
   web:
@@ -39,9 +38,8 @@ volumes:
   - /opt/platypus-facts/images:/app/public/images/facts
 
 proxy:
-  ssl: true
-  # Replace with your domain name
-  host: <your-domain.com>
+  ssl: false
+  host: platypus-facts.cooperwalter.dev
   app_port: 3000
 
 healthcheck:
