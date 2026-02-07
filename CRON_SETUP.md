@@ -2,6 +2,16 @@
 
 The daily send job runs as a cron task on the VPS host, executing inside the Docker container.
 
+## VPS Setup (First Deploy)
+
+Create the host directories Kamal will mount as volumes before the first deploy:
+
+```bash
+sudo mkdir -p /opt/platypus-facts/data /opt/platypus-facts/images
+```
+
+These persist the SQLite database and AI-generated fact images across container replacements.
+
 ## Installing the Crontab
 
 SSH into the VPS and edit the crontab:

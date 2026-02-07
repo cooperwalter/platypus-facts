@@ -1,10 +1,12 @@
 service: platypus-facts
 
+# Replace with your GitHub username before first deploy
 image: ghcr.io/<your-github-username>/platypus-facts
 
 servers:
   web:
     hosts:
+      # Replace with your VPS IP address
       - <your-server-ip>
     options:
       network: kamal
@@ -35,6 +37,7 @@ volumes:
 
 proxy:
   ssl: true
+  # Replace with your domain name
   host: <your-domain.com>
   app_port: 3000
 
