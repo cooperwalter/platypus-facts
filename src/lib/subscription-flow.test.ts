@@ -240,6 +240,13 @@ describe("handleIncomingMessage - STOP handling", () => {
 		},
 	);
 
+	test("returns help message (not unsubscribe action) when unknown sender sends STOP", async () => {
+		const db = makeTestDatabase();
+
+		const reply = await handleIncomingMessage(db, "+15559999999", "STOP", BASE_URL, 1000);
+		expect(reply).toContain("Reply 1 or PERRY");
+	});
+
 	test("unsubscribes subscriber when stop word is lowercase", async () => {
 		const db = makeTestDatabase();
 		makeSubscriberRow(db, { phone_number: "+15558234567", status: "active" });

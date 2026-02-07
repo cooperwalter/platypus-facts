@@ -2,12 +2,12 @@
 
 ## Status Summary
 
-All priorities (1-22) are implemented. The application is feature-complete including AI-generated fact images with MMS delivery, with audit fixes and hardened test coverage.
+All priorities (1-23) are implemented. The application is feature-complete including AI-generated fact images with MMS delivery, with audit fixes and hardened test coverage.
 
-- **209 tests passing** across 17 test files with **502 expect() calls**
+- **259 tests passing** across 17 test files with **573 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded
-- **Latest tag**: 0.0.9
+- **Latest tag**: 0.0.11 (pending)
 - **Spec compliance**: 100%
 
 Three items remain that require a running server with Twilio credentials:
@@ -363,3 +363,32 @@ Updated `specs/fact-images.md` to reflect 1024x1024 image size (DALL-E 3 minimum
 
 ### MMS Cost Impact (Priority 21)
 - MMS ~$0.02/message vs SMS ~$0.008/segment. At 2-3 segments per SMS, MMS is comparable or cheaper while delivering illustration inline.
+
+---
+
+## Priority 23: Test Coverage Hardening (tag: 0.0.11)
+
+### Config Validation Tests (32 new tests)
+Added comprehensive tests for `loadConfig()` covering all validation paths that were previously untested:
+- **Required env vars**: throws on missing BASE_URL, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER
+- **BASE_URL validation**: rejects invalid URLs, strips trailing slashes, accepts valid URLs
+- **TWILIO_PHONE_NUMBER**: rejects non-E.164 format, requires plus prefix
+- **DAILY_SEND_TIME_UTC**: defaults to 14:00, validates HH:MM format, rejects hours > 23 and minutes > 59, accepts boundary values (00:00, 23:59)
+- **PORT**: defaults to 3000, rejects non-numbers/0/exceeding 65535, accepts boundary values (1, 65535)
+- **MAX_SUBSCRIBERS**: defaults to 1000, rejects 0/negative/non-numbers
+- **DATABASE_PATH**: defaults to ./data/platypus-facts.db, accepts custom paths
+- **Full defaults test**: verifies all fields with required env only
+
+### Route Handler Edge Case Tests (18 new tests)
+- **404 page structure**: heading text, "swam away" message, back-to-home link
+- **Fact page**: source URL used as display text when no title, subscribe CTA link present
+- **getClientIp**: multiple IPs in X-Forwarded-For, missing header returns "unknown", whitespace trimming
+- **Subscribe body validation**: phoneNumber as number (not string), JSON array body, JSON null body
+- **Webhook error handling**: parseIncomingMessage throws → empty TwiML, handleIncomingMessage throws → empty TwiML, STOP from known subscriber returns no message body
+- **Signup page at capacity**: no script tag when at capacity, includes script when not at capacity, description text present
+
+### Subscription Flow Edge Case (1 new test)
+- **STOP from unknown sender**: verifies help message returned (not unsubscribe action) when unknown phone sends STOP
+
+### Why These Tests Matter
+Config validation tests are critical for fail-fast behavior — the server should crash immediately on startup with clear error messages rather than fail mysteriously at runtime. The route handler tests ensure error paths don't leak internal errors to users and that HTML structure is correct for accessibility and user experience.

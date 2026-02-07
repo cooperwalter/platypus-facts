@@ -8,7 +8,7 @@ import {
 } from "../lib/test-utils";
 import { handleHealthCheck } from "./health";
 import { render404Page, renderFactPage, renderSignupPage } from "./pages";
-import { handleSubscribe } from "./subscribe";
+import { getClientIp, handleSubscribe } from "./subscribe";
 import { handleTwilioWebhook } from "./webhook";
 
 describe("GET /health", () => {
@@ -389,5 +389,237 @@ describe("GET /facts/:id", () => {
 		const html = await response.text();
 		expect(html).toContain("404");
 		expect(html).toContain("Daily Platypus Facts");
+	});
+
+	test("render404Page includes '404 - Fact Not Found' heading", async () => {
+		const response = render404Page();
+		const html = await response.text();
+		expect(html).toContain("404 - Fact Not Found");
+	});
+
+	test("render404Page includes 'Maybe it swam away?' message", async () => {
+		const response = render404Page();
+		const html = await response.text();
+		expect(html).toContain("Maybe it swam away?");
+	});
+
+	test("render404Page includes link back to home page", async () => {
+		const response = render404Page();
+		const html = await response.text();
+		expect(html).toContain('href="/"');
+		expect(html).toContain("Back to home");
+	});
+
+	test("uses source URL as display text when source has no title", async () => {
+		const db = makeTestDatabase();
+		const factId = makeFactRow(db, {
+			text: "Platypuses are unique",
+			sources: [{ url: "https://example.com/platypus" }],
+		});
+
+		const response = renderFactPage(db, factId);
+		const html = await response.text();
+
+		expect(html).toContain("https://example.com/platypus");
+		expect(html).toContain('target="_blank"');
+	});
+
+	test("fact page includes subscribe CTA link", async () => {
+		const db = makeTestDatabase();
+		const factId = makeFactRow(db, {
+			text: "Platypus fact",
+			sources: [{ url: "https://example.com", title: "Source" }],
+		});
+
+		const response = renderFactPage(db, factId);
+		const html = await response.text();
+
+		expect(html).toContain("Want daily platypus facts? Subscribe here!");
+		expect(html).toContain('href="/"');
+	});
+});
+
+describe("POST /api/subscribe - getClientIp", () => {
+	test("extracts first IP from X-Forwarded-For header with multiple IPs", () => {
+		const request = new Request("http://localhost/api/subscribe", {
+			method: "POST",
+			headers: { "X-Forwarded-For": "203.0.113.50, 70.41.3.18, 150.172.238.178" },
+		});
+		expect(getClientIp(request)).toBe("203.0.113.50");
+	});
+
+	test("returns 'unknown' when X-Forwarded-For header is missing", () => {
+		const request = new Request("http://localhost/api/subscribe", {
+			method: "POST",
+		});
+		expect(getClientIp(request)).toBe("unknown");
+	});
+
+	test("trims whitespace from extracted IP", () => {
+		const request = new Request("http://localhost/api/subscribe", {
+			method: "POST",
+			headers: { "X-Forwarded-For": "  203.0.113.50  , 70.41.3.18" },
+		});
+		expect(getClientIp(request)).toBe("203.0.113.50");
+	});
+});
+
+describe("POST /api/subscribe - body validation edge cases", () => {
+	function makeRequest(body: string, headers?: Record<string, string>): Request {
+		return new Request("http://localhost/api/subscribe", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"X-Forwarded-For": "192.168.1.1",
+				...headers,
+			},
+			body,
+		});
+	}
+
+	test("returns 400 when phoneNumber is a number instead of string", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const limiter = createRateLimiter(5, 60 * 60 * 1000);
+
+		const request = makeRequest(JSON.stringify({ phoneNumber: 5551234567 }));
+		const response = await handleSubscribe(request, db, sms, limiter, 1000);
+		const body = await response.json();
+
+		expect(response.status).toBe(400);
+		expect(body).toEqual({ success: false, error: "Invalid request body" });
+	});
+
+	test("returns 400 when body is a JSON array instead of object", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const limiter = createRateLimiter(5, 60 * 60 * 1000);
+
+		const request = makeRequest(JSON.stringify(["5551234567"]));
+		const response = await handleSubscribe(request, db, sms, limiter, 1000);
+		const body = await response.json();
+
+		expect(response.status).toBe(400);
+		expect(body).toEqual({ success: false, error: "Invalid request body" });
+	});
+
+	test("returns 400 when body is JSON null", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const limiter = createRateLimiter(5, 60 * 60 * 1000);
+
+		const request = makeRequest("null");
+		const response = await handleSubscribe(request, db, sms, limiter, 1000);
+		const body = await response.json();
+
+		expect(response.status).toBe(400);
+		expect(body).toEqual({ success: false, error: "Invalid request body" });
+	});
+});
+
+describe("POST /api/webhooks/twilio/incoming - error handling", () => {
+	test("returns empty TwiML when parseIncomingMessage throws", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		sms.parseIncomingMessage = async () => {
+			throw new Error("Parse failure");
+		};
+
+		const request = new Request("http://localhost/api/webhooks/twilio/incoming", {
+			method: "POST",
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			body: "invalid-data",
+		});
+		const response = await handleTwilioWebhook(request, db, sms, "https://example.com", 1000);
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("Content-Type")).toBe("text/xml");
+		const text = await response.text();
+		expect(text).toContain("<Response");
+		expect(text).not.toContain("<Message>");
+	});
+
+	test("returns empty TwiML when handleIncomingMessage throws", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+
+		const formData = new URLSearchParams();
+		formData.set("From", "+15551234567");
+		formData.set("Body", "1");
+
+		const request = new Request("http://localhost/api/webhooks/twilio/incoming", {
+			method: "POST",
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			body: formData.toString(),
+		});
+
+		const originalParse = sms.parseIncomingMessage.bind(sms);
+		let parseCount = 0;
+		sms.parseIncomingMessage = async (req: Request) => {
+			parseCount++;
+			if (parseCount === 1) {
+				return { from: "not-a-valid-phone!!!", body: "\0\0\0" };
+			}
+			return originalParse(req);
+		};
+
+		const response = await handleTwilioWebhook(request, db, sms, "https://example.com", 1000);
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("Content-Type")).toBe("text/xml");
+	});
+
+	test("returns TwiML with no message body when STOP word sent by known subscriber", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		makeSubscriberRow(db, { phone_number: "+15551234567", status: "active" });
+
+		const formData = new URLSearchParams();
+		formData.set("From", "+15551234567");
+		formData.set("Body", "STOP");
+
+		const request = new Request("http://localhost/api/webhooks/twilio/incoming", {
+			method: "POST",
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			body: formData.toString(),
+		});
+
+		const response = await handleTwilioWebhook(request, db, sms, "https://example.com", 1000);
+		const text = await response.text();
+
+		expect(response.status).toBe(200);
+		expect(text).not.toContain("<Message>");
+	});
+});
+
+describe("GET / - signup page at capacity details", () => {
+	test("does not include form submission script when at capacity", async () => {
+		const db = makeTestDatabase();
+		makeSubscriberRow(db, { phone_number: "+15551234567", status: "active" });
+
+		const response = renderSignupPage(db, 1);
+		const html = await response.text();
+
+		expect(html).not.toContain("<script>");
+		expect(html).not.toContain("signup-form");
+	});
+
+	test("includes form submission script when not at capacity", async () => {
+		const db = makeTestDatabase();
+
+		const response = renderSignupPage(db, 1000);
+		const html = await response.text();
+
+		expect(html).toContain("<script>");
+		expect(html).toContain("/api/subscribe");
+	});
+
+	test("includes description text about daily platypus facts", async () => {
+		const db = makeTestDatabase();
+
+		const response = renderSignupPage(db, 1000);
+		const html = await response.text();
+
+		expect(html).toContain("Get one fascinating platypus fact delivered to your phone every day");
 	});
 });
