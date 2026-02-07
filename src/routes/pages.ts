@@ -18,7 +18,7 @@ function renderSignupPage(db: Database, maxSubscribers: number): Response {
 		: `<form id="signup-form" class="signup-form">
 				<label for="phone-input" class="sr-only">Phone number</label>
 				<div class="input-group">
-					<span class="input-prefix" id="phone-prefix" aria-hidden="true">+1</span>
+					<span class="input-prefix" id="phone-prefix">+1</span>
 					<input
 						type="tel"
 						id="phone-input"
