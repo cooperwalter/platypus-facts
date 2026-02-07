@@ -25,7 +25,7 @@ The landing page where visitors subscribe to Daily Platypus Facts.
 - Warm, indie, handcrafted feel
 - Platypus imagery or illustrations
 - Personality and charm — this is a fun project
-- An **animated swimming platypus** cartoon prominently displayed on the page. The animation should be implemented with CSS (keyframe animations on an SVG or image element) — no JavaScript animation libraries, no GIFs, no external dependencies. The platypus should appear to swim across or within the page in a looping, fluid motion that adds life and delight without being distracting.
+- An **animated swimming platypus** cartoon that roams the entire page. The platypus should swim freely across the full page area — up, down, left, and right — in a looping path that covers the whole viewport, not confined to a small section or strip. The animation should be implemented with CSS (keyframe animations on a fixed/absolute-positioned SVG or image element) — no JavaScript animation libraries, no GIFs, no external dependencies. The platypus should flip horizontally to face its direction of travel. It should float behind the page content (lower z-index) so it doesn't interfere with form inputs or links.
 
 ### Behavior
 

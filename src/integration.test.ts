@@ -520,6 +520,105 @@ describe("integration: conflict detection", () => {
 	});
 });
 
+describe("integration: cross-channel confirmation activates all channels", () => {
+	test("dual-channel signup confirmed via SMS activates both SMS and email delivery", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
+		const phone = "+15558234567";
+
+		const result = await signup(
+			db,
+			sms,
+			{ phone: "5558234567", email: "dual@example.com" },
+			MAX_SUBSCRIBERS,
+			BASE_URL,
+			email,
+		);
+		expect(result.success).toBe(true);
+
+		const pending = findByPhoneNumber(db, phone);
+		expect(pending?.status).toBe("pending");
+		expect(pending?.email).toBe("dual@example.com");
+
+		expect(sms.sentMessages).toHaveLength(1);
+		expect(sms.sentMessages[0].body).toBe(welcomeMessage());
+		expect(email.sentEmails).toHaveLength(1);
+		expect(email.sentEmails[0].subject).toContain("Confirm");
+
+		const replyMessage = await handleIncomingMessage(db, phone, "PERRY", BASE_URL, MAX_SUBSCRIBERS);
+		expect(replyMessage).toBe(confirmationSuccessMessage());
+
+		const activated = findByPhoneNumber(db, phone);
+		expect(activated?.status).toBe("active");
+		expect(activated?.confirmed_at).not.toBeNull();
+		expect(activated?.email).toBe("dual@example.com");
+
+		sms.reset();
+		email.reset();
+		makeFactRow(db, {
+			text: "Platypuses can sense electric fields",
+			sources: [{ url: "https://example.com/electro" }],
+		});
+
+		const sendResult = await runDailySend(db, sms, BASE_URL, "2025-12-01", email);
+		expect(sendResult.subscriberCount).toBe(1);
+		expect(sendResult.smsSuccess).toBe(1);
+		expect(sendResult.emailSuccess).toBe(1);
+		expect(sms.sentMessages).toHaveLength(1);
+		expect(sms.sentMessages[0].to).toBe(phone);
+		expect(email.sentEmails).toHaveLength(1);
+		expect(email.sentEmails[0].to).toBe("dual@example.com");
+	});
+
+	test("dual-channel signup confirmed via email link activates both SMS and email delivery", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
+
+		const result = await signup(
+			db,
+			sms,
+			{ phone: "5559876543", email: "emailconfirm@example.com" },
+			MAX_SUBSCRIBERS,
+			BASE_URL,
+			email,
+		);
+		expect(result.success).toBe(true);
+
+		const pending = findByEmail(db, "emailconfirm@example.com");
+		expect(pending?.status).toBe("pending");
+		expect(pending?.phone_number).toBe("+15559876543");
+		if (!pending?.token) throw new Error("Expected token");
+
+		const confirmResponse = renderConfirmationPage(db, pending.token, MAX_SUBSCRIBERS);
+		expect(confirmResponse.status).toBe(200);
+		const confirmHtml = await confirmResponse.text();
+		expect(confirmHtml).toContain("Welcome, Platypus Fan!");
+
+		const activated = findByEmail(db, "emailconfirm@example.com");
+		expect(activated?.status).toBe("active");
+		expect(activated?.confirmed_at).not.toBeNull();
+		expect(activated?.phone_number).toBe("+15559876543");
+
+		sms.reset();
+		email.reset();
+		makeFactRow(db, {
+			text: "Platypuses have venomous spurs",
+			sources: [{ url: "https://example.com/venom" }],
+		});
+
+		const sendResult = await runDailySend(db, sms, BASE_URL, "2025-12-02", email);
+		expect(sendResult.subscriberCount).toBe(1);
+		expect(sendResult.smsSuccess).toBe(1);
+		expect(sendResult.emailSuccess).toBe(1);
+		expect(sms.sentMessages).toHaveLength(1);
+		expect(sms.sentMessages[0].to).toBe("+15559876543");
+		expect(email.sentEmails).toHaveLength(1);
+		expect(email.sentEmails[0].to).toBe("emailconfirm@example.com");
+	});
+});
+
 describe("integration: re-subscribe via website with email", () => {
 	test("unsubscribed email user re-signs up, gets new pending status, confirms via link", async () => {
 		const db = makeTestDatabase();
