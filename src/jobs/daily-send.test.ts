@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
 	makeFactRow,
+	makeMockEmailProvider,
 	makeMockSmsProvider,
 	makeSentFactRow,
 	makeSubscriberRow,
@@ -222,5 +223,140 @@ describe("daily-send", () => {
 			sent_date: string;
 		} | null;
 		expect(sentFact?.sent_date).toBe(expectedDate);
+	});
+
+	test("sends email to subscriber with email address when emailProvider is provided", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
+
+		makeFactRow(db, { text: "Platypuses have electroreception" });
+		makeSubscriberRow(db, { phone_number: null, email: "fan@example.com", status: "active" });
+
+		const result = await runDailySend(db, sms, "https://example.com", "2025-06-15", email);
+
+		expect(result.emailSuccess).toBe(1);
+		expect(result.smsSuccess).toBe(0);
+		expect(result.successCount).toBe(1);
+		expect(email.sentEmails).toHaveLength(1);
+		expect(email.sentEmails[0].to).toBe("fan@example.com");
+		expect(email.sentEmails[0].subject).toBe("Your Daily Platypus Fact");
+		expect(email.sentEmails[0].htmlBody).toContain("Platypuses have electroreception");
+		expect(email.sentEmails[0].plainBody).toContain("Platypuses have electroreception");
+		expect(sms.sentMessages).toHaveLength(0);
+	});
+
+	test("sends both SMS and email to subscriber with phone and email", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
+
+		makeFactRow(db, { text: "Platypuses are venomous" });
+		makeSubscriberRow(db, {
+			phone_number: "+15552345678",
+			email: "fan@example.com",
+			status: "active",
+		});
+
+		const result = await runDailySend(db, sms, "https://example.com", "2025-06-15", email);
+
+		expect(result.smsSuccess).toBe(1);
+		expect(result.emailSuccess).toBe(1);
+		expect(result.successCount).toBe(2);
+		expect(sms.sentMessages).toHaveLength(1);
+		expect(email.sentEmails).toHaveLength(1);
+	});
+
+	test("skips email for phone-only subscriber", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
+
+		makeFactRow(db, { text: "Platypuses lay eggs" });
+		makeSubscriberRow(db, { phone_number: "+15552345678", email: null, status: "active" });
+
+		const result = await runDailySend(db, sms, "https://example.com", "2025-06-15", email);
+
+		expect(result.smsSuccess).toBe(1);
+		expect(result.emailSuccess).toBe(0);
+		expect(sms.sentMessages).toHaveLength(1);
+		expect(email.sentEmails).toHaveLength(0);
+	});
+
+	test("does not send email when emailProvider is not provided", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+
+		makeFactRow(db, { text: "Platypuses are monotremes" });
+		makeSubscriberRow(db, {
+			phone_number: "+15552345678",
+			email: "fan@example.com",
+			status: "active",
+		});
+
+		const result = await runDailySend(db, sms, "https://example.com", "2025-06-15");
+
+		expect(result.smsSuccess).toBe(1);
+		expect(result.emailSuccess).toBe(0);
+		expect(sms.sentMessages).toHaveLength(1);
+	});
+
+	test("continues sending when email delivery fails for one subscriber", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
+
+		makeFactRow(db, { text: "Platypuses have webbed feet" });
+		makeSubscriberRow(db, { phone_number: null, email: "a@example.com", status: "active" });
+		makeSubscriberRow(db, { phone_number: null, email: "b@example.com", status: "active" });
+
+		let callCount = 0;
+		email.sendEmail = async (to, subject, htmlBody, plainBody, headers) => {
+			callCount++;
+			if (callCount === 1) throw new Error("Email delivery failed");
+			email.sentEmails.push({ to, subject, htmlBody, plainBody, headers });
+		};
+
+		const result = await runDailySend(db, sms, "https://example.com", "2025-06-15", email);
+
+		expect(result.emailSuccess).toBe(1);
+		expect(result.emailFail).toBe(1);
+		expect(result.failureCount).toBe(1);
+	});
+
+	test("email includes unsubscribe URL and List-Unsubscribe headers", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
+
+		makeFactRow(db, { text: "Platypuses glow under UV light" });
+		makeSubscriberRow(db, {
+			phone_number: null,
+			email: "fan@example.com",
+			token: "test-token-uuid-1234-567890abcdef",
+			status: "active",
+		});
+
+		await runDailySend(db, sms, "https://example.com", "2025-06-15", email);
+
+		expect(email.sentEmails).toHaveLength(1);
+		const sent = email.sentEmails[0];
+		expect(sent.headers?.["List-Unsubscribe"]).toContain("test-token-uuid-1234-567890abcdef");
+		expect(sent.headers?.["List-Unsubscribe-Post"]).toBe("List-Unsubscribe=One-Click");
+		expect(sent.htmlBody).toContain("test-token-uuid-1234-567890abcdef");
+	});
+
+	test("per-channel counts are zero for early-exit scenarios", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const factId = makeFactRow(db);
+		makeSentFactRow(db, { fact_id: factId, sent_date: "2025-06-15", cycle: 1 });
+
+		const result = await runDailySend(db, sms, "https://example.com", "2025-06-15");
+
+		expect(result.smsSuccess).toBe(0);
+		expect(result.smsFail).toBe(0);
+		expect(result.emailSuccess).toBe(0);
+		expect(result.emailFail).toBe(0);
 	});
 });

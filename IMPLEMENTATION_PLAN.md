@@ -2,14 +2,14 @@
 
 ## Status Summary
 
-Priorities 1-37 are implemented and committed. A comprehensive spec-vs-implementation audit has identified **5 remaining priorities** covering daily send email, animated platypus, CLI, and infrastructure.
+Priorities 1-38 are implemented and committed. A comprehensive spec-vs-implementation audit has identified **4 remaining priorities** covering dev viewer, CLI, animated platypus, and infrastructure.
 
-- **399 tests passing** across 23 test files with **857 expect() calls**
+- **406 tests passing** across 23 test files with **889 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations
-- **Latest tag**: 0.0.24
+- **Latest tag**: 0.0.25
 - **SMS-only spec compliance**: ~100%
-- **Full spec compliance**: ~92% (daily send email, dev viewer, animated platypus still remaining)
+- **Full spec compliance**: ~95% (dev viewer, CLI --force, animated platypus still remaining)
 
 ### What Exists (Priorities 1-27)
 
@@ -23,7 +23,7 @@ Priorities 1-37 are implemented and committed. A comprehensive spec-vs-implement
 - Email provider abstraction complete (P32): `EmailProvider` interface, Postmark implementation, dev email provider, factory function `createEmailProvider(config)`. Email templates for daily fact, confirmation, and already-subscribed. `escapeHtml`/`isSafeUrl` extracted to shared `src/lib/html-utils.ts`. `makeMockEmailProvider()` in test-utils. `unsubscribeHeaders()` for RFC 8058 List-Unsubscribe support.
 - Subscribe endpoint accepts `{ phoneNumber?, email? }` (at least one required). Passes baseUrl and emailProvider to subscription flow (P34 complete).
 - Signup page has phone and email inputs, "and / or" divider, client-side validation (at least one required), description says "via SMS and/or email" (P35 complete). No animated swimming platypus.
-- Daily send is SMS-only with null phone guard. No email sending. No `--force` flag. No `NODE_ENV` check.
+- Daily send supports both SMS and email channels with per-channel result breakdown (`smsSuccess`, `smsFail`, `emailSuccess`, `emailFail`). Accepts optional `EmailProvider`. No `--force` flag. No `NODE_ENV` check.
 - `GET /confirm/:token` route with all confirmation states (P36 complete). Reusable `renderMessagePage` helper for status pages.
 - `GET/POST /unsubscribe/:token` routes with confirmation form, all states (P37 complete).
 - No routes for `/dev/messages`.
@@ -40,21 +40,7 @@ Priorities 1-37 are implemented and committed. A comprehensive spec-vs-implement
 
 ### ~~Priority 37: Unsubscribe routes (`GET/POST /unsubscribe/:token`)~~ -- DONE (0.0.24)
 
-### Priority 38: Daily send job -- email channel support
-
-**Spec**: `specs/daily-job.md`, `specs/email-integration.md`
-**Gap**: `runDailySend` in `src/jobs/daily-send.ts` only sends SMS. No email sending. The function also assumes `subscriber.phone_number` is always a non-null string (lines 101, 105).
-
-- Update `runDailySend` to accept `EmailProvider` parameter (or null)
-- For each active subscriber:
-  - If has phone -> send SMS/MMS (existing)
-  - If has email -> send daily fact email (new)
-  - Subscribers with both receive both
-- Handle null `phone_number` for email-only subscribers (skip SMS) and null `email` for phone-only subscribers (skip email)
-  - **Critical**: line 101 `subscriber.phone_number` and line 105 `subscriber.phone_number.slice(-4)` will crash for email-only subscribers -- must guard with null check
-- Log results broken down by channel (SMS success/fail, email success/fail)
-- Update `DailySendResult` to include per-channel counts (smsSuccess, smsFail, emailSuccess, emailFail)
-- Tests for email sending, dual-channel, email-only, and phone-only subscribers
+### ~~Priority 38: Daily send job -- email channel support~~ -- DONE (0.0.25)
 
 ### Priority 39: Dev message viewer routes
 
@@ -159,6 +145,7 @@ Priorities 1-37 are implemented and committed. A comprehensive spec-vs-implement
 | 35 | Signup form email support (email input, "and / or" divider, client-side validation, updated description) | 0.0.22 |
 | 36 | Email confirmation route (`GET /confirm/:token`) with all states, reusable message page helper | 0.0.23 |
 | 37 | Unsubscribe routes (`GET/POST /unsubscribe/:token`) with confirmation form and all states | 0.0.24 |
+| 38 | Daily send email channel (dual SMS+email, per-channel counts, null phone guard, unsubscribe headers) | 0.0.25 |
 
 ---
 
@@ -167,9 +154,8 @@ Priorities 1-37 are implemented and committed. A comprehensive spec-vs-implement
 ```
 P41 (Animated swimming platypus) ─── independent, can be done anytime
 
-P30-37 (DB + DAL + Email + Sub flow + Routes) ─ DONE ──┐
+P30-38 (DB + DAL + Email + Sub flow + Routes + Daily send) ─ DONE ──┐
                                                   │
-P38 (Daily send: email channel) ────────────────┤
                                                   │
 P39 (Dev message viewer) ──────────────────────┤
                                                   │
@@ -182,10 +168,7 @@ P43 (Infra configs for email) ─── last
 
 ### Dependency Details
 
-- **P30-37** (DB schema + DAL + email provider + dev SMS + subscription flow + form + confirm + unsubscribe) are complete.
-- **P38** (daily send email) depends on P32 (email provider) and P34 (updated subscriber types).
-  - **Must fix null phone_number crash**: `subscriber.phone_number.slice(-4)` in daily-send.ts will throw for email-only subscribers.
-  - **Should add per-channel result breakdown** to `DailySendResult`.
+- **P30-38** (DB schema + DAL + email provider + dev SMS + subscription flow + form + confirm + unsubscribe + daily send email) are complete.
 - **P39** (dev viewer) depends on P32 (dev email provider) and P33 (dev SMS provider) for stored messages.
 - **P40** (--force) depends on P29 (NODE_ENV for production rejection).
 - **P41** (animated platypus) is fully independent. Can be done at any time.
@@ -244,10 +227,10 @@ For reference, here is the complete gap inventory mapped to their priorities:
 ~~36. No `POST /unsubscribe/:token` route~~
 ~~37. No unsubscribe page HTML templates (confirmation, success, invalid)~~
 
-### In P38 (Daily send email):
-38. `runDailySend` is SMS-only (no EmailProvider param)
-39. `subscriber.phone_number.slice(-4)` crashes for email-only subscribers (null)
-40. `DailySendResult` has no per-channel breakdown
+### ~~In P38 (Daily send email)~~ -- DONE:
+~~38. `runDailySend` is SMS-only (no EmailProvider param)~~
+~~39. `subscriber.phone_number.slice(-4)` crashes for email-only subscribers (null)~~
+~~40. `DailySendResult` has no per-channel breakdown~~
 
 ### In P39 (Dev message viewer):
 41. No `/dev/messages` route
