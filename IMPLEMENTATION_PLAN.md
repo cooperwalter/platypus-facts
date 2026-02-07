@@ -2,17 +2,17 @@
 
 ## Status Summary
 
-51 priorities implemented and committed. **All spec compliance gaps resolved.**
+52 priorities implemented and committed. **2 items remaining: 1 optional interface alignment (P53), 1 new finding requiring investigation (P54).**
 
 - **433 tests passing** across 23 test files with **1020 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations
-- **Latest tag**: 0.0.36
-- **Spec compliance**: 100%
+- **Latest tag**: 0.0.37
+- **Spec compliance**: 100% against committed specs; 2 optional items remain
 
 ---
 
-## What Was Built (Priorities 1-43)
+## What Was Built (Priorities 1-51)
 
 | Priority | Description | Tag |
 |----------|-------------|-----|
@@ -66,58 +66,105 @@
 | 49 | Add repeating platypus background pattern (inline SVG data URI, 6% opacity, tiled on body) | 0.0.35 |
 | 50 | Fix animated platypus timing: ease-in-out to linear for smooth constant-speed movement | 0.0.35 |
 | 51 | Fix missing UNIQUE index on subscribers.token migration + add fact_sources.fact_id index | 0.0.36 |
+| 52 | Use `public/platypus-icon.svg` for repeating background pattern (replace inline SVG data URI) | 0.0.37 |
 
 ---
 
-## Spec Compliance Audit (2026-02-06)
+## Remaining Items
 
-Full audit of all 15 spec files against the implementation. **433 tests passing, type check clean, lint clean, zero TODOs/FIXMEs in codebase.**
+### P53 — (Optional) Add `imageUrl` parameter to EmailProvider interface
 
-### Verified Correct
+**Priority**: Low — cosmetic spec alignment, no functional impact.
 
-**Data Model** (`specs/data-model.md`): All 4 tables match spec exactly -- facts, fact_sources, subscribers, sent_facts. All columns, types, constraints, and foreign keys correct. `ON DELETE RESTRICT` on sent_facts is a beneficial deviation (prevents accidental data loss). UNIQUE index on subscribers.token enforced in both fresh and migrated databases. Index on fact_sources.fact_id for CASCADE DELETE performance.
+**Context**: `specs/email-integration.md` line 10 says the interface should "optionally accept an `imageUrl` for emails that include the fact illustration." The implementation passes the image URL via the HTML template data structure instead, which achieves the same result. The image appears correctly in emails.
 
-**SMS Message Templates** (`specs/subscription-flow.md`): All 7 message templates match spec text verbatim (welcome, confirmation success, already subscribed, unsubscribed user, help, at capacity, daily fact message).
+**If implementing**:
+- Add optional `imageUrl?: string` parameter to `EmailProvider.sendEmail()` in `src/lib/email/types.ts`
+- Update `PostmarkEmailProvider` and `DevEmailProvider` to accept but ignore the parameter (the HTML body already contains the image)
+- Update `makeMockEmailProvider()` in `src/lib/test-utils.ts`
+- Update all `sendEmail()` call sites in `src/lib/subscription-flow.ts` and `src/jobs/daily-send.ts`
 
-**Email Templates** (`specs/email-integration.md`): All 3 email types correct -- daily fact (subject "Daily Platypus Fact"), confirmation ("Confirm your Daily Platypus Facts subscription"), already subscribed ("You're already a Platypus Fan!"). HTML + plain text for all. List-Unsubscribe and List-Unsubscribe-Post headers on all emails.
+**Assessment**: This is a cosmetic interface alignment. The current design (image in template) is arguably cleaner since email images are always embedded in HTML. Not worth implementing unless strict literal spec compliance is desired.
 
-**STOP Words**: All 8 Twilio stop words recognized (STOP, STOPALL, UNSUBSCRIBE, CANCEL, END, QUIT, REVOKE, OPTOUT).
+---
 
-**Subscription Flow** (`specs/subscription-flow.md`): Signup, double opt-in, conflict detection, capacity checks at both signup and confirmation, channel-aware messages, re-signup from unsubscribed (does NOT check capacity), START keyword handling -- all correct.
+### P54 — Twilio opt-out webhook endpoint
 
-**Phone Validation** (`specs/phone-validation.md`): All formats accepted, NANP rules enforced, E.164 normalization, correct error messages, placeholder "(555) 823-4567".
+**Priority**: Low-Medium — requires investigation before implementation.
 
-**Email Validation** (`specs/email-integration.md`): Basic format check (@ and domain with dot), lowercase normalization.
+**Context**: Two specs reference a Twilio opt-out webhook:
+- `specs/sms-integration.md` line 46: "configure the account's opt-out webhook to update subscriber status in the database"
+- `specs/subscription-flow.md` line 80: similar language about opt-out webhook configuration
+
+Currently, STOP words are handled in `handleIncomingMessage` within the incoming message webhook (`POST /api/webhooks/twilio/incoming`). This correctly processes all 8 Twilio stop words (STOP, STOPALL, UNSUBSCRIBE, CANCEL, END, QUIT, REVOKE, OPTOUT) and updates subscriber status.
+
+**The question**: Twilio's Advanced Opt-Out feature can intercept STOP messages at the carrier/Twilio level *before* forwarding them to the application's incoming message webhook. If Twilio intercepts STOP and does not forward it, the application would never see the message and the database would not be updated. Twilio can be configured to POST opt-out notifications to a separate webhook URL.
+
+**Investigation needed first**:
+1. Does Twilio forward STOP messages to the incoming message webhook when Advanced Opt-Out is enabled? If yes, the current implementation is sufficient and the spec language refers to configuring Twilio settings (external to codebase), not adding a new endpoint.
+2. If Twilio does NOT forward STOP messages, a dedicated `POST /api/webhooks/twilio/opt-out` endpoint is needed to receive opt-out notifications and update subscriber status.
+
+**Plan if a new endpoint is needed**:
+- Add `POST /api/webhooks/twilio/opt-out` route
+- Parse the Twilio opt-out webhook payload (contains the phone number that opted out)
+- Look up subscriber by phone number and update status to `unsubscribed`
+- Validate Twilio signature on the request
+- Add tests for the new endpoint
+- Document the Twilio console configuration needed to point the opt-out webhook URL
+
+**Plan if no new endpoint is needed**:
+- Document that the spec's "opt-out webhook" language refers to Twilio console configuration
+- Ensure the incoming message webhook handles all STOP words (already verified)
+- Close this item as not applicable
+
+**Files potentially affected**: `src/index.ts` (new route), `src/routes/` (new handler), `src/lib/subscription-flow.ts` (if reusing existing logic), tests
+
+---
+
+## Spec Compliance Audit (2026-02-07)
+
+Comprehensive audit of all 15 spec files against the implementation, conducted by 16 parallel subagents. **433 tests passing, type check clean, lint clean, zero TODOs/FIXMEs in codebase, zero skipped tests.**
+
+### Verified Fully Compliant (13 areas)
+
+**Data Model** (`specs/data-model.md`): All 4 tables match spec exactly — facts, fact_sources, subscribers, sent_facts. All columns, types, constraints, and foreign keys correct. `ON DELETE RESTRICT` on sent_facts is a beneficial deviation (prevents accidental data loss). UNIQUE index on subscribers.token enforced in both fresh and migrated databases. Index on fact_sources.fact_id for CASCADE DELETE performance.
+
+**Subscription Flow** (`specs/subscription-flow.md`): All message templates match spec text verbatim (welcome, confirmation success, already subscribed, unsubscribed user, help, at capacity, daily fact message). Signup, double opt-in, conflict detection, capacity checks at both signup and confirmation, channel-aware messages, re-signup from unsubscribed (does NOT check capacity), START keyword handling — all correct.
+
+**Email Integration** (`specs/email-integration.md`): All 3 email types correct — daily fact (subject "Daily Platypus Fact"), confirmation ("Confirm your Daily Platypus Facts subscription"), already subscribed ("You're already a Platypus Fan!"). HTML + plain text for all. List-Unsubscribe and List-Unsubscribe-Post headers on all emails. Only gap is P53 (cosmetic interface parameter).
+
+**Daily Job** (`specs/daily-job.md`): Idempotency, individual failure doesn't halt, per-channel breakdown, todayOverride for testing, sends MMS when image available, SMS fallback. `--force` flag bypasses idempotency in dev, rejected in production.
 
 **Fact Cycling** (`specs/fact-cycling.md`): New-first priority, current cycle unsent, new cycle increment, random selection, cycle tracking, edge cases (no facts, one fact).
 
-**Daily Job** (`specs/daily-job.md`): Idempotency, individual failure doesn't halt, per-channel breakdown, todayOverride for testing, sends MMS when image available, SMS fallback.
-
-**Web Pages** (`specs/web-pages.md`): Signup page (form, fan count, capacity handling, animated SVG platypus with full-viewport swim path and direction flipping, CSS keyframes, "and/or" divider, phone + email inputs, standard message rates note), fact page (image above text, sources, branding, attribution, subscribe CTA), confirmation page (all states), unsubscribe pages (GET/POST, all states), dev message viewer (list + detail, dev only), 404 page.
-
-**API Endpoints** (`specs/web-pages.md`): POST /api/subscribe (correct body, response format), GET /health (200 OK), POST /api/webhooks/twilio/incoming (signature validation, TwiML response).
-
-**CLI** (`specs/cli.md`): daily-send, sync-facts, start commands. --force flag bypasses idempotency in dev, rejected in production ("The --force flag is not allowed in production."), no duplicate sent_facts entry.
-
-**Image Generation** (`specs/fact-images.md`): Fixed style prompt matching spec, DALL-E 3, 1024x1024, PNG, stored in public/images/facts/{id}.png, auth error early bail, no-text instruction.
+**Phone Validation** (`specs/phone-validation.md`): All formats accepted, NANP rules enforced, E.164 normalization, correct error messages, placeholder "(555) 823-4567".
 
 **Seed Data Sync** (`specs/seed-data.md`): Validation (non-empty text, at least one source, non-empty URL), upsert logic, no deletion, image generation after sync, runs on startup.
 
-**Infrastructure** (`specs/infrastructure.md`): Dockerfile multi-stage, Kamal deploy.yml, GitHub Actions CI/CD, volumes, health check, env vars, NODE_ENV config (dev/production mode), provider factories.
+**Fact Images** (`specs/fact-images.md`): Fixed style prompt matching spec, DALL-E 3, 1024x1024, PNG, stored in public/images/facts/{id}.png, auth error early bail, no-text instruction.
 
-**Config** (`specs/infrastructure.md`): All 12 env vars handled correctly -- defaults, validation, production requirements.
+**CLI** (`specs/cli.md`): daily-send, sync-facts, start commands. --force flag bypasses idempotency in dev, rejected in production ("The --force flag is not allowed in production."), no duplicate sent_facts entry.
 
-**Rate Limiting** (`specs/subscription-flow.md`): 5 requests per IP per hour, in-memory fixed window with cleanup.
+**Routes and Server**: All routes implemented — POST /api/subscribe, GET /health, POST /api/webhooks/twilio/incoming (signature validation, TwiML response), GET /confirm/:token, GET/POST /unsubscribe/:token, dev message viewer (dev only), static file serving with path traversal protection. Security measures: XSS escaping, isSafeUrl, parameterized SQL, request body size limit.
 
-**Provider Abstractions**: SMS (SmsProvider interface, Twilio, DevSmsProvider, factory), Email (EmailProvider interface, Postmark, DevEmailProvider, factory).
+**Provider Abstractions**: SMS (SmsProvider interface, Twilio, DevSmsProvider, factory), Email (EmailProvider interface, Postmark, DevEmailProvider, factory). In-memory dev storage with console logging, dev viewer routes conditionally registered.
 
-**Security**: XSS protection (escapeHtml, isSafeUrl), path traversal protection (path.resolve + startsWith), Twilio signature validation, request body size limit, SQL parameterized queries.
+**Infrastructure** (`specs/infrastructure.md`): Dockerfile multi-stage, Kamal deploy.yml, GitHub Actions CI/CD, volumes, health check, env vars, NODE_ENV config (dev/production mode), provider factories. All 12 env vars handled correctly.
 
-**Dev Providers**: In-memory storage, console logging, dev viewer routes conditionally registered.
+**Test Coverage**: 433 tests across 23 files with 1020 expect() calls. Comprehensive coverage of all modules including integration tests for cross-channel flows, email flows, subscription lifecycle, and edge cases.
 
-### No Remaining Items
+### Gaps Identified (2 remaining items)
 
-All spec compliance gaps have been resolved.
+1. **P53 — EmailProvider interface `imageUrl` parameter** (Low): Cosmetic spec alignment only. Image delivery works correctly via HTML template. See Remaining Items above.
+
+2. **P54 — Twilio opt-out webhook** (Low-Medium): Spec language in two files references an opt-out webhook. Requires investigation of Twilio behavior before determining if a code change is needed. See Remaining Items above.
+
+### Non-Issues Confirmed
+
+- **Fact sync in Dockerfile**: The audit confirmed `src/index.ts` line 38 runs `syncFacts()` at server startup. The P44 removal of separate sync from Dockerfile CMD was correct.
+- **DAILY_SEND_TIME_UTC not used programmatically**: By design — cron handles scheduling externally. Already documented.
+- **Test comment inconsistency**: One test says "NO ACTION" but implementation uses RESTRICT. Functionally equivalent in SQLite (both prevent deletion of referenced rows). Not worth changing.
+- **Backup strategy**: Known deferred item, documented below.
 
 ---
 
@@ -140,4 +187,4 @@ MMS ~$0.02/message vs SMS ~$0.008/segment. At 2-3 segments per SMS (UCS-2 encodi
 SQLite does not support `ALTER TABLE ... ALTER COLUMN`. Existing databases will retain the NOT NULL constraint on phone_number. New databases created after the schema update will have nullable phone_number. This is acceptable since all existing subscribers are phone-only. If needed in the future, a full table recreation migration can be added.
 
 ### EmailProvider Interface vs Spec
-`email-integration.md` mentions an optional `imageUrl` parameter on the interface. The implementation passes the image URL via HTML template instead, which achieves the same result. The interface deviation is cosmetic -- behavior is correct.
+`email-integration.md` mentions an optional `imageUrl` parameter on the interface. The implementation passes the image URL via HTML template instead, which achieves the same result. The interface deviation is cosmetic — behavior is correct. See P53 for optional fix.
