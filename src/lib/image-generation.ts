@@ -4,7 +4,8 @@ import * as path from "node:path";
 const STYLE_PROMPT =
 	"Minimalist black line drawing of a cute platypus on a white background. " +
 	"Hand-drawn sketchy style with occasional rosy pink cheek accents. " +
-	"Simple, whimsical, charming. ";
+	"Simple, whimsical, charming. " +
+	"No text, no letters, no words, no numbers anywhere in the image.";
 
 const DALL_E_API_URL = "https://api.openai.com/v1/images/generations";
 
@@ -22,12 +23,8 @@ interface DallEResponse {
 	data: Array<{ b64_json: string }>;
 }
 
-export async function generateFactImage(
-	factId: number,
-	factText: string,
-	apiKey: string,
-): Promise<string | null> {
-	const prompt = STYLE_PROMPT + factText;
+export async function generateFactImage(factId: number, apiKey: string): Promise<string | null> {
+	const prompt = STYLE_PROMPT;
 	const outputDir = path.join(process.cwd(), "public", "images", "facts");
 	const filePath = path.join(outputDir, `${factId}.png`);
 	const relativePath = `images/facts/${factId}.png`;

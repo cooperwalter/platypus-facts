@@ -162,14 +162,12 @@ export async function syncFacts(
 
 	if (openaiApiKey) {
 		const factsWithoutImages = db
-			.query<{ id: number; text: string }, []>(
-				"SELECT id, text FROM facts WHERE image_path IS NULL",
-			)
+			.query<{ id: number }, []>("SELECT id FROM facts WHERE image_path IS NULL")
 			.all();
 
 		for (const fact of factsWithoutImages) {
 			try {
-				const imagePath = await generateFactImage(fact.id, fact.text, openaiApiKey);
+				const imagePath = await generateFactImage(fact.id, openaiApiKey);
 				if (imagePath) {
 					db.prepare("UPDATE facts SET image_path = ? WHERE id = ?").run(imagePath, fact.id);
 					results.imagesGenerated++;

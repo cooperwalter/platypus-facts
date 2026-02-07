@@ -25,7 +25,7 @@ function makeSuccessResponse(b64Data = "iVBORw0KGgo=") {
 }
 
 describe("generateFactImage", () => {
-	test("constructs prompt from style prefix and fact text", async () => {
+	test("uses fixed style prompt without fact text", async () => {
 		let capturedBody = "";
 		globalThis.fetch = mock(async (_url: string | URL | Request, init?: RequestInit) => {
 			capturedBody = typeof init?.body === "string" ? init.body : "";
@@ -33,11 +33,16 @@ describe("generateFactImage", () => {
 		}) as unknown as typeof fetch;
 		Bun.write = mock(async () => 0) as typeof Bun.write;
 
-		const factText = "Platypuses detect electric fields";
-		await generateFactImage(1, factText, "sk-test");
+		await generateFactImage(1, "sk-test");
 
 		const parsed = JSON.parse(capturedBody) as { prompt: string };
-		expect(parsed.prompt).toBe(STYLE_PROMPT + factText);
+		expect(parsed.prompt).toBe(STYLE_PROMPT);
+	});
+
+	test("STYLE_PROMPT includes no-text instruction", () => {
+		expect(STYLE_PROMPT).toContain(
+			"No text, no letters, no words, no numbers anywhere in the image",
+		);
 	});
 
 	test("calls DALL-E API endpoint with correct parameters", async () => {
@@ -59,7 +64,7 @@ describe("generateFactImage", () => {
 		}) as unknown as typeof fetch;
 		Bun.write = mock(async () => 0) as typeof Bun.write;
 
-		await generateFactImage(7, "Test fact", "sk-test-key");
+		await generateFactImage(7, "sk-test-key");
 
 		expect(capturedUrl).toBe(DALL_E_API_URL);
 		expect(capturedHeaders.Authorization).toBe("Bearer sk-test-key");
@@ -78,7 +83,7 @@ describe("generateFactImage", () => {
 			return 0;
 		}) as typeof Bun.write;
 
-		await generateFactImage(42, "Test fact", "sk-test");
+		await generateFactImage(42, "sk-test");
 
 		const expectedPath = path.join(process.cwd(), "public", "images", "facts", "42.png");
 		expect(writtenPath).toBe(expectedPath);
@@ -88,7 +93,7 @@ describe("generateFactImage", () => {
 		globalThis.fetch = mock(async () => makeSuccessResponse()) as unknown as typeof fetch;
 		Bun.write = mock(async () => 0) as typeof Bun.write;
 
-		const result = await generateFactImage(7, "Test fact", "sk-test");
+		const result = await generateFactImage(7, "sk-test");
 
 		expect(result).toBe("images/facts/7.png");
 	});
@@ -98,7 +103,7 @@ describe("generateFactImage", () => {
 			async () => new Response("Rate limited", { status: 429 }),
 		) as unknown as typeof fetch;
 
-		const result = await generateFactImage(1, "Test fact", "sk-test");
+		const result = await generateFactImage(1, "sk-test");
 
 		expect(result).toBeNull();
 	});
@@ -108,9 +113,7 @@ describe("generateFactImage", () => {
 			async () => new Response("Unauthorized", { status: 401 }),
 		) as unknown as typeof fetch;
 
-		await expect(generateFactImage(1, "Test fact", "sk-bad")).rejects.toBeInstanceOf(
-			ImageAuthError,
-		);
+		await expect(generateFactImage(1, "sk-bad")).rejects.toBeInstanceOf(ImageAuthError);
 	});
 
 	test("throws ImageAuthError on 403 response for forbidden API key", async () => {
@@ -118,9 +121,7 @@ describe("generateFactImage", () => {
 			async () => new Response("Forbidden", { status: 403 }),
 		) as unknown as typeof fetch;
 
-		await expect(generateFactImage(1, "Test fact", "sk-bad")).rejects.toBeInstanceOf(
-			ImageAuthError,
-		);
+		await expect(generateFactImage(1, "sk-bad")).rejects.toBeInstanceOf(ImageAuthError);
 	});
 
 	test("returns null and logs on network error", async () => {
@@ -128,7 +129,7 @@ describe("generateFactImage", () => {
 			throw new Error("Network timeout");
 		}) as unknown as typeof fetch;
 
-		const result = await generateFactImage(1, "Test fact", "sk-test");
+		const result = await generateFactImage(1, "sk-test");
 
 		expect(result).toBeNull();
 	});
@@ -138,7 +139,7 @@ describe("generateFactImage", () => {
 			async () => new Response(JSON.stringify({ data: [] }), { status: 200 }),
 		) as unknown as typeof fetch;
 
-		const result = await generateFactImage(1, "Test fact", "sk-test");
+		const result = await generateFactImage(1, "sk-test");
 
 		expect(result).toBeNull();
 	});
