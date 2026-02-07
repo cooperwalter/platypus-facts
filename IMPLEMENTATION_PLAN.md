@@ -2,12 +2,12 @@
 
 ## Status Summary
 
-Priorities 1-41 are implemented and committed. Only infrastructure config updates and integration tests remain.
+Priorities 1-42 are implemented and committed. Only infrastructure config updates remain.
 
-- **422 tests passing** across 23 test files with **948 expect() calls**
+- **427 tests passing** across 23 test files with **983 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations
-- **Latest tag**: 0.0.28
+- **Latest tag**: 0.0.29
 - **Full spec compliance**: ~100% (all features complete, infra configs remaining)
 
 ### What Exists (Priorities 1-27)
@@ -47,15 +47,7 @@ Priorities 1-41 are implemented and committed. Only infrastructure config update
 
 ### ~~Priority 41: Animated swimming platypus on signup page~~ -- DONE (0.0.28)
 
-### Priority 42: Comprehensive integration tests for email flows
-
-- End-to-end signup with email only, phone only, and both
-- Email confirmation flow (click link -> activate)
-- Email unsubscribe flow (click link -> unsubscribe)
-- Dual-channel daily send (subscriber gets both SMS and email)
-- Conflict detection (phone matches subscriber A, email matches subscriber B)
-- Re-subscribe via website with email
-- Dev message viewer displays both SMS and email messages
+### ~~Priority 42: Comprehensive integration tests for email flows~~ -- DONE (0.0.29)
 
 ### Priority 43: Update infrastructure configs for email
 
@@ -113,6 +105,7 @@ Priorities 1-41 are implemented and committed. Only infrastructure config update
 | 39 | Dev message viewer (`/dev/messages` list + `/dev/messages/:id` detail, SMS + email, dev-only) | 0.0.26 |
 | 40 | CLI `--force` flag (bypass idempotency in dev, rejected in production, no duplicate sent_facts) | 0.0.27 |
 | 41 | Animated swimming platypus (inline SVG, CSS keyframe animations, swim/bob/paddle/bubbles) | 0.0.28 |
+| 42 | Integration tests for email flows (signup, confirm, unsubscribe, dual-channel, conflict, re-subscribe) | 0.0.29 |
 
 ---
 

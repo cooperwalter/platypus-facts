@@ -10,14 +10,16 @@ import {
 	dailyFactMessage,
 	welcomeMessage,
 } from "./lib/sms-templates";
-import { findByPhoneNumber, getActiveCount } from "./lib/subscribers";
+import { findByEmail, findByPhoneNumber, getActiveCount } from "./lib/subscribers";
 import { handleIncomingMessage, signup } from "./lib/subscription-flow";
 import {
 	makeFactRow,
+	makeMockEmailProvider,
 	makeMockSmsProvider,
 	makeSubscriberRow,
 	makeTestDatabase,
 } from "./lib/test-utils";
+import { handleUnsubscribe, renderConfirmationPage } from "./routes/pages";
 import { syncFacts } from "./scripts/sync-facts";
 
 const BASE_URL = "https://platypusfacts.example.com";
@@ -384,5 +386,175 @@ describe("integration: cap enforcement end-to-end", () => {
 
 		const stillPending = findByPhoneNumber(db, "+15558234567");
 		expect(stillPending?.status).toBe("pending");
+	});
+});
+
+describe("integration: email-only signup and confirmation flow", () => {
+	test("email signup creates pending subscriber, confirmation link activates subscription", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
+
+		const result = await signup(
+			db,
+			sms,
+			{ email: "platypus@example.com" },
+			MAX_SUBSCRIBERS,
+			BASE_URL,
+			email,
+		);
+		expect(result.success).toBe(true);
+
+		const subscriber = findByEmail(db, "platypus@example.com");
+		expect(subscriber).not.toBeNull();
+		expect(subscriber?.status).toBe("pending");
+		expect(subscriber?.phone_number).toBeNull();
+
+		expect(email.sentEmails).toHaveLength(1);
+		expect(email.sentEmails[0].to).toBe("platypus@example.com");
+		expect(email.sentEmails[0].subject).toContain("Confirm");
+		if (!subscriber?.token) throw new Error("Expected token");
+		expect(email.sentEmails[0].htmlBody).toContain(subscriber.token);
+		expect(sms.sentMessages).toHaveLength(0);
+		const confirmResponse = renderConfirmationPage(db, subscriber.token, MAX_SUBSCRIBERS);
+		expect(confirmResponse.status).toBe(200);
+		const confirmHtml = await confirmResponse.text();
+		expect(confirmHtml).toContain("Welcome, Platypus Fan!");
+
+		const activated = findByEmail(db, "platypus@example.com");
+		expect(activated?.status).toBe("active");
+		expect(activated?.confirmed_at).not.toBeNull();
+	});
+});
+
+describe("integration: email unsubscribe flow", () => {
+	test("active email subscriber unsubscribes via web link and no longer receives daily emails", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			phone_number: null,
+			email: "fan@example.com",
+			token: "unsub-1111-2222-3333-444444444444",
+			status: "active",
+			confirmed_at: new Date().toISOString(),
+		});
+
+		const unsubResponse = handleUnsubscribe(db, "unsub-1111-2222-3333-444444444444");
+		expect(unsubResponse.status).toBe(200);
+		const unsubHtml = await unsubResponse.text();
+		expect(unsubHtml).toContain("Unsubscribed");
+
+		const unsubscribed = findByEmail(db, "fan@example.com");
+		expect(unsubscribed?.status).toBe("unsubscribed");
+		expect(unsubscribed?.unsubscribed_at).not.toBeNull();
+
+		makeFactRow(db, { text: "Platypuses swim well" });
+		const result = await runDailySend(db, sms, BASE_URL, "2025-10-01", email);
+		expect(result.subscriberCount).toBe(0);
+		expect(email.sentEmails).toHaveLength(0);
+	});
+});
+
+describe("integration: dual-channel daily send", () => {
+	test("subscriber with both phone and email receives both SMS and email", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
+
+		makeFactRow(db, {
+			text: "Platypuses have electroreception",
+			sources: [{ url: "https://example.com/electro" }],
+		});
+		makeSubscriberRow(db, {
+			phone_number: "+15558234567",
+			email: "fan@example.com",
+			status: "active",
+			confirmed_at: new Date().toISOString(),
+		});
+
+		const result = await runDailySend(db, sms, BASE_URL, "2025-11-01", email);
+
+		expect(result.smsSuccess).toBe(1);
+		expect(result.emailSuccess).toBe(1);
+		expect(result.successCount).toBe(2);
+		expect(sms.sentMessages).toHaveLength(1);
+		expect(sms.sentMessages[0].body).toContain("Platypuses have electroreception");
+		expect(email.sentEmails).toHaveLength(1);
+		expect(email.sentEmails[0].to).toBe("fan@example.com");
+		expect(email.sentEmails[0].htmlBody).toContain("Platypuses have electroreception");
+	});
+});
+
+describe("integration: conflict detection", () => {
+	test("signup with phone matching subscriber A and email matching subscriber B returns conflict error", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			phone_number: "+15558234567",
+			email: null,
+			status: "active",
+			confirmed_at: new Date().toISOString(),
+		});
+		makeSubscriberRow(db, {
+			phone_number: null,
+			email: "other@example.com",
+			status: "active",
+			confirmed_at: new Date().toISOString(),
+		});
+
+		const result = await signup(
+			db,
+			sms,
+			{ phone: "5558234567", email: "other@example.com" },
+			MAX_SUBSCRIBERS,
+			BASE_URL,
+			email,
+		);
+
+		expect(result.success).toBe(false);
+		expect(result.message).toContain("different");
+	});
+});
+
+describe("integration: re-subscribe via website with email", () => {
+	test("unsubscribed email user re-signs up, gets new pending status, confirms via link", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			phone_number: null,
+			email: "returning@example.com",
+			status: "unsubscribed",
+			confirmed_at: new Date(Date.now() - 86400000).toISOString(),
+			unsubscribed_at: new Date().toISOString(),
+		});
+
+		const result = await signup(
+			db,
+			sms,
+			{ email: "returning@example.com" },
+			MAX_SUBSCRIBERS,
+			BASE_URL,
+			email,
+		);
+		expect(result.success).toBe(true);
+
+		const pending = findByEmail(db, "returning@example.com");
+		expect(pending?.status).toBe("pending");
+
+		expect(email.sentEmails).toHaveLength(1);
+		expect(email.sentEmails[0].to).toBe("returning@example.com");
+
+		if (!pending?.token) throw new Error("Expected token");
+		const confirmResponse = renderConfirmationPage(db, pending.token, MAX_SUBSCRIBERS);
+		expect(confirmResponse.status).toBe(200);
+
+		const reactivated = findByEmail(db, "returning@example.com");
+		expect(reactivated?.status).toBe("active");
 	});
 });
