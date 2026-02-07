@@ -7,7 +7,7 @@
 - **434 tests passing** across 23 test files with **1015 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations (31 images in `public/images/facts/`)
-- **Latest tag**: 0.0.42
+- **Latest tag**: 0.0.43
 
 ---
 
