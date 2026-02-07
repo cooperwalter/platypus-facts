@@ -2,12 +2,12 @@
 
 ## Status Summary
 
-**All priorities through P67 implemented.** All application logic and infrastructure configuration complete. Only one placeholder remains (Pi 5 server IP in `config/deploy.yml`), which requires the physical network setup.
+**All priorities through P68 implemented.** All application logic and infrastructure configuration complete. Only one placeholder remains (Pi 5 server IP in `config/deploy.yml`), which requires the physical network setup.
 
-- **434 tests passing** across 23 test files with **1015 expect() calls**
+- **467 tests passing** across 24 test files with **1060 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations (31 images in `public/images/facts/`)
-- **Latest tag**: 0.0.43
+- **Latest tag**: 0.0.44
 
 ---
 
@@ -29,20 +29,16 @@
 
 ## Completed Priorities (1-67)
 
-All 67 priorities shipped. See git history for details.
+All 68 priorities shipped. See git history for details.
 
 ### Recent Completions
 
 | Priority | Description | Notes |
 |----------|-------------|-------|
-| P62 | Create ARCHITECTURE.md | ASCII diagram with system components, data flow, deployment overview. |
-| P63 | GitHub Actions ARM64 build | Added QEMU setup + `platforms: linux/arm64` to build-push-action. |
-| P64 | Disable SSL in Kamal proxy | Changed `ssl: true` to `ssl: false` — Cloudflare handles TLS. |
-| P65 | Fill deploy.yml placeholders | Image → `ghcr.io/cooperwalter/platypus-facts`, host → `platypus-facts.cooperwalter.dev`. Server IP deferred. |
-| P66 | Platypus emoji in README | Added 🦫🦆🥚 to README heading per spec. |
+| P68 | Extract `createRequestHandler` + 33 server tests | Refactored `handleRequest` out of `index.ts` into testable `server.ts` factory. Tests cover route dispatching, static file serving, path traversal protection, 404 fallback, dev route gating, method restrictions, and URL pattern matching. |
 | P67 | Fix .env.example PORT | Changed PORT from 3090 to 3000 to match production deploy config. |
-| P61 | Background pattern spacing | Expanded SVG viewBox, increased CSS background-size, fixed aria conflict. |
-| P58 | `dev_messages` SQLite table | Dev providers persist to SQLite for cross-process visibility. |
+| P66 | Platypus emoji in README | Added 🦫🦆🥚 to README heading per spec. |
+| P65 | Fill deploy.yml placeholders | Image → `ghcr.io/cooperwalter/platypus-facts`, host → `platypus-facts.cooperwalter.dev`. Server IP deferred. |
 
 ---
 
