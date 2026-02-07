@@ -190,6 +190,24 @@ describe("daily-send", () => {
 		expect(sms.sentMessages[0].mediaUrl).toBeUndefined();
 	});
 
+	test("handles concurrent duplicate daily-send gracefully via sent_date UNIQUE constraint", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+
+		const factId = makeFactRow(db, { text: "Race condition fact" });
+		makeSubscriberRow(db, { phone_number: "+15552345678", status: "active" });
+
+		db.prepare(
+			"INSERT INTO sent_facts (fact_id, sent_date, cycle) VALUES (?, '2025-06-15', 1)",
+		).run(factId);
+
+		const result = await runDailySend(db, sms, "https://example.com", "2025-06-15");
+
+		expect(result.alreadySent).toBe(true);
+		expect(result.factId).toBe(factId);
+		expect(sms.sentMessages).toHaveLength(0);
+	});
+
 	test("uses UTC today date when no override provided", async () => {
 		const db = makeTestDatabase();
 		const sms = makeMockSmsProvider();

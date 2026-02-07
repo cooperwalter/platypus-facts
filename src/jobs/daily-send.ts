@@ -42,7 +42,28 @@ async function runDailySend(
 		};
 	}
 
-	const selected = selectAndRecordFact(db, today);
+	let selected: ReturnType<typeof selectAndRecordFact>;
+	try {
+		selected = selectAndRecordFact(db, today);
+	} catch (error: unknown) {
+		const msg = error instanceof Error ? error.message : String(error);
+		if (msg.includes("UNIQUE constraint failed")) {
+			const existingAfterRace = getSentFactByDate(db, today);
+			if (existingAfterRace) {
+				console.log(
+					`Fact already sent for ${today} (race detected, fact_id=${existingAfterRace.fact_id}), skipping.`,
+				);
+				return {
+					alreadySent: true,
+					factId: existingAfterRace.fact_id,
+					subscriberCount: 0,
+					successCount: 0,
+					failureCount: 0,
+				};
+			}
+		}
+		throw error;
+	}
 	if (!selected) {
 		console.warn("No facts in database. Skipping daily send.");
 		return {

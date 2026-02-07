@@ -2,12 +2,12 @@
 
 ## Status Summary
 
-All 24 priorities are implemented and committed. A full spec-vs-implementation audit (Priority 24) confirmed **100% spec compliance** across all spec files, with 5 issues found and fixed.
+All 27 priorities are implemented and committed. A full spec-vs-implementation audit (Priority 24) confirmed **100% spec compliance** across all spec files, with subsequent fixes maintaining compliance.
 
-- **260 tests passing** across 16 test files with **578 expect() calls**
+- **269 tests passing** across 16 test files with **596 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded
-- **Latest tag**: 0.0.13
+- **Latest tag**: 0.0.15
 - **Spec compliance**: 100% (confirmed by comprehensive audit)
 
 ### Remaining Work (Manual Testing Only)
@@ -49,6 +49,8 @@ These require a running server with Twilio credentials:
 | 23 | Test coverage hardening: 50 tests for config validation, route edge cases, subscription flow | 0.0.11 |
 | 24 | Spec compliance audit: 5 fixes (webhook URL, placeholder, re-signup capacity, image dir, docs) | 0.0.12 |
 | 25 | Deployment fixes: GitHub Actions secrets, Kamal deploy docs, VPS setup instructions | 0.0.13 |
+| 26 | Invalid API key early detection: bail on first auth failure, skip remaining images | 0.0.14 |
+| 27 | Production hardening: busy_timeout, race condition safety nets, request body size limit | 0.0.15 |
 
 ---
 
@@ -91,6 +93,30 @@ Full spec-vs-implementation audit uncovered 5 actionable issues, all fixed:
 ## Priority 25: Deployment Fixes (tag: 0.0.13)
 
 GitHub Actions workflow was missing secret environment variables needed by Kamal to deploy application secrets (`BASE_URL`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`, `OPENAI_API_KEY`). Without these, Kamal deploy would fail to pass secrets to the container. Also added documentation comments to `config/deploy.yml` for placeholder values and VPS host directory setup instructions to `CRON_SETUP.md`.
+
+---
+
+## Priority 26: Invalid API Key Early Detection (tag: 0.0.14)
+
+Spec requires that when `OPENAI_API_KEY` is set but invalid, the sync script detects the auth failure on the first DALL-E API call and skips all remaining image generation with a single warning — rather than repeating the same error for every fact.
+
+Added `ImageAuthError` class in `image-generation.ts` that is thrown on 401/403 responses and re-thrown through the catch-all handler. The sync loop in `sync-facts.ts` catches `ImageAuthError`, logs one warning, counts remaining facts as failed, and breaks. Also committed spec clarifications marking `OPENAI_API_KEY` as optional in `fact-images.md` and `infrastructure.md`. 4 new tests (2 in image-generation, 2 in sync-facts).
+
+---
+
+## Priority 27: Production Hardening (tag: 0.0.15)
+
+Deep edge case audit found four production-readiness issues, all fixed:
+
+1. **SQLite busy_timeout** -- Added `PRAGMA busy_timeout=5000` to both `createDatabase` and `createInMemoryDatabase`. Without this, the HTTP server and daily-send cron (separate processes sharing the same SQLite file) could get immediate `SQLITE_BUSY` errors on write contention instead of retrying for up to 5 seconds.
+
+2. **Daily-send race condition safety net** -- `runDailySend` now catches `UNIQUE constraint failed` on `sent_facts.sent_date` and returns `alreadySent: true` instead of crashing. This handles the narrow window where two concurrent daily-send processes both pass the idempotency check but only one can INSERT.
+
+3. **Signup UNIQUE constraint retry for all statuses** -- The existing race condition handler in `signup()` only handled `pending` status on retry. Now handles `active` (sends already-subscribed message) and `unsubscribed` (resets to pending) statuses, preventing a 500 error in an extremely narrow race window.
+
+4. **Request body size limit** -- `/api/subscribe` now rejects payloads over 4KB (413 status) via both `Content-Length` header check and actual body length check. Prevents memory exhaustion from oversized POST bodies on this unauthenticated endpoint.
+
+5 new tests: 1 busy_timeout pragma, 1 daily-send race handling, 3 body size limit (over-limit header, over-limit body, under-limit acceptance).
 
 ---
 

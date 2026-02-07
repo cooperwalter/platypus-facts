@@ -27,9 +27,18 @@ async function handleSubscribe(
 		);
 	}
 
+	const contentLength = request.headers.get("Content-Length");
+	if (contentLength && Number.parseInt(contentLength, 10) > 4096) {
+		return Response.json({ success: false, error: "Request body too large" }, { status: 413 });
+	}
+
 	let body: unknown;
 	try {
-		body = await request.json();
+		const rawText = await request.text();
+		if (rawText.length > 4096) {
+			return Response.json({ success: false, error: "Request body too large" }, { status: 413 });
+		}
+		body = JSON.parse(rawText);
 	} catch {
 		return Response.json({ success: false, error: "Invalid request body" }, { status: 400 });
 	}

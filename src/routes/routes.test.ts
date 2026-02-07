@@ -464,6 +464,70 @@ describe("POST /api/subscribe - getClientIp", () => {
 	});
 });
 
+describe("POST /api/subscribe - body size limit", () => {
+	test("returns 413 when Content-Length header exceeds 4096 bytes", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const limiter = createRateLimiter(5, 60 * 60 * 1000);
+
+		const request = new Request("http://localhost/api/subscribe", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"X-Forwarded-For": "192.168.1.1",
+				"Content-Length": "10000",
+			},
+			body: JSON.stringify({ phoneNumber: "5552345678" }),
+		});
+		const response = await handleSubscribe(request, db, sms, limiter, 1000);
+		const body = await response.json();
+
+		expect(response.status).toBe(413);
+		expect(body).toEqual({ success: false, error: "Request body too large" });
+	});
+
+	test("returns 413 when actual body exceeds 4096 bytes without Content-Length header", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const limiter = createRateLimiter(5, 60 * 60 * 1000);
+
+		const largeBody = JSON.stringify({ phoneNumber: "5552345678", padding: "x".repeat(5000) });
+		const request = new Request("http://localhost/api/subscribe", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"X-Forwarded-For": "192.168.1.1",
+			},
+			body: largeBody,
+		});
+		const response = await handleSubscribe(request, db, sms, limiter, 1000);
+		const body = await response.json();
+
+		expect(response.status).toBe(413);
+		expect(body).toEqual({ success: false, error: "Request body too large" });
+	});
+
+	test("accepts request body under 4096 bytes", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const limiter = createRateLimiter(5, 60 * 60 * 1000);
+
+		const request = new Request("http://localhost/api/subscribe", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"X-Forwarded-For": "192.168.1.1",
+			},
+			body: JSON.stringify({ phoneNumber: "5552345678" }),
+		});
+		const response = await handleSubscribe(request, db, sms, limiter, 1000);
+		const body = (await response.json()) as Record<string, unknown>;
+
+		expect(response.status).toBe(200);
+		expect(body.success).toBe(true);
+	});
+});
+
 describe("POST /api/subscribe - body validation edge cases", () => {
 	function makeRequest(body: string, headers?: Record<string, string>): Request {
 		return new Request("http://localhost/api/subscribe", {

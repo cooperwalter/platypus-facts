@@ -139,3 +139,11 @@ describe("database setup", () => {
 		expect(row.image_path).toBe("images/facts/1.png");
 	});
 });
+
+describe("database pragmas", () => {
+	test("enables busy_timeout pragma for write contention between processes", () => {
+		const db = makeTestDatabase();
+		const result = db.query("PRAGMA busy_timeout").get() as { timeout: number };
+		expect(result.timeout).toBe(5000);
+	});
+});

@@ -85,13 +85,33 @@ async function signup(
 		const errorMsg = error instanceof Error ? error.message : String(error);
 		if (errorMsg.includes("UNIQUE constraint failed")) {
 			const retryExisting = findByPhoneNumber(db, phone);
-			if (retryExisting && retryExisting.status === "pending") {
-				await smsProvider.sendSms(phone, welcomeMessage());
-				return {
-					success: true,
-					message:
-						"We've resent your confirmation message. Please check your phone and reply to confirm.",
-				};
+			if (retryExisting) {
+				if (retryExisting.status === "pending") {
+					await smsProvider.sendSms(phone, welcomeMessage());
+					return {
+						success: true,
+						message:
+							"We've resent your confirmation message. Please check your phone and reply to confirm.",
+					};
+				}
+				if (retryExisting.status === "active") {
+					await smsProvider.sendSms(phone, alreadySubscribedMessage());
+					return {
+						success: true,
+						message: "You're already subscribed! Check your phone for details.",
+					};
+				}
+				if (retryExisting.status === "unsubscribed") {
+					updateStatus(db, retryExisting.id, "pending", {
+						unsubscribed_at: null,
+					});
+					await smsProvider.sendSms(phone, welcomeMessage());
+					return {
+						success: true,
+						message:
+							"Welcome back! Please check your phone and reply to confirm your subscription.",
+					};
+				}
 			}
 		}
 		throw error;

@@ -51,6 +51,7 @@ function createDatabase(path: string): Database {
 	const db = new Database(path);
 	db.exec("PRAGMA journal_mode=WAL");
 	db.exec("PRAGMA foreign_keys=ON");
+	db.exec("PRAGMA busy_timeout=5000");
 	initializeSchema(db);
 	migrateSchema(db);
 	return db;
@@ -59,6 +60,7 @@ function createDatabase(path: string): Database {
 function createInMemoryDatabase(): Database {
 	const db = new Database(":memory:");
 	db.exec("PRAGMA foreign_keys=ON");
+	db.exec("PRAGMA busy_timeout=5000");
 	initializeSchema(db);
 	migrateSchema(db);
 	return db;
