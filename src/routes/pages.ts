@@ -38,7 +38,7 @@ function renderSignupPage(db: Database, maxSubscribers: number): Response {
 						type="tel"
 						id="phone-input"
 						name="phoneNumber"
-						placeholder="(555) 123-4567"
+						placeholder="(555) 823-4567"
 						autocomplete="tel-national"
 						inputmode="tel"
 						aria-describedby="phone-prefix"

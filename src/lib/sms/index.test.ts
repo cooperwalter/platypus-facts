@@ -24,6 +24,15 @@ describe("createSmsProvider", () => {
 		expect(typeof provider.createWebhookResponse).toBe("function");
 	});
 
+	test("should accept an optional webhook URL for signature validation behind a reverse proxy", () => {
+		const provider = createSmsProvider(
+			"https://platypusfacts.example.com/api/webhooks/twilio/incoming",
+		);
+
+		expect(provider).toBeDefined();
+		expect(typeof provider.validateWebhookSignature).toBe("function");
+	});
+
 	test("should throw an error when TWILIO_ACCOUNT_SID is missing", () => {
 		process.env.TWILIO_ACCOUNT_SID = undefined;
 

@@ -2,12 +2,12 @@
 
 ## Status Summary
 
-All priorities (1-23) are implemented. The application is feature-complete including AI-generated fact images with MMS delivery, with audit fixes and hardened test coverage.
+All priorities (1-24) are implemented. The application is feature-complete including AI-generated fact images with MMS delivery, with audit fixes and hardened test coverage.
 
-- **259 tests passing** across 17 test files with **573 expect() calls**
+- **260 tests passing** across 16 test files with **578 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded
-- **Latest tag**: 0.0.11 (pending)
+- **Latest tag**: 0.0.12
 - **Spec compliance**: 100%
 
 Three items remain that require a running server with Twilio credentials:
@@ -392,3 +392,49 @@ Added comprehensive tests for `loadConfig()` covering all validation paths that 
 
 ### Why These Tests Matter
 Config validation tests are critical for fail-fast behavior — the server should crash immediately on startup with clear error messages rather than fail mysteriously at runtime. The route handler tests ensure error paths don't leak internal errors to users and that HTML structure is correct for accessibility and user experience.
+
+---
+
+## Priority 24: Spec Compliance Audit Fixes (tag: 0.0.12)
+
+Full spec-vs-implementation audit uncovered 5 actionable issues (plus 2 informational). All fixed in this increment.
+
+### Fix 1: Webhook URL for Twilio Signature Validation Behind Reverse Proxy (Critical)
+
+**Issue**: `createSmsProvider()` did not pass a `webhookUrl` to `TwilioSmsProvider`. In production behind Kamal's Traefik proxy, `request.url` would be the internal container URL (e.g., `http://localhost:3000/...`), not the public URL Twilio signed against. This would cause all webhook signature validations to fail, breaking confirmation and STOP flows entirely.
+
+**Fix**: `createSmsProvider()` now accepts an optional `webhookUrl` parameter and forwards it to `TwilioSmsProvider`. In `src/index.ts`, the webhook URL is constructed from `config.baseUrl`.
+
+**Modified**: `src/lib/sms/index.ts`, `src/index.ts`, `src/lib/sms/index.test.ts`
+
+### Fix 2: Phone Input Placeholder Showed Invalid Number
+
+**Issue**: Placeholder was `(555) 123-4567` — the exchange `123` starts with `1`, which the app's own NANP validation rejects. Spec says `(555) 823-4567`.
+
+**Fix**: Changed placeholder to `(555) 823-4567`.
+
+**Modified**: `src/routes/pages.ts`
+
+### Fix 3: Unsubscribed Re-Signup Incorrectly Rejected at Capacity
+
+**Issue**: The `signup()` function checked capacity before allowing an unsubscribed user to re-enter the pending queue. The spec explicitly says "Does not count against the cap since the row already exists." Capacity is correctly enforced at confirmation time in the webhook handler.
+
+**Fix**: Removed capacity check from the unsubscribed re-signup path. Updated test to verify the spec-compliant behavior.
+
+**Modified**: `src/lib/subscription-flow.ts`, `src/lib/subscription-flow.test.ts`
+
+### Fix 4: Image Output Directory Not Ensured Before Writing
+
+**Issue**: `generateFactImage()` computed the output directory path but never called `mkdirSync` to ensure it exists. On a fresh deployment, `Bun.write()` could silently fail (caught by try/catch, returning `null`), meaning images would never generate.
+
+**Fix**: Added `fs.mkdirSync(outputDir, { recursive: true })` before `Bun.write()`.
+
+**Modified**: `src/lib/image-generation.ts`
+
+### Fix 5: Rate Limiter Documentation Inaccuracy
+
+**Issue**: `CLAUDE.md` described the rate limiter as "sliding window" but the implementation is a fixed window. The spec only requires rate limiting at the suggested parameters, so no code change needed.
+
+**Fix**: Updated `CLAUDE.md` to say "fixed window".
+
+**Modified**: `CLAUDE.md`

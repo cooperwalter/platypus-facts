@@ -36,7 +36,7 @@ Bun HTTP server (`Bun.serve()`) that sends daily platypus facts via SMS (Twilio)
 - **Fact cycling** ensures every fact is sent before any repeats, tracking cycles in the `sent_facts` table
 - **`handleIncomingMessage`** returns a message string (not a Response) — the caller wraps it in TwiML
 - **`runDailySend`** accepts a `todayOverride` param because Date mocking doesn't work in Bun's test runner
-- **Rate limiting** is in-memory per-process (sliding window, configured at 5 req/hr in index.ts)
+- **Rate limiting** is in-memory per-process (fixed window, configured at 5 req/hr in index.ts)
 - **Config** (`loadConfig()`) validates all env vars on startup and strips trailing slashes from BASE_URL
 
 ### Database

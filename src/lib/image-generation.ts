@@ -1,3 +1,4 @@
+import * as fs from "node:fs";
 import * as path from "node:path";
 
 const STYLE_PROMPT =
@@ -51,6 +52,7 @@ export async function generateFactImage(
 		}
 
 		const buffer = Buffer.from(b64, "base64");
+		fs.mkdirSync(outputDir, { recursive: true });
 		await Bun.write(filePath, buffer);
 
 		return relativePath;

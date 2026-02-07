@@ -60,13 +60,6 @@ async function signup(
 		}
 
 		if (existing.status === "unsubscribed") {
-			const activeCount = getActiveCount(db);
-			if (activeCount >= maxSubscribers) {
-				return {
-					success: false,
-					message: "We're currently at capacity! Please try again later.",
-				};
-			}
 			updateStatus(db, existing.id, "pending", {
 				unsubscribed_at: null,
 			});

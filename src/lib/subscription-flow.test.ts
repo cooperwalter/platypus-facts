@@ -94,15 +94,21 @@ describe("signup", () => {
 		expect(sms.sentMessages).toHaveLength(0);
 	});
 
-	test("rejects signup when at capacity for unsubscribed re-signup", async () => {
+	test("allows unsubscribed re-signup at capacity since pending does not count against cap", async () => {
 		const db = makeTestDatabase();
 		const sms = makeMockSmsProvider();
 		makeSubscriberRow(db, { phone_number: "+15559990001", status: "active" });
 		makeSubscriberRow(db, { phone_number: "+15558234567", status: "unsubscribed" });
 
 		const result = await signup(db, sms, "5558234567", 1);
-		expect(result.success).toBe(false);
-		expect(result.message).toContain("at capacity");
+		expect(result.success).toBe(true);
+		expect(result.message).toContain("Welcome back");
+
+		const sub = findByPhoneNumber(db, "+15558234567");
+		expect(sub?.status).toBe("pending");
+
+		expect(sms.sentMessages).toHaveLength(1);
+		expect(sms.sentMessages[0].body).toContain("Welcome to Daily Platypus Facts");
 	});
 
 	test("returns validation error for invalid phone number", async () => {

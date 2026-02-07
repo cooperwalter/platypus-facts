@@ -1,7 +1,7 @@
 import { TwilioSmsProvider } from "./twilio";
 import type { SmsProvider } from "./types";
 
-function createSmsProvider(): SmsProvider {
+function createSmsProvider(webhookUrl?: string): SmsProvider {
 	const accountSid = process.env.TWILIO_ACCOUNT_SID;
 	const authToken = process.env.TWILIO_AUTH_TOKEN;
 	const phoneNumber = process.env.TWILIO_PHONE_NUMBER;
@@ -12,7 +12,7 @@ function createSmsProvider(): SmsProvider {
 		);
 	}
 
-	return new TwilioSmsProvider(accountSid, authToken, phoneNumber);
+	return new TwilioSmsProvider(accountSid, authToken, phoneNumber, webhookUrl);
 }
 
 export { createSmsProvider };
