@@ -29,7 +29,7 @@ describe("integration: full signup flow with PERRY", () => {
 		const sms = makeMockSmsProvider();
 		const phone = "+15558234567";
 
-		const signupResult = await signup(db, sms, "5558234567", MAX_SUBSCRIBERS);
+		const signupResult = await signup(db, sms, { phone: "5558234567" }, MAX_SUBSCRIBERS, BASE_URL);
 		expect(signupResult.success).toBe(true);
 
 		const subscriber = findByPhoneNumber(db, phone);
@@ -56,7 +56,7 @@ describe("integration: full signup flow with 1", () => {
 		const sms = makeMockSmsProvider();
 		const phone = "+15558234567";
 
-		const signupResult = await signup(db, sms, "5558234567", MAX_SUBSCRIBERS);
+		const signupResult = await signup(db, sms, { phone: "5558234567" }, MAX_SUBSCRIBERS, BASE_URL);
 		expect(signupResult.success).toBe(true);
 
 		const subscriber = findByPhoneNumber(db, phone);
@@ -235,7 +235,7 @@ describe("integration: re-subscribe flow", () => {
 			unsubscribed_at: new Date().toISOString(),
 		});
 
-		const signupResult = await signup(db, sms, "5558234567", MAX_SUBSCRIBERS);
+		const signupResult = await signup(db, sms, { phone: "5558234567" }, MAX_SUBSCRIBERS, BASE_URL);
 		expect(signupResult.success).toBe(true);
 
 		const pending = findByPhoneNumber(db, phone);
@@ -336,19 +336,19 @@ describe("integration: cap enforcement end-to-end", () => {
 		const sms = makeMockSmsProvider();
 		const maxCap = 2;
 
-		const signupResult1 = await signup(db, sms, "5558234567", maxCap);
+		const signupResult1 = await signup(db, sms, { phone: "5558234567" }, maxCap, BASE_URL);
 		expect(signupResult1.success).toBe(true);
 		await handleIncomingMessage(db, "+15558234567", "1", BASE_URL, maxCap);
 		expect(findByPhoneNumber(db, "+15558234567")?.status).toBe("active");
 
-		const signupResult2 = await signup(db, sms, "5559876543", maxCap);
+		const signupResult2 = await signup(db, sms, { phone: "5559876543" }, maxCap, BASE_URL);
 		expect(signupResult2.success).toBe(true);
 		await handleIncomingMessage(db, "+15559876543", "PERRY", BASE_URL, maxCap);
 		expect(findByPhoneNumber(db, "+15559876543")?.status).toBe("active");
 
 		expect(getActiveCount(db)).toBe(2);
 
-		const rejectedSignup = await signup(db, sms, "5553456789", maxCap);
+		const rejectedSignup = await signup(db, sms, { phone: "5553456789" }, maxCap, BASE_URL);
 		expect(rejectedSignup.success).toBe(false);
 		expect(rejectedSignup.message).toContain("capacity");
 
@@ -356,7 +356,7 @@ describe("integration: cap enforcement end-to-end", () => {
 		expect(findByPhoneNumber(db, "+15558234567")?.status).toBe("unsubscribed");
 		expect(getActiveCount(db)).toBe(1);
 
-		const allowedSignup = await signup(db, sms, "5553456789", maxCap);
+		const allowedSignup = await signup(db, sms, { phone: "5553456789" }, maxCap, BASE_URL);
 		expect(allowedSignup.success).toBe(true);
 
 		await handleIncomingMessage(db, "+15553456789", "1", BASE_URL, maxCap);
@@ -369,7 +369,7 @@ describe("integration: cap enforcement end-to-end", () => {
 		const sms = makeMockSmsProvider();
 		const maxCap = 1;
 
-		const signupResult = await signup(db, sms, "5558234567", maxCap);
+		const signupResult = await signup(db, sms, { phone: "5558234567" }, maxCap, BASE_URL);
 		expect(signupResult.success).toBe(true);
 
 		makeSubscriberRow(db, {

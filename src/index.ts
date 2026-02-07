@@ -1,6 +1,7 @@
 import * as path from "node:path";
 import { loadConfig } from "./lib/config";
 import { createDatabase } from "./lib/db";
+import { createEmailProvider } from "./lib/email/index";
 import { createRateLimiter } from "./lib/rate-limiter";
 import { createSmsProvider } from "./lib/sms/index";
 import { handleHealthCheck } from "./routes/health";
@@ -12,6 +13,7 @@ import { syncFacts } from "./scripts/sync-facts";
 const config = loadConfig();
 const db = createDatabase(config.databasePath);
 const smsProvider = createSmsProvider(`${config.baseUrl}/api/webhooks/twilio/incoming`);
+const emailProvider = createEmailProvider(config);
 const rateLimiter = createRateLimiter(5, 60 * 60 * 1000);
 
 const cleanupInterval = setInterval(
@@ -46,7 +48,15 @@ async function handleRequest(request: Request): Promise<Response> {
 	}
 
 	if (method === "POST" && pathname === "/api/subscribe") {
-		return handleSubscribe(request, db, smsProvider, rateLimiter, config.maxSubscribers);
+		return handleSubscribe(
+			request,
+			db,
+			smsProvider,
+			rateLimiter,
+			config.maxSubscribers,
+			config.baseUrl,
+			emailProvider,
+		);
 	}
 
 	if (method === "POST" && pathname === "/api/webhooks/twilio/incoming") {

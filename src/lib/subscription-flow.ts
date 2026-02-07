@@ -1,4 +1,13 @@
 import type { Database } from "bun:sqlite";
+import {
+	alreadySubscribedEmailHtml,
+	alreadySubscribedEmailPlain,
+	confirmationEmailHtml,
+	confirmationEmailPlain,
+	unsubscribeHeaders,
+} from "./email-templates";
+import { validateEmail } from "./email-validation";
+import type { EmailProvider } from "./email/types";
 import { validateAndNormalizePhone } from "./phone";
 import {
 	alreadySubscribedMessage,
@@ -9,11 +18,24 @@ import {
 	welcomeMessage,
 } from "./sms-templates";
 import type { SmsProvider } from "./sms/types";
-import { createSubscriber, findByPhoneNumber, getActiveCount, updateStatus } from "./subscribers";
+import type { Subscriber } from "./subscribers";
+import {
+	createSubscriber,
+	findByEmail,
+	findByPhoneNumber,
+	getActiveCount,
+	updateContactInfo,
+	updateStatus,
+} from "./subscribers";
 
 interface SignupResult {
 	success: boolean;
 	message: string;
+}
+
+interface SignupInput {
+	phone?: string;
+	email?: string;
 }
 
 const STOP_WORDS = new Set([
@@ -27,46 +49,134 @@ const STOP_WORDS = new Set([
 	"optout",
 ]);
 
+async function sendConfirmations(
+	smsProvider: SmsProvider,
+	emailProvider: EmailProvider | null,
+	phone: string | null,
+	email: string | null,
+	token: string,
+	baseUrl: string,
+): Promise<void> {
+	if (phone) {
+		await smsProvider.sendSms(phone, welcomeMessage());
+	}
+	if (email && emailProvider) {
+		const confirmUrl = `${baseUrl}/confirm/${token}`;
+		const unsubUrl = `${baseUrl}/unsubscribe/${token}`;
+		await emailProvider.sendEmail(
+			email,
+			"Confirm your Daily Platypus Facts subscription",
+			confirmationEmailHtml({ confirmUrl }),
+			confirmationEmailPlain({ confirmUrl }),
+			unsubscribeHeaders(unsubUrl),
+		);
+	}
+}
+
+async function sendAlreadySubscribed(
+	smsProvider: SmsProvider,
+	emailProvider: EmailProvider | null,
+	phone: string | null,
+	email: string | null,
+	token: string,
+	baseUrl: string,
+): Promise<void> {
+	if (phone) {
+		await smsProvider.sendSms(phone, alreadySubscribedMessage());
+	}
+	if (email && emailProvider) {
+		const unsubUrl = `${baseUrl}/unsubscribe/${token}`;
+		await emailProvider.sendEmail(
+			email,
+			"You're already a Platypus Fan!",
+			alreadySubscribedEmailHtml(),
+			alreadySubscribedEmailPlain(),
+			unsubscribeHeaders(unsubUrl),
+		);
+	}
+}
+
+function buildChannelMessage(phone: string | null, email: string | null): string {
+	if (phone && email) {
+		return "Please check your phone and/or email to confirm your subscription.";
+	}
+	if (email) {
+		return "Please check your email to confirm your subscription.";
+	}
+	return "Please check your phone and reply to confirm your subscription.";
+}
+
 async function signup(
 	db: Database,
 	smsProvider: SmsProvider,
-	phoneInput: string,
+	input: SignupInput,
 	maxSubscribers: number,
+	baseUrl: string,
+	emailProvider?: EmailProvider | null,
 ): Promise<SignupResult> {
-	const validation = validateAndNormalizePhone(phoneInput);
-	if (!validation.valid) {
-		return { success: false, message: validation.error };
-	}
-	const phone = validation.normalized;
+	let phone: string | null = null;
+	let email: string | null = null;
 
-	const existing = findByPhoneNumber(db, phone);
+	if (input.phone) {
+		const validation = validateAndNormalizePhone(input.phone);
+		if (!validation.valid) {
+			return { success: false, message: validation.error };
+		}
+		phone = validation.normalized;
+	}
+
+	if (input.email) {
+		const validation = validateEmail(input.email);
+		if (!validation.valid) {
+			return { success: false, message: validation.error };
+		}
+		email = validation.normalized;
+	}
+
+	if (!phone && !email) {
+		return { success: false, message: "Please provide a phone number or email address." };
+	}
+
+	const ep = emailProvider ?? null;
+
+	const phoneMatch = phone ? findByPhoneNumber(db, phone) : null;
+	const emailMatch = email ? findByEmail(db, email) : null;
+
+	if (phoneMatch && emailMatch && phoneMatch.id !== emailMatch.id) {
+		return {
+			success: false,
+			message:
+				"This contact info is associated with different accounts. Please use the same phone number and email you originally signed up with, or sign up with just one.",
+		};
+	}
+
+	const existing = phoneMatch ?? emailMatch;
 
 	if (existing) {
+		updateContactInfo(db, existing.id, { phone, email });
+
 		if (existing.status === "pending") {
-			await smsProvider.sendSms(phone, welcomeMessage());
+			await sendConfirmations(smsProvider, ep, phone, email, existing.token, baseUrl);
 			return {
 				success: true,
-				message:
-					"We've resent your confirmation message. Please check your phone and reply to confirm.",
+				message: `We've resent your confirmation. ${buildChannelMessage(phone, email)}`,
 			};
 		}
 
 		if (existing.status === "active") {
-			await smsProvider.sendSms(phone, alreadySubscribedMessage());
+			await sendAlreadySubscribed(smsProvider, ep, phone, email, existing.token, baseUrl);
 			return {
 				success: true,
-				message: "You're already subscribed! Check your phone for details.",
+				message: "You're already subscribed!",
 			};
 		}
 
 		if (existing.status === "unsubscribed") {
-			updateStatus(db, existing.id, "pending", {
-				unsubscribed_at: null,
-			});
-			await smsProvider.sendSms(phone, welcomeMessage());
+			updateStatus(db, existing.id, "pending", { unsubscribed_at: null });
+			await sendConfirmations(smsProvider, ep, phone, email, existing.token, baseUrl);
 			return {
 				success: true,
-				message: "Welcome back! Please check your phone and reply to confirm your subscription.",
+				message: `Welcome back! ${buildChannelMessage(phone, email)}`,
 			};
 		}
 	}
@@ -79,37 +189,34 @@ async function signup(
 		};
 	}
 
+	let subscriber: Subscriber;
 	try {
-		createSubscriber(db, { phone });
+		subscriber = createSubscriber(db, { phone: phone ?? undefined, email: email ?? undefined });
 	} catch (error: unknown) {
 		const errorMsg = error instanceof Error ? error.message : String(error);
 		if (errorMsg.includes("UNIQUE constraint failed")) {
-			const retryExisting = findByPhoneNumber(db, phone);
+			const retryMatch = phone ? findByPhoneNumber(db, phone) : null;
+			const retryEmailMatch = !retryMatch && email ? findByEmail(db, email) : null;
+			const retryExisting = retryMatch ?? retryEmailMatch;
 			if (retryExisting) {
+				updateContactInfo(db, retryExisting.id, { phone, email });
 				if (retryExisting.status === "pending") {
-					await smsProvider.sendSms(phone, welcomeMessage());
+					await sendConfirmations(smsProvider, ep, phone, email, retryExisting.token, baseUrl);
 					return {
 						success: true,
-						message:
-							"We've resent your confirmation message. Please check your phone and reply to confirm.",
+						message: `We've resent your confirmation. ${buildChannelMessage(phone, email)}`,
 					};
 				}
 				if (retryExisting.status === "active") {
-					await smsProvider.sendSms(phone, alreadySubscribedMessage());
-					return {
-						success: true,
-						message: "You're already subscribed! Check your phone for details.",
-					};
+					await sendAlreadySubscribed(smsProvider, ep, phone, email, retryExisting.token, baseUrl);
+					return { success: true, message: "You're already subscribed!" };
 				}
 				if (retryExisting.status === "unsubscribed") {
-					updateStatus(db, retryExisting.id, "pending", {
-						unsubscribed_at: null,
-					});
-					await smsProvider.sendSms(phone, welcomeMessage());
+					updateStatus(db, retryExisting.id, "pending", { unsubscribed_at: null });
+					await sendConfirmations(smsProvider, ep, phone, email, retryExisting.token, baseUrl);
 					return {
 						success: true,
-						message:
-							"Welcome back! Please check your phone and reply to confirm your subscription.",
+						message: `Welcome back! ${buildChannelMessage(phone, email)}`,
 					};
 				}
 			}
@@ -117,10 +224,10 @@ async function signup(
 		throw error;
 	}
 
-	await smsProvider.sendSms(phone, welcomeMessage());
+	await sendConfirmations(smsProvider, ep, phone, email, subscriber.token, baseUrl);
 	return {
 		success: true,
-		message: "Please check your phone and reply to confirm your subscription.",
+		message: buildChannelMessage(phone, email),
 	};
 }
 
@@ -172,5 +279,5 @@ async function handleIncomingMessage(
 	return helpMessage();
 }
 
-export type { SignupResult };
+export type { SignupResult, SignupInput };
 export { signup, handleIncomingMessage };

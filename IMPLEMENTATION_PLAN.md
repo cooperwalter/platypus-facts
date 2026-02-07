@@ -2,59 +2,40 @@
 
 ## Status Summary
 
-Priorities 1-33 are implemented and committed. A comprehensive spec-vs-implementation audit has identified **9 remaining priorities** covering subscription flow email awareness, new routes, animated platypus, and CLI enhancements.
+Priorities 1-34 are implemented and committed. A comprehensive spec-vs-implementation audit has identified **8 remaining priorities** covering signup form updates, new routes, animated platypus, and CLI enhancements.
 
-- **363 tests passing** across 22 test files with **764 expect() calls**
+- **382 tests passing** across 23 test files with **808 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations
-- **Latest tag**: 0.0.20
+- **Latest tag**: 0.0.21
 - **SMS-only spec compliance**: ~100%
-- **Full spec compliance**: ~80% (subscription flow, routes, animated platypus still missing)
+- **Full spec compliance**: ~85% (signup form, routes, animated platypus still remaining)
 
 ### What Exists (Priorities 1-27)
 
 - Config has `nodeEnv` field, Twilio/Postmark vars nullable in dev, required in production (P29 complete).
 - Database has 4 tables. `subscribers` has `phone_number TEXT UNIQUE` (nullable), `email TEXT UNIQUE`, `token TEXT NOT NULL UNIQUE` (P30 complete).
 - Subscriber DAL has `findByPhoneNumber`, `findByEmail`, `findByToken`, `createSubscriber(db, { phone?, email? })`, `updateStatus`, `updateContactInfo`, `getActiveCount`, `getActiveSubscribers` (P31 complete).
-- Subscription flow is phone-only: `signup(db, smsProvider, phoneInput, maxSubscribers)`, `handleIncomingMessage(db, from, body, baseUrl, maxSubscribers)`.
+- Subscription flow is email-aware (P34 complete): `signup(db, smsProvider, { phone?, email? }, maxSubscribers, baseUrl, emailProvider?)`. Includes conflict detection (phone→A, email→B), email validation, confirmation emails, "already subscribed" emails, channel-aware messages.
+- `handleIncomingMessage(db, from, body, baseUrl, maxSubscribers)` unchanged (SMS-only, phone lookup).
 - SMS provider falls back to DevSmsProvider when Twilio vars are missing (P33 complete). Dev provider stores messages in memory with sequential IDs, logs to console, validates all webhooks.
 - Image generation uses fixed style prompt with no-text instruction (P28 complete).
 - Email provider abstraction complete (P32): `EmailProvider` interface, Postmark implementation, dev email provider, factory function `createEmailProvider(config)`. Email templates for daily fact, confirmation, and already-subscribed. `escapeHtml`/`isSafeUrl` extracted to shared `src/lib/html-utils.ts`. `makeMockEmailProvider()` in test-utils. `unsubscribeHeaders()` for RFC 8058 List-Unsubscribe support.
+- Subscribe endpoint accepts `{ phoneNumber?, email? }` (at least one required). Passes baseUrl and emailProvider to subscription flow (P34 complete).
 - Daily send is SMS-only with null phone guard. No email sending. No `--force` flag. No `NODE_ENV` check.
-- Subscribe endpoint accepts only `{ phoneNumber: string }`. No email field.
 - Signup page has phone input only, description says "via SMS" not "via SMS and/or email". No animated swimming platypus.
 - No routes for `/confirm/:token`, `/unsubscribe/:token`, `/dev/messages`.
-- Subscription flow is not yet email-aware (no email param on signup, no email confirmations).
 
 ---
 
 ## Remaining Work -- Prioritized
 
-### Priority 34: Subscription flow -- email awareness
+### ~~Priority 34: Subscription flow -- email awareness~~ -- DONE (0.0.21)
 
-**Spec**: `specs/subscription-flow.md`
-**Gap**: `signup()` in `src/lib/subscription-flow.ts` only takes `phoneInput: string`. No email lookup, no conflict detection, no email confirmations.
-
-- Refactor `signup()` signature to accept `{ phone?: string, email?: string }` plus `emailProvider`
-- Add basic email validation function (contains `@`, has domain part) -- either in a new `src/lib/email-validation.ts` or inline
-- Implement existing subscriber lookup logic:
-  1. Lookup by phone first (if provided)
-  2. Lookup by email (if provided and no phone match)
-  3. Conflict detection: phone matches subscriber A, email matches subscriber B -> reject with error message
-  4. No match -> create new subscriber
-- Update existing subscriber status handling to update contact info (phone/email) on the matched record
-- When email is provided for a pending/new subscriber: send confirmation email
-- When email is provided for an active subscriber: send "already subscribed" email
-- When phone is provided for a pending/new subscriber: send welcome SMS (existing behavior)
-- Token generation integrated into subscriber creation
-- Update `handleIncomingMessage` to work with nullable `phone_number` in the Subscriber type (the logic is fine -- it looks up by phone and always finds phone-based subscribers -- but TypeScript types need updating for the nullable field, e.g. `subscriber.phone_number.slice(-4)` in daily-send.ts would crash for null)
-- Update signup success messages to say "check your phone and/or email" (not just "check your phone")
-- Comprehensive tests for all new paths
-
-### Priority 35: Signup form and subscribe endpoint -- accept email
+### Priority 35: Signup form -- accept email
 
 **Spec**: `specs/web-pages.md`, `specs/subscription-flow.md`
-**Gap**: Signup page in `src/routes/pages.ts` only has phone input. `POST /api/subscribe` in `src/routes/subscribe.ts` only accepts `{ phoneNumber: string }`.
+**Gap**: Signup page in `src/routes/pages.ts` only has phone input. Subscribe endpoint already accepts `{ phoneNumber?, email? }` (P34).
 
 - Update signup page HTML in `pages.ts`:
   - Add email input field alongside phone input
@@ -63,11 +44,6 @@ Priorities 1-33 are implemented and committed. A comprehensive spec-vs-implement
   - Note: standard message rates apply remains for SMS portion
 - Update form JavaScript to send `{ phoneNumber: string | null, email: string | null }`
   - At least one must be non-null; validate before submit
-- Update `handleSubscribe` in `subscribe.ts`:
-  - Accept `{ phoneNumber: string | null, email: string | null }` (at least one required)
-  - Validate email format (contains `@`, has domain part)
-  - Pass both to subscription flow
-  - Accept `EmailProvider` parameter (or null if not available)
 - Add email input CSS styles
 - Tests for new form validation paths
 
@@ -215,6 +191,7 @@ Priorities 1-33 are implemented and committed. A comprehensive spec-vs-implement
 | 30-31 | DB schema (email, token, nullable phone) + subscriber DAL (findByEmail/Token, updateContactInfo) | 0.0.18 |
 | 32 | Email provider (EmailProvider interface, Postmark, dev provider, factory, templates, html-utils extraction) | 0.0.19 |
 | 33 | Dev SMS provider (DevSmsProvider with in-memory storage, factory fallback) | 0.0.20 |
+| 34 | Subscription flow email awareness (email validation, conflict detection, dual-channel confirmations, channel-aware messages) | 0.0.21 |
 
 ---
 
@@ -223,9 +200,7 @@ Priorities 1-33 are implemented and committed. A comprehensive spec-vs-implement
 ```
 P41 (Animated swimming platypus) ─── independent, can be done anytime
 
-P30-33 (DB + DAL + Email + Dev SMS) ─ DONE ──┐
-                                                  │
-P34 (Subscription flow: email awareness) ───────┤
+P30-34 (DB + DAL + Email + Dev SMS + Sub flow) ─ DONE ──┐
                                                   │
 P35 (Signup form + subscribe endpoint: email) ──┤
                                                   │
@@ -246,10 +221,7 @@ P43 (Infra configs for email) ─── last
 
 ### Dependency Details
 
-- **P30-33** (DB schema + DAL + email provider + dev SMS provider) are complete. All downstream priorities can now use subscriber DAL functions, email/SMS providers, and email templates.
-- **P34** (subscription flow) must precede P35 (signup form calls into subscription flow with email).
-  - **Includes email validation** (basic `@` + domain check) and **conflict detection** (phone→subscriber A, email→subscriber B).
-  - **Includes updating success messages** to mention email channel.
+- **P30-34** (DB schema + DAL + email provider + dev SMS provider + subscription flow) are complete. All downstream priorities can now use subscriber DAL functions, email/SMS providers, email templates, and the email-aware subscription flow.
 - **P36** and **P37** depend on P32 (email templates for context) and P30-31 (token lookup -- already done).
 - **P38** (daily send email) depends on P32 (email provider) and P34 (updated subscriber types).
   - **Must fix null phone_number crash**: `subscriber.phone_number.slice(-4)` in daily-send.ts will throw for email-only subscribers.
@@ -290,19 +262,18 @@ For reference, here is the complete gap inventory mapped to their priorities:
 ### ~~In P33 (Dev SMS provider)~~ -- DONE (0.0.20):
 ~~22. `createSmsProvider()` throws instead of falling back to dev provider~~
 
-### In P34 (Subscription flow email awareness):
-23. `signup()` is phone-only (no email param, no EmailProvider param)
-24. No conflict detection (phone → A, email → B)
-25. No email validation function (basic `@` + domain check)
-26. No confirmation email sent on signup
-27. No "already subscribed" email sent on re-signup
-28. Signup success messages say "check your phone" only
-29. `handleIncomingMessage` TypeScript types assume non-null phone_number
+### ~~In P34 (Subscription flow email awareness)~~ -- DONE (0.0.21):
+~~23. `signup()` is phone-only (no email param, no EmailProvider param)~~
+~~24. No conflict detection (phone → A, email → B)~~
+~~25. No email validation function (basic `@` + domain check)~~
+~~26. No confirmation email sent on signup~~
+~~27. No "already subscribed" email sent on re-signup~~
+~~28. Signup success messages say "check your phone" only~~
+~~29. Subscribe endpoint accepts only `{ phoneNumber: string }` (moved from P35; now accepts `{ phoneNumber?, email? }`)~~
 
-### In P35 (Signup form + endpoint):
-30. Subscribe endpoint accepts only `{ phoneNumber: string }`
-31. Signup page has no email input field
-32. Signup page description says "via SMS" not "via SMS and/or email"
+### In P35 (Signup form):
+30. Signup page has no email input field
+31. Signup page description says "via SMS" not "via SMS and/or email"
 
 ### In P36 (Confirmation route):
 33. No `GET /confirm/:token` route

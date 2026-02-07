@@ -11,6 +11,8 @@ import { render404Page, renderFactPage, renderSignupPage } from "./pages";
 import { getClientIp, handleSubscribe } from "./subscribe";
 import { handleTwilioWebhook } from "./webhook";
 
+const BASE_URL = "https://example.com";
+
 describe("GET /health", () => {
 	test("returns 200 with ok status", async () => {
 		const response = handleHealthCheck();
@@ -39,7 +41,7 @@ describe("POST /api/subscribe", () => {
 		const limiter = createRateLimiter(5, 60 * 60 * 1000);
 
 		const request = makeRequest(JSON.stringify({ phoneNumber: "5552345678" }));
-		const response = await handleSubscribe(request, db, sms, limiter, 1000);
+		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
 		const body = (await response.json()) as Record<string, unknown>;
 
 		expect(response.status).toBe(200);
@@ -53,7 +55,7 @@ describe("POST /api/subscribe", () => {
 		const limiter = createRateLimiter(5, 60 * 60 * 1000);
 
 		const request = makeRequest(JSON.stringify({ phoneNumber: "123" }));
-		const response = await handleSubscribe(request, db, sms, limiter, 1000);
+		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
 		const body = (await response.json()) as Record<string, unknown>;
 
 		expect(response.status).toBe(200);
@@ -67,24 +69,27 @@ describe("POST /api/subscribe", () => {
 		const limiter = createRateLimiter(5, 60 * 60 * 1000);
 
 		const request = makeRequest("not json");
-		const response = await handleSubscribe(request, db, sms, limiter, 1000);
+		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
 		const body = await response.json();
 
 		expect(response.status).toBe(400);
 		expect(body).toEqual({ success: false, error: "Invalid request body" });
 	});
 
-	test("returns 400 for missing phoneNumber field", async () => {
+	test("returns 400 when neither phoneNumber nor email is provided", async () => {
 		const db = makeTestDatabase();
 		const sms = makeMockSmsProvider();
 		const limiter = createRateLimiter(5, 60 * 60 * 1000);
 
 		const request = makeRequest(JSON.stringify({ phone: "5551234567" }));
-		const response = await handleSubscribe(request, db, sms, limiter, 1000);
+		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
 		const body = await response.json();
 
 		expect(response.status).toBe(400);
-		expect(body).toEqual({ success: false, error: "Invalid request body" });
+		expect(body).toEqual({
+			success: false,
+			error: "Please provide a phone number or email address.",
+		});
 	});
 
 	test("returns 429 when rate limited", async () => {
@@ -94,11 +99,11 @@ describe("POST /api/subscribe", () => {
 
 		for (let i = 0; i < 2; i++) {
 			const req = makeRequest(JSON.stringify({ phoneNumber: "5551234567" }));
-			await handleSubscribe(req, db, sms, limiter, 1000);
+			await handleSubscribe(req, db, sms, limiter, 1000, BASE_URL);
 		}
 
 		const request = makeRequest(JSON.stringify({ phoneNumber: "5551234567" }));
-		const response = await handleSubscribe(request, db, sms, limiter, 1000);
+		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
 		const body = await response.json();
 
 		expect(response.status).toBe(429);
@@ -113,7 +118,7 @@ describe("POST /api/subscribe", () => {
 		makeSubscriberRow(db, { phone_number: "+15559999999", status: "active" });
 
 		const request = makeRequest(JSON.stringify({ phoneNumber: "5551234567" }));
-		const response = await handleSubscribe(request, db, sms, limiter, 1);
+		const response = await handleSubscribe(request, db, sms, limiter, 1, BASE_URL);
 		const body = (await response.json()) as Record<string, unknown>;
 
 		expect(response.status).toBe(200);
@@ -479,7 +484,7 @@ describe("POST /api/subscribe - body size limit", () => {
 			},
 			body: JSON.stringify({ phoneNumber: "5552345678" }),
 		});
-		const response = await handleSubscribe(request, db, sms, limiter, 1000);
+		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
 		const body = await response.json();
 
 		expect(response.status).toBe(413);
@@ -500,7 +505,7 @@ describe("POST /api/subscribe - body size limit", () => {
 			},
 			body: largeBody,
 		});
-		const response = await handleSubscribe(request, db, sms, limiter, 1000);
+		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
 		const body = await response.json();
 
 		expect(response.status).toBe(413);
@@ -520,7 +525,7 @@ describe("POST /api/subscribe - body size limit", () => {
 			},
 			body: JSON.stringify({ phoneNumber: "5552345678" }),
 		});
-		const response = await handleSubscribe(request, db, sms, limiter, 1000);
+		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
 		const body = (await response.json()) as Record<string, unknown>;
 
 		expect(response.status).toBe(200);
@@ -547,11 +552,14 @@ describe("POST /api/subscribe - body validation edge cases", () => {
 		const limiter = createRateLimiter(5, 60 * 60 * 1000);
 
 		const request = makeRequest(JSON.stringify({ phoneNumber: 5551234567 }));
-		const response = await handleSubscribe(request, db, sms, limiter, 1000);
+		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
 		const body = await response.json();
 
 		expect(response.status).toBe(400);
-		expect(body).toEqual({ success: false, error: "Invalid request body" });
+		expect(body).toEqual({
+			success: false,
+			error: "Please provide a phone number or email address.",
+		});
 	});
 
 	test("returns 400 when body is a JSON array instead of object", async () => {
@@ -560,7 +568,7 @@ describe("POST /api/subscribe - body validation edge cases", () => {
 		const limiter = createRateLimiter(5, 60 * 60 * 1000);
 
 		const request = makeRequest(JSON.stringify(["5551234567"]));
-		const response = await handleSubscribe(request, db, sms, limiter, 1000);
+		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
 		const body = await response.json();
 
 		expect(response.status).toBe(400);
@@ -573,7 +581,7 @@ describe("POST /api/subscribe - body validation edge cases", () => {
 		const limiter = createRateLimiter(5, 60 * 60 * 1000);
 
 		const request = makeRequest("null");
-		const response = await handleSubscribe(request, db, sms, limiter, 1000);
+		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
 		const body = await response.json();
 
 		expect(response.status).toBe(400);

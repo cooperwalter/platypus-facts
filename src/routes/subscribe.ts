@@ -1,4 +1,5 @@
 import type { Database } from "bun:sqlite";
+import type { EmailProvider } from "../lib/email/types";
 import type { RateLimiter } from "../lib/rate-limiter";
 import type { SmsProvider } from "../lib/sms/types";
 import { signup } from "../lib/subscription-flow";
@@ -17,6 +18,8 @@ async function handleSubscribe(
 	smsProvider: SmsProvider,
 	rateLimiter: RateLimiter,
 	maxSubscribers: number,
+	baseUrl: string,
+	emailProvider?: EmailProvider | null,
 ): Promise<Response> {
 	const ip = getClientIp(request);
 
@@ -43,16 +46,32 @@ async function handleSubscribe(
 		return Response.json({ success: false, error: "Invalid request body" }, { status: 400 });
 	}
 
-	if (typeof body !== "object" || body === null || !("phoneNumber" in body)) {
+	if (typeof body !== "object" || body === null || Array.isArray(body)) {
 		return Response.json({ success: false, error: "Invalid request body" }, { status: 400 });
 	}
 
-	const { phoneNumber } = body as { phoneNumber: unknown };
-	if (typeof phoneNumber !== "string") {
-		return Response.json({ success: false, error: "Invalid request body" }, { status: 400 });
+	const parsed = body as Record<string, unknown>;
+	const phoneNumber =
+		typeof parsed.phoneNumber === "string" && parsed.phoneNumber.trim()
+			? parsed.phoneNumber
+			: undefined;
+	const email = typeof parsed.email === "string" && parsed.email.trim() ? parsed.email : undefined;
+
+	if (!phoneNumber && !email) {
+		return Response.json(
+			{ success: false, error: "Please provide a phone number or email address." },
+			{ status: 400 },
+		);
 	}
 
-	const result = await signup(db, smsProvider, phoneNumber, maxSubscribers);
+	const result = await signup(
+		db,
+		smsProvider,
+		{ phone: phoneNumber, email },
+		maxSubscribers,
+		baseUrl,
+		emailProvider,
+	);
 
 	if (result.success) {
 		return Response.json({ success: true, message: result.message });

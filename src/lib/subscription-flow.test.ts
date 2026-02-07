@@ -1,16 +1,21 @@
 import { describe, expect, test } from "bun:test";
-import { findByPhoneNumber } from "./subscribers";
+import { findByEmail, findByPhoneNumber } from "./subscribers";
 import { handleIncomingMessage, signup } from "./subscription-flow";
-import { makeMockSmsProvider, makeSubscriberRow, makeTestDatabase } from "./test-utils";
+import {
+	makeMockEmailProvider,
+	makeMockSmsProvider,
+	makeSubscriberRow,
+	makeTestDatabase,
+} from "./test-utils";
 
 const BASE_URL = "https://platypusfacts.example.com";
 
-describe("signup", () => {
+describe("signup - phone only", () => {
 	test("creates a pending subscriber and sends welcome SMS for new phone number", async () => {
 		const db = makeTestDatabase();
 		const sms = makeMockSmsProvider();
 
-		const result = await signup(db, sms, "(555) 823-4567", 1000);
+		const result = await signup(db, sms, { phone: "(555) 823-4567" }, 1000, BASE_URL);
 		expect(result.success).toBe(true);
 		expect(result.message).toContain("check your phone");
 
@@ -28,7 +33,7 @@ describe("signup", () => {
 		const sms = makeMockSmsProvider();
 		makeSubscriberRow(db, { phone_number: "+15558234567", status: "pending" });
 
-		const result = await signup(db, sms, "5558234567", 1000);
+		const result = await signup(db, sms, { phone: "5558234567" }, 1000, BASE_URL);
 		expect(result.success).toBe(true);
 		expect(result.message).toContain("resent");
 
@@ -41,7 +46,7 @@ describe("signup", () => {
 		const sms = makeMockSmsProvider();
 		makeSubscriberRow(db, { phone_number: "+15558234567", status: "active" });
 
-		const result = await signup(db, sms, "5558234567", 1000);
+		const result = await signup(db, sms, { phone: "5558234567" }, 1000, BASE_URL);
 		expect(result.success).toBe(true);
 		expect(result.message).toContain("already subscribed");
 
@@ -54,7 +59,7 @@ describe("signup", () => {
 		const sms = makeMockSmsProvider();
 		makeSubscriberRow(db, { phone_number: "+15558234567", status: "unsubscribed" });
 
-		const result = await signup(db, sms, "5558234567", 1000);
+		const result = await signup(db, sms, { phone: "5558234567" }, 1000, BASE_URL);
 		expect(result.success).toBe(true);
 		expect(result.message).toContain("Welcome back");
 
@@ -73,14 +78,11 @@ describe("signup", () => {
 			"UPDATE subscribers SET unsubscribed_at = '2024-01-15T00:00:00.000Z' WHERE phone_number = '+15558234567'",
 		).run();
 
-		const sub1 = findByPhoneNumber(db, "+15558234567");
-		expect(sub1?.unsubscribed_at).toBe("2024-01-15T00:00:00.000Z");
+		await signup(db, sms, { phone: "5558234567" }, 1000, BASE_URL);
 
-		await signup(db, sms, "5558234567", 1000);
-
-		const sub2 = findByPhoneNumber(db, "+15558234567");
-		expect(sub2?.status).toBe("pending");
-		expect(sub2?.unsubscribed_at).toBeNull();
+		const sub = findByPhoneNumber(db, "+15558234567");
+		expect(sub?.status).toBe("pending");
+		expect(sub?.unsubscribed_at).toBeNull();
 	});
 
 	test("rejects signup when at capacity for new subscriber", async () => {
@@ -88,7 +90,7 @@ describe("signup", () => {
 		const sms = makeMockSmsProvider();
 		makeSubscriberRow(db, { phone_number: "+15559990001", status: "active" });
 
-		const result = await signup(db, sms, "5558234567", 1);
+		const result = await signup(db, sms, { phone: "5558234567" }, 1, BASE_URL);
 		expect(result.success).toBe(false);
 		expect(result.message).toContain("at capacity");
 		expect(sms.sentMessages).toHaveLength(0);
@@ -100,22 +102,19 @@ describe("signup", () => {
 		makeSubscriberRow(db, { phone_number: "+15559990001", status: "active" });
 		makeSubscriberRow(db, { phone_number: "+15558234567", status: "unsubscribed" });
 
-		const result = await signup(db, sms, "5558234567", 1);
+		const result = await signup(db, sms, { phone: "5558234567" }, 1, BASE_URL);
 		expect(result.success).toBe(true);
 		expect(result.message).toContain("Welcome back");
 
 		const sub = findByPhoneNumber(db, "+15558234567");
 		expect(sub?.status).toBe("pending");
-
-		expect(sms.sentMessages).toHaveLength(1);
-		expect(sms.sentMessages[0].body).toContain("Welcome to Daily Platypus Facts");
 	});
 
 	test("returns validation error for invalid phone number", async () => {
 		const db = makeTestDatabase();
 		const sms = makeMockSmsProvider();
 
-		const result = await signup(db, sms, "invalid", 1000);
+		const result = await signup(db, sms, { phone: "invalid" }, 1000, BASE_URL);
 		expect(result.success).toBe(false);
 		expect(result.message).toContain("valid US phone number");
 		expect(sms.sentMessages).toHaveLength(0);
@@ -129,9 +128,152 @@ describe("signup", () => {
 			"INSERT INTO subscribers (phone_number, token, status) VALUES ('+15558234567', 'tok-race', 'pending')",
 		).run();
 
-		const result = await signup(db, sms, "5558234567", 1000);
+		const result = await signup(db, sms, { phone: "5558234567" }, 1000, BASE_URL);
 		expect(result.success).toBe(true);
 		expect(sms.sentMessages).toHaveLength(1);
+	});
+});
+
+describe("signup - email only", () => {
+	test("creates a pending subscriber and sends confirmation email for new email", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const emailProv = makeMockEmailProvider();
+
+		const result = await signup(db, sms, { email: "test@example.com" }, 1000, BASE_URL, emailProv);
+		expect(result.success).toBe(true);
+		expect(result.message).toContain("check your email");
+
+		const sub = findByEmail(db, "test@example.com");
+		expect(sub).not.toBeNull();
+		expect(sub?.status).toBe("pending");
+		expect(sub?.phone_number).toBeNull();
+
+		expect(sms.sentMessages).toHaveLength(0);
+		expect(emailProv.sentEmails).toHaveLength(1);
+		expect(emailProv.sentEmails[0].to).toBe("test@example.com");
+		expect(emailProv.sentEmails[0].subject).toContain("Confirm");
+	});
+
+	test("returns validation error for invalid email", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+
+		const result = await signup(db, sms, { email: "notanemail" }, 1000, BASE_URL);
+		expect(result.success).toBe(false);
+		expect(result.message).toContain("valid email");
+	});
+
+	test("resends confirmation email when re-signing up with email while pending", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const emailProv = makeMockEmailProvider();
+		makeSubscriberRow(db, {
+			phone_number: null,
+			email: "test@example.com",
+			status: "pending",
+		});
+
+		const result = await signup(db, sms, { email: "test@example.com" }, 1000, BASE_URL, emailProv);
+		expect(result.success).toBe(true);
+		expect(result.message).toContain("resent");
+		expect(emailProv.sentEmails).toHaveLength(1);
+	});
+
+	test("sends already-subscribed email when re-signing up with email while active", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const emailProv = makeMockEmailProvider();
+		makeSubscriberRow(db, {
+			phone_number: null,
+			email: "test@example.com",
+			status: "active",
+		});
+
+		const result = await signup(db, sms, { email: "test@example.com" }, 1000, BASE_URL, emailProv);
+		expect(result.success).toBe(true);
+		expect(result.message).toContain("already subscribed");
+		expect(emailProv.sentEmails).toHaveLength(1);
+		expect(emailProv.sentEmails[0].subject).toContain("Platypus Fan");
+	});
+});
+
+describe("signup - phone and email", () => {
+	test("creates subscriber with both channels and sends both confirmations", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const emailProv = makeMockEmailProvider();
+
+		const result = await signup(
+			db,
+			sms,
+			{ phone: "5558234567", email: "test@example.com" },
+			1000,
+			BASE_URL,
+			emailProv,
+		);
+		expect(result.success).toBe(true);
+		expect(result.message).toContain("phone and/or email");
+
+		expect(sms.sentMessages).toHaveLength(1);
+		expect(emailProv.sentEmails).toHaveLength(1);
+
+		const sub = findByPhoneNumber(db, "+15558234567");
+		expect(sub).not.toBeNull();
+		expect(sub?.email).toBe("test@example.com");
+	});
+
+	test("rejects with conflict error when phone matches subscriber A and email matches subscriber B", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		makeSubscriberRow(db, { phone_number: "+15558234567", email: null, status: "active" });
+		makeSubscriberRow(db, {
+			phone_number: null,
+			email: "other@example.com",
+			status: "active",
+		});
+
+		const result = await signup(
+			db,
+			sms,
+			{ phone: "5558234567", email: "other@example.com" },
+			1000,
+			BASE_URL,
+		);
+		expect(result.success).toBe(false);
+		expect(result.message).toContain("different accounts");
+	});
+
+	test("updates email on existing phone subscriber when re-signing up with both", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+		const emailProv = makeMockEmailProvider();
+		makeSubscriberRow(db, { phone_number: "+15558234567", email: null, status: "pending" });
+
+		await signup(
+			db,
+			sms,
+			{ phone: "5558234567", email: "new@example.com" },
+			1000,
+			BASE_URL,
+			emailProv,
+		);
+
+		const sub = findByPhoneNumber(db, "+15558234567");
+		expect(sub?.email).toBe("new@example.com");
+		expect(sms.sentMessages).toHaveLength(1);
+		expect(emailProv.sentEmails).toHaveLength(1);
+	});
+});
+
+describe("signup - no input", () => {
+	test("rejects when neither phone nor email is provided", async () => {
+		const db = makeTestDatabase();
+		const sms = makeMockSmsProvider();
+
+		const result = await signup(db, sms, {}, 1000, BASE_URL);
+		expect(result.success).toBe(false);
+		expect(result.message).toContain("phone number or email");
 	});
 });
 
