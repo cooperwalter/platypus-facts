@@ -1,7 +1,7 @@
 import type { Database } from "bun:sqlite";
 import * as path from "node:path";
 import { createDatabase } from "../lib/db";
-import { generateFactImage } from "../lib/image-generation";
+import { ImageAuthError, generateFactImage } from "../lib/image-generation";
 
 interface SeedSource {
 	url: string;
@@ -177,6 +177,12 @@ export async function syncFacts(
 					results.imagesFailed++;
 				}
 			} catch (error) {
+				if (error instanceof ImageAuthError) {
+					console.warn(`Skipping image generation: API key is invalid — ${error.message}`);
+					results.imagesFailed +=
+						factsWithoutImages.length - results.imagesGenerated - results.imagesFailed;
+					break;
+				}
 				console.error(
 					`Image generation failed for fact ${fact.id}:`,
 					error instanceof Error ? error.message : error,

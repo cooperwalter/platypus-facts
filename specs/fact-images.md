@@ -74,7 +74,15 @@ If a fact does not have an image (e.g., image generation failed), the message fa
 
 | Variable                  | Description                                      | Example              |
 | ------------------------- | ------------------------------------------------ | -------------------- |
-| `OPENAI_API_KEY`          | API key for AI image generation                  | `sk-...`             |
+| `OPENAI_API_KEY`          | API key for AI image generation (optional)       | `sk-...`             |
+
+`OPENAI_API_KEY` is **optional**. If it is not set (or is empty), image generation is disabled entirely:
+
+- The sync script logs a single warning at the start (e.g., "OPENAI_API_KEY not configured — skipping image generation") and skips all image generation. It does **not** log an error per fact.
+- Facts are synced normally without images (`image_path` remains NULL).
+- The application operates in text-only mode: fact pages render without images, daily messages are sent as plain SMS.
+
+If the key is set but invalid (e.g., expired or malformed), the sync script should detect the failure on the first image generation attempt, log a single warning, and skip image generation for the remaining facts in that sync run — rather than repeating the same API error for every fact.
 
 ## Cost
 

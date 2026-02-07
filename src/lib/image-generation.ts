@@ -8,6 +8,16 @@ const STYLE_PROMPT =
 
 const DALL_E_API_URL = "https://api.openai.com/v1/images/generations";
 
+class ImageAuthError extends Error {
+	constructor(
+		message: string,
+		public statusCode: number,
+	) {
+		super(message);
+		this.name = "ImageAuthError";
+	}
+}
+
 interface DallEResponse {
 	data: Array<{ b64_json: string }>;
 }
@@ -40,6 +50,12 @@ export async function generateFactImage(
 
 		if (!response.ok) {
 			const errorText = await response.text();
+			if (response.status === 401 || response.status === 403) {
+				throw new ImageAuthError(
+					`DALL-E API authentication failed (${response.status}): ${errorText}`,
+					response.status,
+				);
+			}
 			console.error(`DALL-E API error (${response.status}): ${errorText}`);
 			return null;
 		}
@@ -57,6 +73,9 @@ export async function generateFactImage(
 
 		return relativePath;
 	} catch (error) {
+		if (error instanceof ImageAuthError) {
+			throw error;
+		}
 		console.error(
 			`Failed to generate image for fact ${factId}:`,
 			error instanceof Error ? error.message : error,
@@ -65,4 +84,4 @@ export async function generateFactImage(
 	}
 }
 
-export { STYLE_PROMPT, DALL_E_API_URL };
+export { STYLE_PROMPT, DALL_E_API_URL, ImageAuthError };

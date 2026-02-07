@@ -292,7 +292,7 @@ describe("syncFacts", () => {
 		}
 	});
 
-	test("continues generating images for other facts when one fails", async () => {
+	test("continues generating images for other facts when one fails with non-auth error", async () => {
 		const db = makeTestDatabase();
 		const seedData = [
 			{ text: "Fact 1", sources: [{ url: "https://example.com/1" }] },
@@ -319,6 +319,57 @@ describe("syncFacts", () => {
 		} finally {
 			globalThis.fetch = originalFetch;
 			Bun.write = originalBunWrite;
+		}
+	});
+
+	test("stops generating images after first auth failure (401) and counts remaining as failed", async () => {
+		const db = makeTestDatabase();
+		const seedData = [
+			{ text: "Fact 1", sources: [{ url: "https://example.com/1" }] },
+			{ text: "Fact 2", sources: [{ url: "https://example.com/2" }] },
+			{ text: "Fact 3", sources: [{ url: "https://example.com/3" }] },
+		];
+		const tmpFile = await makeTempFactsFile(seedData);
+
+		const originalFetch = globalThis.fetch;
+		let fetchCallCount = 0;
+		globalThis.fetch = mock(async () => {
+			fetchCallCount++;
+			return new Response("Unauthorized", { status: 401 });
+		}) as unknown as typeof fetch;
+
+		try {
+			const results = await syncFacts(db, tmpFile, "sk-invalid");
+			expect(fetchCallCount).toBe(1);
+			expect(results.imagesGenerated).toBe(0);
+			expect(results.imagesFailed).toBe(3);
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	test("stops generating images after first auth failure (403) and logs a single warning", async () => {
+		const db = makeTestDatabase();
+		const seedData = [
+			{ text: "Fact 1", sources: [{ url: "https://example.com/1" }] },
+			{ text: "Fact 2", sources: [{ url: "https://example.com/2" }] },
+		];
+		const tmpFile = await makeTempFactsFile(seedData);
+
+		const originalFetch = globalThis.fetch;
+		let fetchCallCount = 0;
+		globalThis.fetch = mock(async () => {
+			fetchCallCount++;
+			return new Response("Forbidden", { status: 403 });
+		}) as unknown as typeof fetch;
+
+		try {
+			const results = await syncFacts(db, tmpFile, "sk-expired");
+			expect(fetchCallCount).toBe(1);
+			expect(results.imagesGenerated).toBe(0);
+			expect(results.imagesFailed).toBe(2);
+		} finally {
+			globalThis.fetch = originalFetch;
 		}
 	});
 

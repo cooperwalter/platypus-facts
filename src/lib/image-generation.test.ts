@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
 import * as path from "node:path";
-import { DALL_E_API_URL, STYLE_PROMPT, generateFactImage } from "./image-generation";
+import {
+	DALL_E_API_URL,
+	ImageAuthError,
+	STYLE_PROMPT,
+	generateFactImage,
+} from "./image-generation";
 
 const originalFetch = globalThis.fetch;
 const originalBunWrite = Bun.write;
@@ -88,7 +93,7 @@ describe("generateFactImage", () => {
 		expect(result).toBe("images/facts/7.png");
 	});
 
-	test("returns null and logs on API error (non-200 response)", async () => {
+	test("returns null and logs on non-auth API error (non-200 response)", async () => {
 		globalThis.fetch = mock(
 			async () => new Response("Rate limited", { status: 429 }),
 		) as unknown as typeof fetch;
@@ -96,6 +101,26 @@ describe("generateFactImage", () => {
 		const result = await generateFactImage(1, "Test fact", "sk-test");
 
 		expect(result).toBeNull();
+	});
+
+	test("throws ImageAuthError on 401 response for invalid API key", async () => {
+		globalThis.fetch = mock(
+			async () => new Response("Unauthorized", { status: 401 }),
+		) as unknown as typeof fetch;
+
+		await expect(generateFactImage(1, "Test fact", "sk-bad")).rejects.toBeInstanceOf(
+			ImageAuthError,
+		);
+	});
+
+	test("throws ImageAuthError on 403 response for forbidden API key", async () => {
+		globalThis.fetch = mock(
+			async () => new Response("Forbidden", { status: 403 }),
+		) as unknown as typeof fetch;
+
+		await expect(generateFactImage(1, "Test fact", "sk-bad")).rejects.toBeInstanceOf(
+			ImageAuthError,
+		);
 	});
 
 	test("returns null and logs on network error", async () => {

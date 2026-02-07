@@ -71,7 +71,7 @@ The daily send job is scheduled via system `crontab` on the VPS. The cron entry 
 | `TWILIO_PHONE_NUMBER`  | Twilio sending phone number (E.164)      | `+15551234567`                 |
 | `DAILY_SEND_TIME_UTC`  | Time to send daily facts (HH:MM UTC)     | `14:00`                        |
 | `MAX_SUBSCRIBERS`      | Maximum number of active Platypus Fans   | `1000`                         |
-| `OPENAI_API_KEY`       | API key for AI image generation           | `sk-...`                       |
+| `OPENAI_API_KEY`       | API key for AI image generation (optional — if unset, images are not generated) | `sk-...` |
 
 ## Backups
 
