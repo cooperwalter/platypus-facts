@@ -177,6 +177,35 @@ a:focus-visible {
 	opacity: 0.6;
 }
 
+.input-divider {
+	text-align: center;
+	font-size: 0.85rem;
+	color: var(--color-text-muted);
+	font-style: italic;
+}
+
+.email-input {
+	border: 2px solid var(--color-border);
+	border-radius: var(--radius);
+	background: var(--color-input-bg);
+	padding: 0.65rem 0.75rem;
+	font-size: 1rem;
+	font-family: var(--font-body);
+	color: var(--color-text);
+	width: 100%;
+	transition: border-color 0.2s;
+}
+
+.email-input:focus {
+	border-color: var(--color-accent);
+	outline: none;
+}
+
+.email-input::placeholder {
+	color: var(--color-text-muted);
+	opacity: 0.6;
+}
+
 button[type="submit"] {
 	padding: 0.75rem 1.5rem;
 	background: var(--color-accent);

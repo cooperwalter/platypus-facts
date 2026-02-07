@@ -167,7 +167,7 @@ describe("POST /api/webhooks/twilio/incoming", () => {
 });
 
 describe("GET /", () => {
-	test("returns HTML with signup form", async () => {
+	test("returns HTML with signup form containing phone and email inputs", async () => {
 		const db = makeTestDatabase();
 		const response = renderSignupPage(db, 1000);
 
@@ -178,6 +178,9 @@ describe("GET /", () => {
 		expect(html).toContain("Daily Platypus Facts");
 		expect(html).toContain("signup-form");
 		expect(html).toContain('type="tel"');
+		expect(html).toContain('type="email"');
+		expect(html).toContain('id="email-input"');
+		expect(html).toContain("and / or");
 	});
 
 	test("renders current Platypus Fan count and max capacity", async () => {
@@ -686,12 +689,40 @@ describe("GET / - signup page at capacity details", () => {
 		expect(html).toContain("/api/subscribe");
 	});
 
-	test("includes description text about daily platypus facts", async () => {
+	test("phone input is not required (both fields optional, at least one needed)", async () => {
+		const db = makeTestDatabase();
+		const response = renderSignupPage(db, 1000);
+		const html = await response.text();
+
+		expect(html).not.toContain("required");
+	});
+
+	test("form script sends both phoneNumber and email in payload", async () => {
+		const db = makeTestDatabase();
+		const response = renderSignupPage(db, 1000);
+		const html = await response.text();
+
+		expect(html).toContain("payload.phoneNumber");
+		expect(html).toContain("payload.email");
+	});
+
+	test("form script validates at least one of phone or email is provided", async () => {
+		const db = makeTestDatabase();
+		const response = renderSignupPage(db, 1000);
+		const html = await response.text();
+
+		expect(html).toContain("!phoneValue && !emailValue");
+		expect(html).toContain("Please enter a phone number or email address");
+	});
+
+	test("includes description text about daily platypus facts via SMS and/or email", async () => {
 		const db = makeTestDatabase();
 
 		const response = renderSignupPage(db, 1000);
 		const html = await response.text();
 
-		expect(html).toContain("Get one fascinating platypus fact delivered to your phone every day");
+		expect(html).toContain(
+			"Get one fascinating platypus fact delivered every day via SMS and/or email",
+		);
 	});
 });

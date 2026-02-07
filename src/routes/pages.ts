@@ -25,11 +25,21 @@ function renderSignupPage(db: Database, maxSubscribers: number): Response {
 						autocomplete="tel-national"
 						inputmode="tel"
 						aria-describedby="phone-prefix"
-						required
 					/>
 				</div>
+				<div class="input-divider">and / or</div>
+				<label for="email-input" class="sr-only">Email address</label>
+				<input
+					type="email"
+					id="email-input"
+					name="email"
+					class="email-input"
+					placeholder="platypus@example.com"
+					autocomplete="email"
+					inputmode="email"
+				/>
 				<button type="submit" id="submit-btn">Subscribe</button>
-				<p class="rates-note">Standard message rates apply</p>
+				<p class="rates-note">Standard message rates may apply for SMS</p>
 			</form>
 			<div id="form-message" class="form-message" role="alert" hidden></div>`;
 
@@ -43,20 +53,34 @@ function renderSignupPage(db: Database, maxSubscribers: number): Response {
 		var messageDiv = document.getElementById('form-message');
 		var submitBtn = document.getElementById('submit-btn');
 		var phoneInput = document.getElementById('phone-input');
+		var emailInput = document.getElementById('email-input');
 
 		form.addEventListener('submit', function(e) {
 			e.preventDefault();
 			messageDiv.hidden = true;
 			messageDiv.className = 'form-message';
+
+			var phoneValue = phoneInput.value.trim();
+			var emailValue = emailInput.value.trim();
+
+			if (!phoneValue && !emailValue) {
+				messageDiv.hidden = false;
+				messageDiv.className = 'form-message error';
+				messageDiv.textContent = 'Please enter a phone number or email address.';
+				return;
+			}
+
 			submitBtn.disabled = true;
 			submitBtn.textContent = 'Subscribing...';
 
-			var phoneValue = phoneInput.value.trim();
+			var payload = {};
+			if (phoneValue) payload.phoneNumber = phoneValue;
+			if (emailValue) payload.email = emailValue;
 
 			fetch('/api/subscribe', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ phoneNumber: phoneValue })
+				body: JSON.stringify(payload)
 			})
 			.then(function(res) { return res.json().then(function(data) { return { status: res.status, data: data }; }); })
 			.then(function(result) {
@@ -107,7 +131,7 @@ function renderSignupPage(db: Database, maxSubscribers: number): Response {
 		</div>
 
 		<section class="signup-section">
-			<p class="description">Get one fascinating platypus fact delivered to your phone every day via SMS.</p>
+			<p class="description">Get one fascinating platypus fact delivered every day via SMS and/or email.</p>
 			${formSection}
 		</section>
 	</main>
