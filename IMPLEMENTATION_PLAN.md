@@ -2,14 +2,14 @@
 
 ## Status Summary
 
-Priorities 1-36 are implemented and committed. A comprehensive spec-vs-implementation audit has identified **6 remaining priorities** covering unsubscribe routes, daily send email, animated platypus, and CLI enhancements.
+Priorities 1-37 are implemented and committed. A comprehensive spec-vs-implementation audit has identified **5 remaining priorities** covering daily send email, animated platypus, CLI, and infrastructure.
 
-- **391 tests passing** across 23 test files with **835 expect() calls**
+- **399 tests passing** across 23 test files with **857 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations
-- **Latest tag**: 0.0.23
+- **Latest tag**: 0.0.24
 - **SMS-only spec compliance**: ~100%
-- **Full spec compliance**: ~90% (unsubscribe routes, daily send email, animated platypus still remaining)
+- **Full spec compliance**: ~92% (daily send email, dev viewer, animated platypus still remaining)
 
 ### What Exists (Priorities 1-27)
 
@@ -25,7 +25,8 @@ Priorities 1-36 are implemented and committed. A comprehensive spec-vs-implement
 - Signup page has phone and email inputs, "and / or" divider, client-side validation (at least one required), description says "via SMS and/or email" (P35 complete). No animated swimming platypus.
 - Daily send is SMS-only with null phone guard. No email sending. No `--force` flag. No `NODE_ENV` check.
 - `GET /confirm/:token` route with all confirmation states (P36 complete). Reusable `renderMessagePage` helper for status pages.
-- No routes for `/unsubscribe/:token`, `/dev/messages`.
+- `GET/POST /unsubscribe/:token` routes with confirmation form, all states (P37 complete).
+- No routes for `/dev/messages`.
 
 ---
 
@@ -37,19 +38,7 @@ Priorities 1-36 are implemented and committed. A comprehensive spec-vs-implement
 
 ### ~~Priority 36: Email confirmation route (`GET /confirm/:token`)~~ -- DONE (0.0.23)
 
-### Priority 37: Unsubscribe routes (`GET/POST /unsubscribe/:token`)
-
-**Spec**: `specs/web-pages.md`, `specs/subscription-flow.md`
-**Gap**: No routes for `/unsubscribe/:token` exist in `src/index.ts`.
-
-- Add route pattern matching for `GET /unsubscribe/:token` and `POST /unsubscribe/:token` in `index.ts`
-- Create unsubscribe page handlers:
-  - `GET`: show confirmation page ("Are you sure you want to unsubscribe?")
-  - `POST`: process unsubscribe, update status to `unsubscribed`, set `unsubscribed_at`, show success page
-  - Invalid/missing token: show appropriate error
-- Unsubscribing via email link unsubscribes from ALL channels (one status model)
-- CSS for unsubscribe pages (consistent with existing LiS:DE theme)
-- Tests for all unsubscribe states
+### ~~Priority 37: Unsubscribe routes (`GET/POST /unsubscribe/:token`)~~ -- DONE (0.0.24)
 
 ### Priority 38: Daily send job -- email channel support
 
@@ -169,6 +158,7 @@ Priorities 1-36 are implemented and committed. A comprehensive spec-vs-implement
 | 34 | Subscription flow email awareness (email validation, conflict detection, dual-channel confirmations, channel-aware messages) | 0.0.21 |
 | 35 | Signup form email support (email input, "and / or" divider, client-side validation, updated description) | 0.0.22 |
 | 36 | Email confirmation route (`GET /confirm/:token`) with all states, reusable message page helper | 0.0.23 |
+| 37 | Unsubscribe routes (`GET/POST /unsubscribe/:token`) with confirmation form and all states | 0.0.24 |
 
 ---
 
@@ -177,9 +167,7 @@ Priorities 1-36 are implemented and committed. A comprehensive spec-vs-implement
 ```
 P41 (Animated swimming platypus) ─── independent, can be done anytime
 
-P30-36 (DB + DAL + Email + Dev SMS + Sub flow + Form + Confirm) ─ DONE ──┐
-                                                  │
-P37 (Unsubscribe routes) ──────────────────────┤
+P30-37 (DB + DAL + Email + Sub flow + Routes) ─ DONE ──┐
                                                   │
 P38 (Daily send: email channel) ────────────────┤
                                                   │
@@ -194,8 +182,7 @@ P43 (Infra configs for email) ─── last
 
 ### Dependency Details
 
-- **P30-34** (DB schema + DAL + email provider + dev SMS provider + subscription flow) are complete. All downstream priorities can now use subscriber DAL functions, email/SMS providers, email templates, and the email-aware subscription flow.
-- **P36** and **P37** depend on P32 (email templates for context) and P30-31 (token lookup -- already done).
+- **P30-37** (DB schema + DAL + email provider + dev SMS + subscription flow + form + confirm + unsubscribe) are complete.
 - **P38** (daily send email) depends on P32 (email provider) and P34 (updated subscriber types).
   - **Must fix null phone_number crash**: `subscriber.phone_number.slice(-4)` in daily-send.ts will throw for email-only subscribers.
   - **Should add per-channel result breakdown** to `DailySendResult`.
@@ -252,10 +239,10 @@ For reference, here is the complete gap inventory mapped to their priorities:
 ~~33. No `GET /confirm/:token` route~~
 ~~34. No confirmation page HTML templates (success, already-confirmed, invalid, at-capacity)~~
 
-### In P37 (Unsubscribe routes):
-35. No `GET /unsubscribe/:token` route
-36. No `POST /unsubscribe/:token` route
-37. No unsubscribe page HTML templates (confirmation, success, invalid)
+### ~~In P37 (Unsubscribe routes)~~ -- DONE (0.0.24):
+~~35. No `GET /unsubscribe/:token` route~~
+~~36. No `POST /unsubscribe/:token` route~~
+~~37. No unsubscribe page HTML templates (confirmation, success, invalid)~~
 
 ### In P38 (Daily send email):
 38. `runDailySend` is SMS-only (no EmailProvider param)

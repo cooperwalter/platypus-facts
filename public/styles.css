@@ -335,6 +335,25 @@ button[type="submit"]:disabled {
 	line-height: 1.6;
 }
 
+.unsubscribe-btn {
+	display: block;
+	width: 100%;
+	padding: 0.75rem 1.5rem;
+	background: var(--color-error);
+	color: #fff;
+	border: none;
+	border-radius: var(--radius);
+	font-size: 1.05rem;
+	font-family: var(--font-body);
+	cursor: pointer;
+	margin-bottom: 1rem;
+	transition: background 0.2s;
+}
+
+.unsubscribe-btn:hover {
+	background: #8a3622;
+}
+
 .not-found {
 	text-align: center;
 	padding: 2rem 1rem;

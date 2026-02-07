@@ -276,6 +276,84 @@ function renderMessagePage(heading: string, body: string, status = 200): Respons
 	});
 }
 
+function renderUnsubscribePage(db: Database, token: string): Response {
+	const subscriber = findByToken(db, token);
+
+	if (!subscriber) {
+		return renderMessagePage(
+			"Invalid Link",
+			"This unsubscribe link is invalid or has expired.",
+			404,
+		);
+	}
+
+	if (subscriber.status === "unsubscribed") {
+		return renderMessagePage(
+			"Already Unsubscribed",
+			'You\'ve already unsubscribed from Daily Platypus Facts. Visit the <a href="/">signup page</a> to re-subscribe.',
+		);
+	}
+
+	const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Unsubscribe - Daily Platypus Facts</title>
+	<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦆</text></svg>">
+	<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+	<main class="container">
+		<header class="hero">
+			<h1><a href="/">Daily Platypus Facts</a></h1>
+			<p class="tagline">Inspired by <em>Life is Strange: Double Exposure</em></p>
+		</header>
+
+		<section class="message-card">
+			<h2>Unsubscribe</h2>
+			<p>Are you sure you want to unsubscribe from Daily Platypus Facts?</p>
+			<form method="POST" action="/unsubscribe/${escapeHtml(token)}">
+				<button type="submit" class="unsubscribe-btn">Yes, unsubscribe me</button>
+			</form>
+			<a href="/">No, take me back</a>
+		</section>
+	</main>
+</body>
+</html>`;
+
+	return new Response(html, {
+		status: 200,
+		headers: { "Content-Type": "text/html; charset=utf-8" },
+	});
+}
+
+function handleUnsubscribe(db: Database, token: string): Response {
+	const subscriber = findByToken(db, token);
+
+	if (!subscriber) {
+		return renderMessagePage(
+			"Invalid Link",
+			"This unsubscribe link is invalid or has expired.",
+			404,
+		);
+	}
+
+	if (subscriber.status === "unsubscribed") {
+		return renderMessagePage(
+			"Already Unsubscribed",
+			'You\'ve already unsubscribed from Daily Platypus Facts. Visit the <a href="/">signup page</a> to re-subscribe.',
+		);
+	}
+
+	updateStatus(db, subscriber.id, "unsubscribed", { unsubscribed_at: new Date().toISOString() });
+
+	return renderMessagePage(
+		"Unsubscribed",
+		"You've been unsubscribed from Daily Platypus Facts. We'll miss you! Visit the <a href=\"/\">signup page</a> anytime to re-subscribe.",
+	);
+}
+
 function render404Page(): Response {
 	const html = `<!DOCTYPE html>
 <html lang="en">
@@ -308,4 +386,11 @@ function render404Page(): Response {
 	});
 }
 
-export { renderSignupPage, renderFactPage, renderConfirmationPage, render404Page };
+export {
+	renderSignupPage,
+	renderFactPage,
+	renderConfirmationPage,
+	renderUnsubscribePage,
+	handleUnsubscribe,
+	render404Page,
+};

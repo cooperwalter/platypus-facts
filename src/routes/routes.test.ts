@@ -7,7 +7,14 @@ import {
 	makeTestDatabase,
 } from "../lib/test-utils";
 import { handleHealthCheck } from "./health";
-import { render404Page, renderConfirmationPage, renderFactPage, renderSignupPage } from "./pages";
+import {
+	handleUnsubscribe,
+	render404Page,
+	renderConfirmationPage,
+	renderFactPage,
+	renderSignupPage,
+	renderUnsubscribePage,
+} from "./pages";
 import { getClientIp, handleSubscribe } from "./subscribe";
 import { handleTwilioWebhook } from "./webhook";
 
@@ -834,5 +841,140 @@ describe("GET /confirm/:token", () => {
 		expect(html).toContain("Daily Platypus Facts");
 		expect(html).toContain("Life is Strange: Double Exposure");
 		expect(html).toContain('href="/"');
+	});
+});
+
+describe("GET /unsubscribe/:token", () => {
+	test("shows confirmation form for active subscriber", async () => {
+		const db = makeTestDatabase();
+		makeSubscriberRow(db, {
+			phone_number: "+15552345678",
+			token: "aaaa1111-1111-1111-1111-111111111111",
+			status: "active",
+			confirmed_at: "2025-01-01T00:00:00Z",
+		});
+
+		const response = renderUnsubscribePage(db, "aaaa1111-1111-1111-1111-111111111111");
+		const html = await response.text();
+
+		expect(response.status).toBe(200);
+		expect(html).toContain("Are you sure you want to unsubscribe");
+		expect(html).toContain('method="POST"');
+		expect(html).toContain("Yes, unsubscribe me");
+	});
+
+	test("shows confirmation form for pending subscriber", async () => {
+		const db = makeTestDatabase();
+		makeSubscriberRow(db, {
+			phone_number: "+15552345678",
+			token: "aaaa2222-2222-2222-2222-222222222222",
+			status: "pending",
+		});
+
+		const response = renderUnsubscribePage(db, "aaaa2222-2222-2222-2222-222222222222");
+		const html = await response.text();
+
+		expect(response.status).toBe(200);
+		expect(html).toContain("Are you sure you want to unsubscribe");
+	});
+
+	test("shows already-unsubscribed message for unsubscribed subscriber", async () => {
+		const db = makeTestDatabase();
+		makeSubscriberRow(db, {
+			phone_number: "+15552345678",
+			token: "aaaa3333-3333-3333-3333-333333333333",
+			status: "unsubscribed",
+			unsubscribed_at: "2025-01-01T00:00:00Z",
+		});
+
+		const response = renderUnsubscribePage(db, "aaaa3333-3333-3333-3333-333333333333");
+		const html = await response.text();
+
+		expect(response.status).toBe(200);
+		expect(html).toContain("Already Unsubscribed");
+	});
+
+	test("returns 404 for nonexistent token", async () => {
+		const db = makeTestDatabase();
+
+		const response = renderUnsubscribePage(db, "aaaa9999-9999-9999-9999-999999999999");
+
+		expect(response.status).toBe(404);
+		const html = await response.text();
+		expect(html).toContain("Invalid Link");
+	});
+});
+
+describe("POST /unsubscribe/:token", () => {
+	test("unsubscribes active subscriber and shows success page", async () => {
+		const db = makeTestDatabase();
+		const id = makeSubscriberRow(db, {
+			phone_number: "+15552345678",
+			token: "bbbb1111-1111-1111-1111-111111111111",
+			status: "active",
+			confirmed_at: "2025-01-01T00:00:00Z",
+		});
+
+		const response = handleUnsubscribe(db, "bbbb1111-1111-1111-1111-111111111111");
+		const html = await response.text();
+
+		expect(response.status).toBe(200);
+		expect(html).toContain("Unsubscribed");
+		expect(html).toContain("unsubscribed from Daily Platypus Facts");
+
+		const row = db
+			.prepare("SELECT status, unsubscribed_at FROM subscribers WHERE id = ?")
+			.get(id) as {
+			status: string;
+			unsubscribed_at: string | null;
+		};
+		expect(row.status).toBe("unsubscribed");
+		expect(row.unsubscribed_at).toBeTruthy();
+	});
+
+	test("unsubscribes pending subscriber and shows success page", async () => {
+		const db = makeTestDatabase();
+		const id = makeSubscriberRow(db, {
+			phone_number: "+15552345678",
+			token: "bbbb2222-2222-2222-2222-222222222222",
+			status: "pending",
+		});
+
+		const response = handleUnsubscribe(db, "bbbb2222-2222-2222-2222-222222222222");
+		const html = await response.text();
+
+		expect(response.status).toBe(200);
+		expect(html).toContain("Unsubscribed");
+
+		const row = db.prepare("SELECT status FROM subscribers WHERE id = ?").get(id) as {
+			status: string;
+		};
+		expect(row.status).toBe("unsubscribed");
+	});
+
+	test("shows already-unsubscribed message for already unsubscribed subscriber", async () => {
+		const db = makeTestDatabase();
+		makeSubscriberRow(db, {
+			phone_number: "+15552345678",
+			token: "bbbb3333-3333-3333-3333-333333333333",
+			status: "unsubscribed",
+			unsubscribed_at: "2025-01-01T00:00:00Z",
+		});
+
+		const response = handleUnsubscribe(db, "bbbb3333-3333-3333-3333-333333333333");
+		const html = await response.text();
+
+		expect(response.status).toBe(200);
+		expect(html).toContain("Already Unsubscribed");
+	});
+
+	test("returns 404 for nonexistent token", async () => {
+		const db = makeTestDatabase();
+
+		const response = handleUnsubscribe(db, "bbbb9999-9999-9999-9999-999999999999");
+
+		expect(response.status).toBe(404);
+		const html = await response.text();
+		expect(html).toContain("Invalid Link");
 	});
 });
