@@ -192,6 +192,21 @@ describe("GET /", () => {
 		expect(html).toContain("and / or");
 	});
 
+	test("renders animated SVG platypus with CSS animation classes", async () => {
+		const db = makeTestDatabase();
+		const response = renderSignupPage(db, 1000);
+		const html = await response.text();
+
+		expect(html).toContain("platypus-swim");
+		expect(html).toContain("<svg");
+		expect(html).toContain("platypus-body");
+		expect(html).toContain("platypus-tail");
+		expect(html).toContain("platypus-front-foot");
+		expect(html).toContain("platypus-back-foot");
+		expect(html).toContain("platypus-bubbles");
+		expect(html).toContain('aria-hidden="true"');
+	});
+
 	test("renders current Platypus Fan count and max capacity", async () => {
 		const db = makeTestDatabase();
 		makeSubscriberRow(db, { phone_number: "+15551234567", status: "active" });

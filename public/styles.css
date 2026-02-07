@@ -104,6 +104,122 @@ a:focus-visible {
 	font-style: italic;
 }
 
+.platypus-swim {
+	display: flex;
+	justify-content: center;
+	margin-bottom: 1rem;
+	overflow: hidden;
+}
+
+.platypus {
+	width: 160px;
+	height: 80px;
+	animation: swim 4s ease-in-out infinite;
+}
+
+.platypus-body {
+	animation: bob 3s ease-in-out infinite;
+	transform-origin: center center;
+}
+
+.platypus-tail {
+	animation: wag 1.2s ease-in-out infinite;
+	transform-origin: 135px 50px;
+}
+
+.platypus-front-foot {
+	animation: paddle-front 1.5s ease-in-out infinite;
+	transform-origin: 75px 65px;
+}
+
+.platypus-back-foot {
+	animation: paddle-back 1.5s ease-in-out infinite 0.4s;
+	transform-origin: 110px 65px;
+}
+
+.bubble {
+	opacity: 0;
+}
+
+.bubble-1 {
+	animation: rise 3s ease-out infinite 0.5s;
+}
+
+.bubble-2 {
+	animation: rise 3s ease-out infinite 1.5s;
+}
+
+.bubble-3 {
+	animation: rise 3s ease-out infinite 2.5s;
+}
+
+@keyframes swim {
+	0%,
+	100% {
+		transform: translateX(-8px);
+	}
+	50% {
+		transform: translateX(8px);
+	}
+}
+
+@keyframes bob {
+	0%,
+	100% {
+		transform: translateY(0) rotate(0deg);
+	}
+	25% {
+		transform: translateY(-3px) rotate(-1.5deg);
+	}
+	75% {
+		transform: translateY(3px) rotate(1.5deg);
+	}
+}
+
+@keyframes wag {
+	0%,
+	100% {
+		transform: rotate(0deg);
+	}
+	30% {
+		transform: rotate(6deg);
+	}
+	70% {
+		transform: rotate(-6deg);
+	}
+}
+
+@keyframes paddle-front {
+	0%,
+	100% {
+		transform: rotate(0deg);
+	}
+	50% {
+		transform: rotate(15deg);
+	}
+}
+
+@keyframes paddle-back {
+	0%,
+	100% {
+		transform: rotate(0deg);
+	}
+	50% {
+		transform: rotate(15deg);
+	}
+}
+
+@keyframes rise {
+	0% {
+		opacity: 0.6;
+		transform: translateY(0) translateX(0);
+	}
+	100% {
+		opacity: 0;
+		transform: translateY(-20px) translateX(-5px);
+	}
+}
+
 .fan-count {
 	text-align: center;
 	font-size: 1.1rem;

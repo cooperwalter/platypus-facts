@@ -128,6 +128,37 @@ function renderSignupPage(db: Database, maxSubscribers: number): Response {
 			<p class="tagline">Inspired by <em>Life is Strange: Double Exposure</em></p>
 		</header>
 
+		<div class="platypus-swim" aria-hidden="true">
+			<svg class="platypus" viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
+				<g class="platypus-body">
+					<ellipse cx="90" cy="50" rx="45" ry="25" fill="#8B6914" stroke="#6B4F10" stroke-width="1.5"/>
+					<ellipse cx="90" cy="50" rx="38" ry="20" fill="#A07828"/>
+					<ellipse cx="135" cy="50" rx="12" ry="8" fill="#8B6914" stroke="#6B4F10" stroke-width="1"/>
+					<g class="platypus-tail">
+						<ellipse cx="148" cy="50" rx="18" ry="6" fill="#6B4F10" stroke="#5A3E0A" stroke-width="1"/>
+						<line x1="140" y1="47" x2="158" y2="47" stroke="#5A3E0A" stroke-width="0.5"/>
+						<line x1="140" y1="50" x2="160" y2="50" stroke="#5A3E0A" stroke-width="0.5"/>
+						<line x1="140" y1="53" x2="158" y2="53" stroke="#5A3E0A" stroke-width="0.5"/>
+					</g>
+					<ellipse cx="48" cy="52" rx="20" ry="7" fill="#4A3A2A" stroke="#3A2A1A" stroke-width="1"/>
+					<ellipse cx="48" cy="52" rx="18" ry="5.5" fill="#5C4A36"/>
+					<circle cx="62" cy="42" r="3" fill="#1A1A1A"/>
+					<circle cx="62.8" cy="41.5" r="1" fill="#fff"/>
+					<g class="platypus-front-foot">
+						<ellipse cx="75" cy="70" rx="10" ry="4" fill="#4A3A2A" stroke="#3A2A1A" stroke-width="0.8"/>
+					</g>
+					<g class="platypus-back-foot">
+						<ellipse cx="110" cy="70" rx="10" ry="4" fill="#4A3A2A" stroke="#3A2A1A" stroke-width="0.8"/>
+					</g>
+				</g>
+				<g class="platypus-bubbles">
+					<circle class="bubble bubble-1" cx="35" cy="38" r="2" fill="none" stroke="#b8d4e8" stroke-width="0.8"/>
+					<circle class="bubble bubble-2" cx="28" cy="42" r="1.5" fill="none" stroke="#b8d4e8" stroke-width="0.6"/>
+					<circle class="bubble bubble-3" cx="32" cy="35" r="1" fill="none" stroke="#b8d4e8" stroke-width="0.5"/>
+				</g>
+			</svg>
+		</div>
+
 		<div class="fan-count" aria-label="${formattedCount} of ${formattedMax} Platypus Fans">
 			<span class="count">${formattedCount}</span> / <span class="max">${formattedMax}</span> Platypus Fans
 		</div>

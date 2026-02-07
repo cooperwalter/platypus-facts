@@ -2,14 +2,13 @@
 
 ## Status Summary
 
-Priorities 1-40 are implemented and committed. A comprehensive spec-vs-implementation audit has identified **2 remaining priorities** covering animated platypus and infrastructure.
+Priorities 1-41 are implemented and committed. Only infrastructure config updates and integration tests remain.
 
-- **421 tests passing** across 23 test files with **940 expect() calls**
+- **422 tests passing** across 23 test files with **948 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations
-- **Latest tag**: 0.0.27
-- **SMS-only spec compliance**: ~100%
-- **Full spec compliance**: ~98% (animated platypus still remaining)
+- **Latest tag**: 0.0.28
+- **Full spec compliance**: ~100% (all features complete, infra configs remaining)
 
 ### What Exists (Priorities 1-27)
 
@@ -22,7 +21,7 @@ Priorities 1-40 are implemented and committed. A comprehensive spec-vs-implement
 - Image generation uses fixed style prompt with no-text instruction (P28 complete).
 - Email provider abstraction complete (P32): `EmailProvider` interface, Postmark implementation, dev email provider, factory function `createEmailProvider(config)`. Email templates for daily fact, confirmation, and already-subscribed. `escapeHtml`/`isSafeUrl` extracted to shared `src/lib/html-utils.ts`. `makeMockEmailProvider()` in test-utils. `unsubscribeHeaders()` for RFC 8058 List-Unsubscribe support.
 - Subscribe endpoint accepts `{ phoneNumber?, email? }` (at least one required). Passes baseUrl and emailProvider to subscription flow (P34 complete).
-- Signup page has phone and email inputs, "and / or" divider, client-side validation (at least one required), description says "via SMS and/or email" (P35 complete). No animated swimming platypus.
+- Signup page has phone and email inputs, "and / or" divider, client-side validation (at least one required), description says "via SMS and/or email" (P35 complete). Animated swimming platypus SVG with CSS keyframe animations (P41 complete).
 - Daily send supports both SMS and email channels with per-channel result breakdown. Accepts optional `EmailProvider`. `--force` flag bypasses idempotency in dev, rejected in production (P40 complete).
 - `GET /confirm/:token` route with all confirmation states (P36 complete). Reusable `renderMessagePage` helper for status pages.
 - `GET/POST /unsubscribe/:token` routes with confirmation form, all states (P37 complete).
@@ -46,22 +45,7 @@ Priorities 1-40 are implemented and committed. A comprehensive spec-vs-implement
 
 ### ~~Priority 40: CLI `--force` flag for daily-send~~ -- DONE (0.0.27)
 
-### Priority 41: Animated swimming platypus on signup page
-
-**Spec**: `specs/web-pages.md`
-**Gap**: Signup page has no animated swimming platypus. Spec says: "An animated swimming platypus cartoon prominently displayed on the page. The animation should be implemented with CSS (keyframe animations on an SVG or image element) -- no JavaScript animation libraries, no GIFs, no external dependencies."
-
-- Create an inline SVG platypus illustration for the signup page
-- Add CSS keyframe animations for a looping, fluid swimming motion
-- Place prominently on the page (in the hero section or between hero and form)
-- Requirements:
-  - CSS-only animation (no JS animation libraries)
-  - No GIFs, no external dependencies
-  - Looping, fluid swimming motion
-  - Delightful without being distracting
-  - Consistent with LiS:DE warm, indie, handcrafted aesthetic
-- This is independent of email work but requires design creativity
-- Update any CSS in `public/styles.css` as needed
+### ~~Priority 41: Animated swimming platypus on signup page~~ -- DONE (0.0.28)
 
 ### Priority 42: Comprehensive integration tests for email flows
 
@@ -128,15 +112,14 @@ Priorities 1-40 are implemented and committed. A comprehensive spec-vs-implement
 | 38 | Daily send email channel (dual SMS+email, per-channel counts, null phone guard, unsubscribe headers) | 0.0.25 |
 | 39 | Dev message viewer (`/dev/messages` list + `/dev/messages/:id` detail, SMS + email, dev-only) | 0.0.26 |
 | 40 | CLI `--force` flag (bypass idempotency in dev, rejected in production, no duplicate sent_facts) | 0.0.27 |
+| 41 | Animated swimming platypus (inline SVG, CSS keyframe animations, swim/bob/paddle/bubbles) | 0.0.28 |
 
 ---
 
 ## Dependency Graph
 
 ```
-P41 (Animated swimming platypus) ─── independent, can be done anytime
-
-P30-40 (DB + DAL + Email + Sub flow + Routes + Daily send + Dev viewer + CLI) ─ DONE ──┐
+P30-41 (All features) ─ DONE ──┐
                                                   │
 P42 (Integration tests for email) ──────────────┘
 
@@ -145,8 +128,7 @@ P43 (Infra configs for email) ─── last
 
 ### Dependency Details
 
-- **P30-40** (DB schema + DAL + email provider + dev SMS + subscription flow + form + confirm + unsubscribe + daily send email + dev viewer + CLI --force) are complete.
-- **P41** (animated platypus) is fully independent. Can be done at any time.
+- **P30-41** (all features) are complete.
 - **P42** (integration tests) depends on all feature work being complete.
 - **P43** (infra configs) is intentionally last -- updates deploy configs and documentation.
 
@@ -214,8 +196,8 @@ For reference, here is the complete gap inventory mapped to their priorities:
 ### ~~In P40 (CLI --force)~~ -- DONE:
 ~~43. No `--force` flag parsing in daily-send `import.meta.main` block~~
 
-### In P41 (Animated platypus):
-44. No animated swimming platypus on signup page (spec requires CSS keyframe animation on SVG)
+### ~~In P41 (Animated platypus)~~ -- DONE:
+~~44. No animated swimming platypus on signup page (spec requires CSS keyframe animation on SVG)~~
 
 ### In P43 (Infra configs):
 45. No `POSTMARK_API_TOKEN` / `EMAIL_FROM` in deploy configs
