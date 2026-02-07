@@ -2,18 +2,18 @@
 
 ## Status Summary
 
-Priorities 1-28 are implemented and committed. A comprehensive spec-vs-implementation audit has identified **14 remaining priorities** covering email integration, dev providers, animated platypus, and CLI enhancements.
+Priorities 1-29 are implemented and committed. A comprehensive spec-vs-implementation audit has identified **13 remaining priorities** covering email integration, dev providers, animated platypus, and CLI enhancements.
 
-- **270 tests passing** across 16 test files with **597 expect() calls**
+- **282 tests passing** across 16 test files with **634 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations
-- **Latest tag**: 0.0.16
+- **Latest tag**: 0.0.17
 - **SMS-only spec compliance**: ~100%
-- **Full spec compliance**: ~65% (email integration, dev providers, animated platypus, and several features missing)
+- **Full spec compliance**: ~68% (email integration, dev providers, animated platypus, and several features missing)
 
 ### What Exists (Priorities 1-27)
 
-- Config requires `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` unconditionally. No `NODE_ENV` field. No Postmark/email config.
+- Config has `nodeEnv` field, Twilio/Postmark vars nullable in dev, required in production (P29 complete).
 - Database has 4 tables. `subscribers` has `phone_number TEXT NOT NULL UNIQUE` -- no `email`, no `token` columns. Phone is NOT NULL.
 - Subscriber DAL has `findByPhoneNumber`, `createSubscriber(db, phone)`, `updateStatus`, `getActiveCount`, `getActiveSubscribers`. No email/token functions.
 - Subscription flow is phone-only: `signup(db, smsProvider, phoneInput, maxSubscribers)`, `handleIncomingMessage(db, from, body, baseUrl, maxSubscribers)`.
@@ -29,18 +29,6 @@ Priorities 1-28 are implemented and committed. A comprehensive spec-vs-implement
 ---
 
 ## Remaining Work -- Prioritized
-
-### Priority 29: NODE_ENV-based configuration (foundational)
-
-**Spec**: `specs/infrastructure.md`, `specs/design-decisions.md`
-**Gap**: `loadConfig()` in `src/lib/config.ts` unconditionally requires Twilio env vars via `requireEnv()`. No `NODE_ENV` field in the `Config` interface. No conditional logic for dev vs production.
-
-- Add `nodeEnv` field to `Config` interface (`"development" | "production"`, read from `NODE_ENV`, default `"development"`)
-- In development: Twilio, Postmark, and OpenAI keys are optional (no error if missing)
-- In production (`NODE_ENV=production`): Twilio and Postmark vars are required; server refuses to start without them
-- Add `postmarkApiToken: string | null` and `emailFrom: string | null` to Config
-- Make `twilioAccountSid`, `twilioAuthToken`, `twilioPhoneNumber` nullable in Config (null when in dev without Twilio)
-- Update existing config tests; add new tests for NODE_ENV-based validation logic
 
 ### Priority 30: Database schema -- add `email`, `token`; make `phone_number` nullable (foundational)
 
@@ -292,6 +280,7 @@ Priorities 1-28 are implemented and committed. A comprehensive spec-vs-implement
 | 26 | Invalid API key early detection: bail on first auth failure, skip remaining images | 0.0.14 |
 | 27 | Production hardening: busy_timeout, race condition safety nets, request body size limit | 0.0.15 |
 | 28 | Image generation prompt fix: fixed style prompt, no-text instruction, removed factText param | 0.0.16 |
+| 29 | NODE_ENV-based config: nodeEnv field, Twilio/Postmark nullable in dev, required in production | 0.0.17 |
 
 ---
 
@@ -300,13 +289,11 @@ Priorities 1-28 are implemented and committed. A comprehensive spec-vs-implement
 ```
 P41 (Animated swimming platypus) ─── independent, can be done anytime
 
-P29 (NODE_ENV config) ──────────────────────────────┐
-                                                      │
-P30 (DB schema: email, token, nullable phone) ──┐    │
-                                                  │    │
-P31 (Subscriber DAL: findByEmail/Token, etc.) ──┤    │
-                                                  │    │
-P32 (Email provider + Postmark + dev email) ────┤────┘
+P30 (DB schema: email, token, nullable phone) ──┐
+                                                  │
+P31 (Subscriber DAL: findByEmail/Token, etc.) ──┤
+                                                  │
+P32 (Email provider + Postmark + dev email) ────┤
                                                   │
 P33 (Dev SMS provider) ─────────────────────────┤
                                                   │
@@ -322,7 +309,7 @@ P38 (Daily send: email channel) ────────────────
                                                   │
 P39 (Dev message viewer) ──────────────────────┤
                                                   │
-P40 (CLI --force flag) ─── depends on P29       │
+P40 (CLI --force flag) ─────────────────────────┤
                                                   │
 P42 (Integration tests for email) ──────────────┘
 
@@ -331,7 +318,6 @@ P43 (Infra configs for email) ─── last
 
 ### Dependency Details
 
-- **P29** (NODE_ENV) is foundational: P32 (email provider factory), P33 (dev SMS provider), P39 (dev message viewer), and P40 (--force production rejection) all need `nodeEnv` in config.
 - **P30** (DB schema) must precede P31 (DAL functions that query the new columns).
 - **P31** (subscriber DAL) must precede P34 (subscription flow uses `findByEmail`, `findByToken`, `updateContactInfo`).
 - **P32** (email provider) must precede P34 (subscription flow sends confirmation/already-subscribed emails), P36 (confirmation page), P38 (daily send emails).
@@ -354,11 +340,6 @@ P43 (Infra configs for email) ─── last
 ## Detailed Gap Inventory (43 items across 15 priorities)
 
 For reference, here is the complete gap inventory mapped to their priorities:
-
-### In P29 (NODE_ENV config):
-4. No `nodeEnv` field in Config interface
-5. Twilio env vars unconditionally required (blocks dev without Twilio)
-6. No `postmarkApiToken` / `emailFrom` in Config
 
 ### In P30 (DB schema):
 7. `phone_number TEXT NOT NULL UNIQUE` should be `TEXT UNIQUE` (nullable)

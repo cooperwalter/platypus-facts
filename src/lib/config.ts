@@ -1,10 +1,13 @@
 interface Config {
+	nodeEnv: "development" | "production";
 	port: number;
 	baseUrl: string;
 	databasePath: string;
-	twilioAccountSid: string;
-	twilioAuthToken: string;
-	twilioPhoneNumber: string;
+	twilioAccountSid: string | null;
+	twilioAuthToken: string | null;
+	twilioPhoneNumber: string | null;
+	postmarkApiToken: string | null;
+	emailFrom: string | null;
 	dailySendTimeUtc: string;
 	maxSubscribers: number;
 	openaiApiKey: string | null;
@@ -31,6 +34,9 @@ function requireEnv(name: string): string {
 }
 
 function loadConfig(): Config {
+	const nodeEnv = process.env.NODE_ENV === "production" ? "production" : "development";
+	const isProduction = nodeEnv === "production";
+
 	const rawBaseUrl = requireEnv("BASE_URL");
 	try {
 		new URL(rawBaseUrl);
@@ -39,14 +45,35 @@ function loadConfig(): Config {
 	}
 	const baseUrl = rawBaseUrl.replace(/\/+$/, "");
 
-	const twilioAccountSid = requireEnv("TWILIO_ACCOUNT_SID");
-	const twilioAuthToken = requireEnv("TWILIO_AUTH_TOKEN");
-	const twilioPhoneNumber = requireEnv("TWILIO_PHONE_NUMBER");
+	let twilioAccountSid: string | null = null;
+	let twilioAuthToken: string | null = null;
+	let twilioPhoneNumber: string | null = null;
 
-	if (!validateE164(twilioPhoneNumber)) {
+	if (isProduction) {
+		twilioAccountSid = requireEnv("TWILIO_ACCOUNT_SID");
+		twilioAuthToken = requireEnv("TWILIO_AUTH_TOKEN");
+		twilioPhoneNumber = requireEnv("TWILIO_PHONE_NUMBER");
+	} else {
+		twilioAccountSid = process.env.TWILIO_ACCOUNT_SID ?? null;
+		twilioAuthToken = process.env.TWILIO_AUTH_TOKEN ?? null;
+		twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER ?? null;
+	}
+
+	if (twilioPhoneNumber && !validateE164(twilioPhoneNumber)) {
 		throw new Error(
 			`TWILIO_PHONE_NUMBER must be in E.164 format (e.g., +15551234567), got: ${twilioPhoneNumber}`,
 		);
+	}
+
+	let postmarkApiToken: string | null = null;
+	let emailFrom: string | null = null;
+
+	if (isProduction) {
+		postmarkApiToken = requireEnv("POSTMARK_API_TOKEN");
+		emailFrom = requireEnv("EMAIL_FROM");
+	} else {
+		postmarkApiToken = process.env.POSTMARK_API_TOKEN ?? null;
+		emailFrom = process.env.EMAIL_FROM ?? null;
 	}
 
 	const dailySendTimeUtc = process.env.DAILY_SEND_TIME_UTC ?? "14:00";
@@ -73,12 +100,15 @@ function loadConfig(): Config {
 	const openaiApiKey = process.env.OPENAI_API_KEY ?? null;
 
 	return {
+		nodeEnv,
 		port,
 		baseUrl,
 		databasePath,
 		twilioAccountSid,
 		twilioAuthToken,
 		twilioPhoneNumber,
+		postmarkApiToken,
+		emailFrom,
 		dailySendTimeUtc,
 		maxSubscribers,
 		openaiApiKey,
