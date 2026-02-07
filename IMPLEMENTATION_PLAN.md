@@ -2,12 +2,12 @@
 
 ## Status Summary
 
-All 46 priorities are implemented and committed. The project is feature-complete.
+All 48 priorities are implemented and committed. The project is feature-complete.
 
-- **427 tests passing** across 23 test files with **983 expect() calls**
+- **429 tests passing** across 23 test files with **1016 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations
-- **Latest tag**: 0.0.32
+- **Latest tag**: 0.0.34
 - **Full spec compliance**: 100%
 
 ---
@@ -61,12 +61,14 @@ All 46 priorities are implemented and committed. The project is feature-complete
 | 44 | Remove redundant fact sync from Dockerfile CMD | 0.0.32 |
 | 45 | Add NODE_ENV and Twilio optionality comments to .env.example | 0.0.32 |
 | 46 | Fix SQLite migration: use hasColumn check instead of catching ALTER TABLE UNIQUE error | 0.0.32 |
+| 47 | Cross-channel confirmation integration tests (SMS/email confirm activates all channels) | 0.0.33 |
+| 48 | Fix animated platypus: full-viewport swim path, fixed positioning, direction flipping, a11y | 0.0.34 |
 
 ---
 
 ## Spec Compliance Audit (2026-02-06)
 
-Full audit of all 15 spec files against the implementation. **427 tests passing, type check clean, lint clean, zero TODOs/FIXMEs in codebase.**
+Full audit of all 15 spec files against the implementation. **429 tests passing, type check clean, lint clean, zero TODOs/FIXMEs in codebase.**
 
 ### Verified Correct
 
@@ -88,7 +90,7 @@ Full audit of all 15 spec files against the implementation. **427 tests passing,
 
 **Daily Job** (`specs/daily-job.md`): Idempotency, individual failure doesn't halt, per-channel breakdown, todayOverride for testing, sends MMS when image available, SMS fallback.
 
-**Web Pages** (`specs/web-pages.md`): Signup page (form, fan count, capacity handling, animated SVG platypus, CSS keyframes, "and/or" divider, phone + email inputs, standard message rates note), fact page (image above text, sources, branding, attribution, subscribe CTA), confirmation page (all states), unsubscribe pages (GET/POST, all states), dev message viewer (list + detail, dev only), 404 page.
+**Web Pages** (`specs/web-pages.md`): Signup page (form, fan count, capacity handling, animated SVG platypus with full-viewport swim path and direction flipping, CSS keyframes, "and/or" divider, phone + email inputs, standard message rates note), fact page (image above text, sources, branding, attribution, subscribe CTA), confirmation page (all states), unsubscribe pages (GET/POST, all states), dev message viewer (list + detail, dev only), 404 page.
 
 **API Endpoints** (`specs/web-pages.md`): POST /api/subscribe (correct body, response format), GET /health (200 OK), POST /api/webhooks/twilio/incoming (signature validation, TwiML response).
 
@@ -112,7 +114,9 @@ Full audit of all 15 spec files against the implementation. **427 tests passing,
 
 ### Remaining Items
 
-No spec compliance gaps found. All cleanup items (P44, P45, P46) resolved in 0.0.32.
+No spec compliance gaps found. Animated platypus viewport swim fixed in 0.0.34. All cleanup items (P44, P45, P46) resolved in 0.0.32.
+
+Note: `DAILY_SEND_TIME_UTC` is validated in config but not programmatically used by the daily send script — cron handles scheduling externally. This is by design.
 
 ---
 
