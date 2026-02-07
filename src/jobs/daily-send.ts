@@ -200,8 +200,8 @@ if (import.meta.main) {
 	}
 
 	const db = createDatabase(config.databasePath);
-	const smsProvider = createSmsProvider();
-	const ep = createEmailProvider(config);
+	const smsProvider = createSmsProvider(undefined, db);
+	const ep = createEmailProvider(config, db);
 
 	try {
 		const syncResult = await syncFacts(db, undefined, config.openaiApiKey);

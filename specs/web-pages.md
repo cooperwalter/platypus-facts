@@ -25,7 +25,8 @@ The landing page where visitors subscribe to Daily Platypus Facts.
 - Warm, indie, handcrafted feel
 - Platypus imagery or illustrations
 - Personality and charm — this is a fun project
-- **Repeating platypus background pattern** — all pages use a subtle, tiled background using the platypus SVG at `public/platypus-icon.svg`. Applied via CSS `background-image` with `background-repeat: repeat`. Low-opacity so it doesn't compete with page content, creating a soft watermark-style texture across the entire page.
+- **Repeating platypus background pattern** — all pages use a subtle, tiled background using the platypus SVG at `public/platypus-icon.svg`. Applied via CSS `background-image` with `background-repeat: repeat`. Low-opacity so it doesn't compete with page content, creating a soft watermark-style texture across the entire page. The icons should be **generously spaced** — not packed tightly together. Use `background-size` and/or padding within the tile to ensure visible gaps between each icon so the pattern feels airy and light, not dense or wallpaper-like.
+- **No animated platypus** — there should be no animated, moving, or swimming platypus element on any page. The background pattern is the only platypus decoration.
 
 ### Behavior
 

@@ -48,6 +48,19 @@ Tracks which facts have been sent globally (one entry per day a fact is sent).
 | `sent_date`  | TEXT    | NOT NULL, UNIQUE                   | The date it was sent (YYYY-MM-DD) |
 | `cycle`      | INTEGER | NOT NULL                           | Which cycle this send belongs to  |
 
+### `dev_messages` (Development Only)
+
+Stores messages sent by dev providers (SMS and email) so they are visible across processes (e.g., messages sent by the daily-send CLI are viewable in the web server's dev message viewer). This table is only created when dev providers are active — it does not exist in production.
+
+| Column       | Type    | Constraints                        | Description                       |
+| ------------ | ------- | ---------------------------------- | --------------------------------- |
+| `id`         | INTEGER | PRIMARY KEY AUTOINCREMENT          | Unique message identifier         |
+| `type`       | TEXT    | NOT NULL                           | `sms` or `email`                  |
+| `recipient`  | TEXT    | NOT NULL                           | Phone number or email address     |
+| `subject`    | TEXT    |                                    | Email subject (NULL for SMS)      |
+| `body`       | TEXT    | NOT NULL                           | Message body (plain text for SMS, HTML for email) |
+| `created_at` | TEXT    | NOT NULL DEFAULT (datetime('now')) | When the message was sent         |
+
 ## Constraints
 
 - `facts` must always have at least one row in `fact_sources`. Enforce at the application level on insert/update.

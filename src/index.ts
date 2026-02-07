@@ -23,8 +23,8 @@ import { syncFacts } from "./scripts/sync-facts";
 
 const config = loadConfig();
 const db = createDatabase(config.databasePath);
-const smsProvider = createSmsProvider(`${config.baseUrl}/api/webhooks/twilio/incoming`);
-const emailProvider = createEmailProvider(config);
+const smsProvider = createSmsProvider(`${config.baseUrl}/api/webhooks/twilio/incoming`, db);
+const emailProvider = createEmailProvider(config, db);
 const rateLimiter = createRateLimiter(5, 60 * 60 * 1000);
 
 const cleanupInterval = setInterval(

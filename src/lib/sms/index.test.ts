@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { makeTestDatabase } from "../test-utils";
 import { DevSmsProvider } from "./dev";
 import { createSmsProvider } from "./index";
 
@@ -36,19 +37,22 @@ describe("createSmsProvider", () => {
 
 	test("should return DevSmsProvider when TWILIO_ACCOUNT_SID is missing", () => {
 		process.env.TWILIO_ACCOUNT_SID = undefined;
-		const provider = createSmsProvider();
+		const db = makeTestDatabase();
+		const provider = createSmsProvider(undefined, db);
 		expect(provider).toBeInstanceOf(DevSmsProvider);
 	});
 
 	test("should return DevSmsProvider when TWILIO_AUTH_TOKEN is missing", () => {
 		process.env.TWILIO_AUTH_TOKEN = undefined;
-		const provider = createSmsProvider();
+		const db = makeTestDatabase();
+		const provider = createSmsProvider(undefined, db);
 		expect(provider).toBeInstanceOf(DevSmsProvider);
 	});
 
 	test("should return DevSmsProvider when TWILIO_PHONE_NUMBER is missing", () => {
 		process.env.TWILIO_PHONE_NUMBER = undefined;
-		const provider = createSmsProvider();
+		const db = makeTestDatabase();
+		const provider = createSmsProvider(undefined, db);
 		expect(provider).toBeInstanceOf(DevSmsProvider);
 	});
 
@@ -56,7 +60,13 @@ describe("createSmsProvider", () => {
 		process.env.TWILIO_ACCOUNT_SID = undefined;
 		process.env.TWILIO_AUTH_TOKEN = undefined;
 		process.env.TWILIO_PHONE_NUMBER = undefined;
-		const provider = createSmsProvider();
+		const db = makeTestDatabase();
+		const provider = createSmsProvider(undefined, db);
 		expect(provider).toBeInstanceOf(DevSmsProvider);
+	});
+
+	test("should throw when Twilio vars missing and no database provided", () => {
+		process.env.TWILIO_ACCOUNT_SID = undefined;
+		expect(() => createSmsProvider()).toThrow("Database is required for DevSmsProvider");
 	});
 });

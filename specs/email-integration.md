@@ -24,7 +24,7 @@ Postmark is used when `POSTMARK_API_TOKEN` is configured.
 When `POSTMARK_API_TOKEN` is not configured, the application uses a development email provider that:
 
 1. Logs a summary of each sent email to the console (recipient, subject).
-2. Stores sent emails in memory for the lifetime of the server process.
+2. Stores sent emails in the SQLite database (`dev_messages` table) so they persist across processes — messages sent by the daily-send CLI job are visible in the web server's dev message viewer.
 3. Makes sent emails viewable via dev-only web routes (see Dev Message Viewer in `web-pages.md`).
 
 No external service or API key is required.

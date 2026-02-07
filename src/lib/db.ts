@@ -1,5 +1,7 @@
 import { Database } from "bun:sqlite";
 
+// DO NOT MODIFY initializeSchema — it reflects the baseline schema.
+// All schema changes (new columns, constraint fixes, index additions) go in migrateSchema.
 function initializeSchema(db: Database): void {
 	db.exec(`
 		CREATE TABLE IF NOT EXISTS facts (
@@ -34,6 +36,15 @@ function initializeSchema(db: Database): void {
 			cycle INTEGER NOT NULL
 		);
 
+		CREATE TABLE IF NOT EXISTS dev_messages (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			type TEXT NOT NULL,
+			recipient TEXT NOT NULL,
+			subject TEXT,
+			body TEXT NOT NULL,
+			created_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);
+
 		CREATE INDEX IF NOT EXISTS idx_fact_sources_fact_id ON fact_sources(fact_id);
 		CREATE INDEX IF NOT EXISTS idx_sent_facts_fact_id ON sent_facts(fact_id);
 	`);
@@ -52,6 +63,47 @@ function tryAddColumn(db: Database, table: string, columnDef: string): void {
 		return;
 	}
 	db.exec(`ALTER TABLE ${table} ADD COLUMN ${columnDef}`);
+}
+
+function isColumnNullable(db: Database, table: string, column: string): boolean {
+	const info = db
+		.query<{ name: string; notnull: number }, [string]>(
+			'SELECT name, "notnull" FROM pragma_table_info(?)',
+		)
+		.all(table);
+	const col = info.find((c) => c.name === column);
+	return col ? col.notnull === 0 : true;
+}
+
+function migrateSubscribersConstraints(db: Database): void {
+	const phoneNeedsNullable = !isColumnNullable(db, "subscribers", "phone_number");
+	const tokenNeedsNotNull = isColumnNullable(db, "subscribers", "token");
+
+	if (!phoneNeedsNullable && !tokenNeedsNotNull) return;
+
+	db.exec("PRAGMA foreign_keys=OFF");
+	db.exec("BEGIN TRANSACTION");
+	db.run(`
+		CREATE TABLE subscribers_new (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			phone_number TEXT UNIQUE,
+			email TEXT UNIQUE,
+			token TEXT NOT NULL UNIQUE,
+			status TEXT NOT NULL DEFAULT 'pending',
+			created_at TEXT NOT NULL DEFAULT (datetime('now')),
+			confirmed_at TEXT,
+			unsubscribed_at TEXT
+		)
+	`);
+	db.run(`
+		INSERT INTO subscribers_new (id, phone_number, email, token, status, created_at, confirmed_at, unsubscribed_at)
+		SELECT id, phone_number, email, token, status, created_at, confirmed_at, unsubscribed_at
+		FROM subscribers
+	`);
+	db.run("DROP TABLE subscribers");
+	db.run("ALTER TABLE subscribers_new RENAME TO subscribers");
+	db.exec("COMMIT");
+	db.exec("PRAGMA foreign_keys=ON");
 }
 
 function migrateSchema(db: Database): void {
@@ -77,6 +129,8 @@ function migrateSchema(db: Database): void {
 			update.run(crypto.randomUUID(), row.id);
 		}
 	}
+
+	migrateSubscribersConstraints(db);
 }
 
 function createDatabase(path: string): Database {

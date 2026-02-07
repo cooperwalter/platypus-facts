@@ -78,6 +78,19 @@ The daily send job is scheduled via system `crontab` on the VPS. The cron entry 
 
 In development (`NODE_ENV` unset or `development`), provider API keys (Twilio, Postmark, OpenAI) are optional. When not configured, dev providers are used that log to the console and store messages in memory for the dev message viewer. In production (`NODE_ENV=production`), Twilio and Postmark variables are required and the server refuses to start without them.
 
+### `.env.development`
+
+A `.env.development` file is checked into the repository with working defaults for local development. The application loads this file when no `.env` file is present (or `.env` can override it). This ensures that links in dev emails/SMS (confirmation, unsubscribe, fact pages) point to the correct local address.
+
+```
+NODE_ENV=development
+PORT=3090
+BASE_URL=http://localhost:3090
+DATABASE_PATH=./data/platypus-facts.db
+```
+
+The `.env` file (gitignored) is for production secrets and any local overrides.
+
 ## Backups
 
 SQLite database should be backed up regularly. Options:

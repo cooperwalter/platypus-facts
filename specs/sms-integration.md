@@ -26,7 +26,7 @@ Twilio is used when all three Twilio environment variables are configured.
 When Twilio environment variables are not configured, the application uses a development SMS provider that:
 
 1. Logs a summary of each sent message to the console (recipient, body preview).
-2. Stores sent messages in memory for the lifetime of the server process.
+2. Stores sent messages in the SQLite database (`dev_messages` table) so they persist across processes — messages sent by the daily-send CLI job are visible in the web server's dev message viewer.
 3. Makes sent messages viewable via the dev message viewer (see `web-pages.md`).
 
 No external service or API key is required for development.

@@ -2,26 +2,57 @@
 
 ## Status Summary
 
-**All 54 priorities implemented and committed. Project is feature-complete against all 15 spec files.**
+**All priorities through P59 implemented. P57-P59 complete, ready for commit.**
 
-- **433 tests passing** across 23 test files with **1020 expect() calls**
+- **434 tests passing** across 23 test files with **1015 expect() calls**
 - **Type check clean**, **lint clean**
-- **28 real platypus facts** sourced and seeded with AI-generated illustrations
+- **28 real platypus facts** sourced and seeded with AI-generated illustrations (31 images in `public/images/facts/`)
 - **Latest tag**: 0.0.39
-- **Spec compliance**: 100% against committed specs; 0 items remaining
+- **Independent audit (2026-02-07)**: All 15 spec files audited line-by-line against all 51 source files. Zero TODOs/FIXMEs, zero `any` types, zero skipped tests.
 
 ---
 
-## Completed Priorities (1-54)
+## Outstanding Items
 
-All 54 priorities shipped across tags 0.0.1 through 0.0.38. See git history for details.
+### P61 — Background pattern spacing review (MINOR — visual check needed)
 
-### Post-Completion Fixes (0.0.39)
+**Spec**: `specs/web-pages.md` line 28: icons should be "**generously spaced** — not packed tightly together. Use `background-size` and/or padding within the tile to ensure visible gaps between each icon so the pattern feels airy and light, not dense or wallpaper-like."
 
-| Fix | Description | Tag |
-|-----|-------------|-----|
-| P55 | Spec clarity: add SMS mention to subscription-flow.md active status handling | 0.0.39 |
-| P56 | Add .DS_Store to .gitignore | 0.0.39 |
+**Code**: `public/styles.css:48` uses `background-size: 48px 48px`. The SVG icon (`public/platypus-icon.svg`, 512x512pt viewBox) likely fills most of this tile. May need to increase to ~80-120px or use a CSS technique to add padding (e.g., larger background-size with a smaller SVG, or an SVG with built-in whitespace).
+
+**Action**: Visual inspection needed. Start the server (`bun run start`), view the page, and if the current 48px feels dense, increase `background-size` to create more space between icons.
+
+---
+
+## Remaining
+
+1. **P61** — Visual review of background pattern spacing (MINOR — visual check, possible CSS tweak)
+2. Manual testing with Twilio and Postmark before production launch
+
+---
+
+## Completed Priorities (1-59)
+
+All 59 priorities shipped. See git history for details.
+
+### Recent Completions
+
+| Priority | Description | Notes |
+|----------|-------------|-------|
+| P57 | Remove animated swimming platypus | ~200 lines removed across pages.ts, styles.css, routes.test.ts. Spec violation resolved. |
+| P58 | Implement `dev_messages` SQLite table | Dev providers now persist to SQLite for cross-process visibility. 10 files updated. |
+| P59 | Fix lint error in db.ts:62 | Quote style fix. |
+| P55-P56 | Spec clarity + .DS_Store | Tag 0.0.39 |
+
+### P58 Implementation Details
+
+**Schema decision**: `dev_messages` table added to `initializeSchema()` with `CREATE TABLE IF NOT EXISTS` — harmless in production, simplifies migration.
+
+**MediaUrl handling**: SMS `mediaUrl` is stored inline in the body field as `\n[Media: URL]` suffix, parsed out on read. This avoids adding a column not in the spec while preserving the data.
+
+**PlainBody/Headers**: Email `plainBody` and `headers` are not persisted to `dev_messages` since the spec table doesn't include them. The dev message viewer only needs `htmlBody` for preview.
+
+**Factory changes**: `createSmsProvider()` and `createEmailProvider()` now accept optional `Database` parameter. Throws if dev mode but no database provided.
 
 ---
 
@@ -29,25 +60,15 @@ All 54 priorities shipped across tags 0.0.1 through 0.0.38. See git history for 
 
 ### P53 — EmailProvider `imageUrl` parameter — CLOSED (intentional deviation)
 
-`specs/email-integration.md` line 10 says the interface should "optionally accept an `imageUrl`." The implementation passes the image URL via the HTML template data structure instead. This is an intentional design choice: email images are always embedded in HTML, so passing the URL through the template is cleaner than adding an unused interface parameter. The image appears correctly in all emails. No code change needed.
+Image URL passed via HTML template data structure instead of interface parameter.
 
-### P54 — Twilio opt-out webhook — CLOSED (investigation complete, no new endpoint needed)
+### P54 — Twilio opt-out webhook — CLOSED
 
-Two specs reference an "opt-out webhook." Twilio forwards STOP messages to the existing incoming message webhook — there is no separate opt-out webhook URL. The current implementation correctly handles all 8 Twilio stop words in `handleIncomingMessage`. No new endpoint needed.
+Twilio forwards STOP messages to the existing incoming message webhook.
 
-### P55 — Spec ambiguity in subscription-flow.md line 32 — FIXED
+### Phone Number NOT NULL Migration — RESOLVED
 
-Line 32 (active status handling) only mentioned web page + conditional email for "already subscribed" notifications, but line 107 defined an SMS template "(sent via SMS only if re-registering while active)." These are not contradictory — line 32 was simply missing the SMS mention. Fixed by adding "If they provided a phone, send the 'already subscribed' SMS." to line 32. Implementation was already correct.
-
-### P56 — .DS_Store not in .gitignore — FIXED
-
-macOS `.DS_Store` files were untracked but not ignored. Added to `.gitignore`.
-
----
-
-## Spec Compliance Audit (2026-02-07)
-
-Comprehensive audit of all 15 spec files against the implementation. **433 tests passing, type check clean, lint clean, zero TODOs/FIXMEs in codebase, zero skipped tests.** All 15 areas verified fully compliant.
+`migrateSubscribersConstraints()` in db.ts recreates subscribers table with nullable phone_number.
 
 ---
 
@@ -59,11 +80,5 @@ No spec covers structured logging. Using `console.log`/`console.error` for v1.
 ### Database Backup Implementation
 Defer to post-launch. Start with simple daily cron backup.
 
-### Phone Number NOT NULL Migration
-SQLite does not support `ALTER TABLE ... ALTER COLUMN`. Existing databases will retain the NOT NULL constraint on phone_number. New databases created after the schema update will have nullable phone_number. This is acceptable since all existing subscribers are phone-only.
-
----
-
-## Remaining
-
-Manual testing with Twilio and Postmark before production launch.
+### `.env.development` Loading
+Bun automatically loads `.env.development` when `NODE_ENV=development` (or unset). No code change needed.

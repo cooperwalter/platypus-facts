@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Config } from "../config";
+import { makeTestDatabase } from "../test-utils";
 import { DevEmailProvider } from "./dev";
 import { createEmailProvider } from "./index";
 import { PostmarkEmailProvider } from "./postmark";
@@ -34,19 +35,27 @@ describe("createEmailProvider", () => {
 
 	test("returns DevEmailProvider when postmarkApiToken is null", () => {
 		const config = makeConfig({ postmarkApiToken: null, emailFrom: "from@example.com" });
-		const provider = createEmailProvider(config);
+		const db = makeTestDatabase();
+		const provider = createEmailProvider(config, db);
 		expect(provider).toBeInstanceOf(DevEmailProvider);
 	});
 
 	test("returns DevEmailProvider when emailFrom is null", () => {
 		const config = makeConfig({ postmarkApiToken: "test-token", emailFrom: null });
-		const provider = createEmailProvider(config);
+		const db = makeTestDatabase();
+		const provider = createEmailProvider(config, db);
 		expect(provider).toBeInstanceOf(DevEmailProvider);
 	});
 
 	test("returns DevEmailProvider when both are null", () => {
 		const config = makeConfig();
-		const provider = createEmailProvider(config);
+		const db = makeTestDatabase();
+		const provider = createEmailProvider(config, db);
 		expect(provider).toBeInstanceOf(DevEmailProvider);
+	});
+
+	test("throws when Postmark not configured and no database provided", () => {
+		const config = makeConfig();
+		expect(() => createEmailProvider(config)).toThrow("Database is required for DevEmailProvider");
 	});
 });

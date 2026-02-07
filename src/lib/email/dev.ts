@@ -1,3 +1,4 @@
+import type { Database } from "bun:sqlite";
 import type { EmailProvider } from "./types";
 
 interface StoredEmail {
@@ -10,36 +11,67 @@ interface StoredEmail {
 	timestamp: string;
 }
 
+interface DevMessageRow {
+	id: number;
+	recipient: string;
+	subject: string | null;
+	body: string;
+	created_at: string;
+}
+
 class DevEmailProvider implements EmailProvider {
-	private emails: StoredEmail[] = [];
-	private nextId = 1;
+	private db: Database;
+
+	constructor(db: Database) {
+		this.db = db;
+	}
 
 	async sendEmail(
 		to: string,
 		subject: string,
 		htmlBody: string,
-		plainBody?: string,
-		headers?: Record<string, string>,
+		_plainBody?: string,
+		_headers?: Record<string, string>,
 	): Promise<void> {
-		const email: StoredEmail = {
-			id: this.nextId++,
-			recipient: to,
-			subject,
-			htmlBody,
-			plainBody,
-			headers,
-			timestamp: new Date().toISOString(),
-		};
-		this.emails.push(email);
+		this.db
+			.prepare("INSERT INTO dev_messages (type, recipient, subject, body) VALUES (?, ?, ?, ?)")
+			.run("email", to, subject, htmlBody);
 		console.log(`[DEV EMAIL] To: ${to} | Subject: ${subject}`);
 	}
 
 	getStoredEmails(): StoredEmail[] {
-		return [...this.emails].reverse();
+		const rows = this.db
+			.query<DevMessageRow, [string]>(
+				"SELECT id, recipient, subject, body, created_at FROM dev_messages WHERE type = ? ORDER BY id DESC",
+			)
+			.all("email");
+		return rows.map((row) => ({
+			id: row.id,
+			recipient: row.recipient,
+			subject: row.subject ?? "",
+			htmlBody: row.body,
+			plainBody: undefined,
+			headers: undefined,
+			timestamp: row.created_at,
+		}));
 	}
 
 	getStoredEmailById(id: number): StoredEmail | undefined {
-		return this.emails.find((e) => e.id === id);
+		const row = this.db
+			.query<DevMessageRow, [string, number]>(
+				"SELECT id, recipient, subject, body, created_at FROM dev_messages WHERE type = ? AND id = ?",
+			)
+			.get("email", id);
+		if (!row) return undefined;
+		return {
+			id: row.id,
+			recipient: row.recipient,
+			subject: row.subject ?? "",
+			htmlBody: row.body,
+			plainBody: undefined,
+			headers: undefined,
+			timestamp: row.created_at,
+		};
 	}
 }
 
