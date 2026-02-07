@@ -136,7 +136,7 @@ async function runDailySend(
 			try {
 				await emailProvider.sendEmail(
 					subscriber.email,
-					"Your Daily Platypus Fact",
+					"🦆 Daily Platypus Fact",
 					dailyFactEmailHtml({
 						factText: factData.fact.text,
 						sources: factData.sources,

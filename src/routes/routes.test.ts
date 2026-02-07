@@ -1033,7 +1033,7 @@ describe("GET /dev/messages", () => {
 			{
 				id: 1,
 				recipient: "fan@example.com",
-				subject: "Your Daily Platypus Fact",
+				subject: "🦆 Daily Platypus Fact",
 				htmlBody: "<p>Fact</p>",
 				plainBody: "Fact",
 				headers: undefined,
@@ -1046,7 +1046,7 @@ describe("GET /dev/messages", () => {
 		expect(html).toContain("Sent Messages (1)");
 		expect(html).toContain("fan@example.com");
 		expect(html).toContain("EMAIL");
-		expect(html).toContain("Your Daily Platypus Fact");
+		expect(html).toContain("🦆 Daily Platypus Fact");
 		expect(html).toContain('href="/dev/messages/email-1"');
 	});
 
@@ -1143,7 +1143,7 @@ describe("GET /dev/messages/:id", () => {
 			{
 				id: 1,
 				recipient: "fan@example.com",
-				subject: "Your Daily Platypus Fact",
+				subject: "🦆 Daily Platypus Fact",
 				htmlBody: "<p>Platypuses glow under UV light!</p>",
 				plainBody: "Platypuses glow under UV light!",
 				headers: undefined,
@@ -1156,7 +1156,7 @@ describe("GET /dev/messages/:id", () => {
 		expect(response.status).toBe(200);
 		expect(html).toContain("Email Message");
 		expect(html).toContain("fan@example.com");
-		expect(html).toContain("Your Daily Platypus Fact");
+		expect(html).toContain("🦆 Daily Platypus Fact");
 		expect(html).toContain("<p>Platypuses glow under UV light!</p>");
 		expect(html).toContain("2025-06-15T14:00:00Z");
 	});

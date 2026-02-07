@@ -240,7 +240,7 @@ describe("daily-send", () => {
 		expect(result.successCount).toBe(1);
 		expect(email.sentEmails).toHaveLength(1);
 		expect(email.sentEmails[0].to).toBe("fan@example.com");
-		expect(email.sentEmails[0].subject).toBe("Your Daily Platypus Fact");
+		expect(email.sentEmails[0].subject).toBe("🦆 Daily Platypus Fact");
 		expect(email.sentEmails[0].htmlBody).toContain("Platypuses have electroreception");
 		expect(email.sentEmails[0].plainBody).toContain("Platypuses have electroreception");
 		expect(sms.sentMessages).toHaveLength(0);
