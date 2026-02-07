@@ -101,6 +101,30 @@ describe("database setup", () => {
 		}).toThrow();
 	});
 
+	test("enforces subscribers.token uniqueness by rejecting duplicate tokens", () => {
+		const db = makeTestDatabase();
+		db.prepare(
+			"INSERT INTO subscribers (phone_number, token, status) VALUES ('+15552234567', 'tok-dup', 'pending')",
+		).run();
+		expect(() => {
+			db.prepare(
+				"INSERT INTO subscribers (phone_number, token, status) VALUES ('+15553234567', 'tok-dup', 'pending')",
+			).run();
+		}).toThrow();
+	});
+
+	test("enforces subscribers.email uniqueness by rejecting duplicate emails", () => {
+		const db = makeTestDatabase();
+		db.prepare(
+			"INSERT INTO subscribers (email, token, status) VALUES ('a@example.com', 'tok-e1', 'pending')",
+		).run();
+		expect(() => {
+			db.prepare(
+				"INSERT INTO subscribers (email, token, status) VALUES ('a@example.com', 'tok-e2', 'pending')",
+			).run();
+		}).toThrow();
+	});
+
 	test("enforces sent_facts.sent_date uniqueness by rejecting duplicate dates", () => {
 		const db = makeTestDatabase();
 		db.prepare("INSERT INTO facts (text) VALUES ('test fact')").run();
@@ -137,6 +161,26 @@ describe("database setup", () => {
 		).run();
 		const row = db.query("SELECT image_path FROM facts").get() as { image_path: string | null };
 		expect(row.image_path).toBe("images/facts/1.png");
+	});
+});
+
+describe("database indexes", () => {
+	test("creates index on fact_sources.fact_id for cascade delete performance", () => {
+		const db = makeTestDatabase();
+		const indexes = db
+			.query(
+				"SELECT name FROM sqlite_master WHERE type='index' AND name='idx_fact_sources_fact_id'",
+			)
+			.all();
+		expect(indexes).toHaveLength(1);
+	});
+
+	test("creates index on sent_facts.fact_id for join performance", () => {
+		const db = makeTestDatabase();
+		const indexes = db
+			.query("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_sent_facts_fact_id'")
+			.all();
+		expect(indexes).toHaveLength(1);
 	});
 });
 

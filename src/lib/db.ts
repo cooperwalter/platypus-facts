@@ -34,6 +34,7 @@ function initializeSchema(db: Database): void {
 			cycle INTEGER NOT NULL
 		);
 
+		CREATE INDEX IF NOT EXISTS idx_fact_sources_fact_id ON fact_sources(fact_id);
 		CREATE INDEX IF NOT EXISTS idx_sent_facts_fact_id ON sent_facts(fact_id);
 	`);
 }
@@ -60,6 +61,9 @@ function migrateSchema(db: Database): void {
 		db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_subscribers_email ON subscribers(email)");
 	}
 	tryAddColumn(db, "subscribers", "token TEXT");
+	if (hasColumn(db, "subscribers", "token")) {
+		db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_subscribers_token ON subscribers(token)");
+	}
 
 	const needsToken = db
 		.query<{ count: number }, []>("SELECT COUNT(*) as count FROM subscribers WHERE token IS NULL")

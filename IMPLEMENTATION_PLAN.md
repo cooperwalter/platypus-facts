@@ -2,12 +2,12 @@
 
 ## Status Summary
 
-50 priorities implemented and committed. **All spec compliance gaps resolved.**
+51 priorities implemented and committed. **All spec compliance gaps resolved.**
 
-- **429 tests passing** across 23 test files with **1016 expect() calls**
+- **433 tests passing** across 23 test files with **1020 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations
-- **Latest tag**: 0.0.35
+- **Latest tag**: 0.0.36
 - **Spec compliance**: 100%
 
 ---
@@ -65,16 +65,17 @@
 | 48 | Fix animated platypus: full-viewport swim path, fixed positioning, direction flipping, a11y | 0.0.34 |
 | 49 | Add repeating platypus background pattern (inline SVG data URI, 6% opacity, tiled on body) | 0.0.35 |
 | 50 | Fix animated platypus timing: ease-in-out to linear for smooth constant-speed movement | 0.0.35 |
+| 51 | Fix missing UNIQUE index on subscribers.token migration + add fact_sources.fact_id index | 0.0.36 |
 
 ---
 
 ## Spec Compliance Audit (2026-02-06)
 
-Full audit of all 15 spec files against the implementation. **429 tests passing, type check clean, lint clean, zero TODOs/FIXMEs in codebase.**
+Full audit of all 15 spec files against the implementation. **433 tests passing, type check clean, lint clean, zero TODOs/FIXMEs in codebase.**
 
 ### Verified Correct
 
-**Data Model** (`specs/data-model.md`): All 4 tables match spec exactly -- facts, fact_sources, subscribers, sent_facts. All columns, types, constraints, and foreign keys correct. `ON DELETE RESTRICT` on sent_facts is a beneficial deviation (prevents accidental data loss).
+**Data Model** (`specs/data-model.md`): All 4 tables match spec exactly -- facts, fact_sources, subscribers, sent_facts. All columns, types, constraints, and foreign keys correct. `ON DELETE RESTRICT` on sent_facts is a beneficial deviation (prevents accidental data loss). UNIQUE index on subscribers.token enforced in both fresh and migrated databases. Index on fact_sources.fact_id for CASCADE DELETE performance.
 
 **SMS Message Templates** (`specs/subscription-flow.md`): All 7 message templates match spec text verbatim (welcome, confirmation success, already subscribed, unsubscribed user, help, at capacity, daily fact message).
 
