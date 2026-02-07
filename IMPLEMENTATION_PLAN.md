@@ -2,24 +2,24 @@
 
 ## Status Summary
 
-Priorities 1-29 are implemented and committed. A comprehensive spec-vs-implementation audit has identified **13 remaining priorities** covering email integration, dev providers, animated platypus, and CLI enhancements.
+Priorities 1-31 are implemented and committed. A comprehensive spec-vs-implementation audit has identified **11 remaining priorities** covering email integration, dev providers, animated platypus, and CLI enhancements.
 
-- **282 tests passing** across 16 test files with **634 expect() calls**
+- **295 tests passing** across 16 test files with **664 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations
-- **Latest tag**: 0.0.17
+- **Latest tag**: 0.0.18
 - **SMS-only spec compliance**: ~100%
-- **Full spec compliance**: ~68% (email integration, dev providers, animated platypus, and several features missing)
+- **Full spec compliance**: ~72% (email integration, dev providers, animated platypus, and several features missing)
 
 ### What Exists (Priorities 1-27)
 
 - Config has `nodeEnv` field, Twilio/Postmark vars nullable in dev, required in production (P29 complete).
-- Database has 4 tables. `subscribers` has `phone_number TEXT NOT NULL UNIQUE` -- no `email`, no `token` columns. Phone is NOT NULL.
-- Subscriber DAL has `findByPhoneNumber`, `createSubscriber(db, phone)`, `updateStatus`, `getActiveCount`, `getActiveSubscribers`. No email/token functions.
+- Database has 4 tables. `subscribers` has `phone_number TEXT UNIQUE` (nullable), `email TEXT UNIQUE`, `token TEXT NOT NULL UNIQUE` (P30 complete).
+- Subscriber DAL has `findByPhoneNumber`, `findByEmail`, `findByToken`, `createSubscriber(db, { phone?, email? })`, `updateStatus`, `updateContactInfo`, `getActiveCount`, `getActiveSubscribers` (P31 complete).
 - Subscription flow is phone-only: `signup(db, smsProvider, phoneInput, maxSubscribers)`, `handleIncomingMessage(db, from, body, baseUrl, maxSubscribers)`.
 - SMS provider throws if Twilio vars are missing. No dev SMS provider.
 - Image generation uses fixed style prompt with no-text instruction (P28 complete).
-- Daily send is SMS-only. No email sending. No `--force` flag. No `NODE_ENV` check.
+- Daily send is SMS-only with null phone guard. No email sending. No `--force` flag. No `NODE_ENV` check.
 - Subscribe endpoint accepts only `{ phoneNumber: string }`. No email field.
 - Signup page has phone input only, description says "via SMS" not "via SMS and/or email". No animated swimming platypus.
 - No routes for `/confirm/:token`, `/unsubscribe/:token`, `/dev/messages`.
@@ -29,38 +29,6 @@ Priorities 1-29 are implemented and committed. A comprehensive spec-vs-implement
 ---
 
 ## Remaining Work -- Prioritized
-
-### Priority 30: Database schema -- add `email`, `token`; make `phone_number` nullable (foundational)
-
-**Spec**: `specs/data-model.md`
-**Gap**: `subscribers` table is missing `email TEXT UNIQUE` and `token TEXT NOT NULL UNIQUE` columns. `phone_number` is `TEXT NOT NULL UNIQUE` but spec says nullable (for email-only subscribers).
-
-- Update `CREATE TABLE subscribers` in `src/lib/db.ts`:
-  - `phone_number TEXT UNIQUE` (remove NOT NULL)
-  - Add `email TEXT UNIQUE`
-  - Add `token TEXT NOT NULL UNIQUE`
-- Add dual migration (ALTER TABLE for existing DBs, following the `image_path` pattern: `ALTER TABLE ADD COLUMN` + catch "duplicate column name")
-- **Note on phone_number NOT NULL → nullable migration**: SQLite does not support `ALTER TABLE ... ALTER COLUMN`. For existing databases, this migration requires either:
-  - Recreating the table via `CREATE TABLE ... AS SELECT`, which loses constraints and triggers, or
-  - Accepting that existing databases keep the NOT NULL constraint (new databases will get nullable phone_number from the CREATE TABLE). In practice this is acceptable since all existing subscribers are phone-only.
-- Update `Subscriber` TypeScript interface to include `email: string | null`, `token: string`, and make `phone_number: string | null`
-- Application-level constraint: at least one of `phone_number` or `email` must be non-NULL
-- Update all subscriber queries to include `email` and `token` columns in SELECT and INSERT
-- Update `createSubscriber` to accept optional phone, optional email, and generate a cryptographic token
-- Update `makeSubscriberRow` test helper to support `email` and `token` overrides
-- Update `getActiveSubscribers` return type -- callers (daily-send.ts) currently assume `phone_number` is always a string; this will require type changes downstream
-- Update existing tests for all affected functions
-
-### Priority 31: Subscriber data access layer -- email/token lookups, contact info updates
-
-**Spec**: `specs/subscription-flow.md`, `specs/data-model.md`
-**Gap**: No `findByEmail`, `findByToken` functions. `createSubscriber` doesn't accept email. No function to update contact info (phone/email) on existing subscriber.
-
-- Add `findByEmail(db, email): Subscriber | null`
-- Add `findByToken(db, token): Subscriber | null`
-- Update `createSubscriber` to accept `{ phone?: string, email?: string }` and auto-generate token (e.g., `crypto.randomUUID()` or 32-byte hex via `crypto.getRandomValues`)
-- Add `updateContactInfo(db, id, { phone?: string | null, email?: string | null })` function
-- Tests for all new/modified functions
 
 ### Priority 32: Email provider abstraction + Postmark implementation + dev email provider
 
@@ -281,6 +249,7 @@ Priorities 1-29 are implemented and committed. A comprehensive spec-vs-implement
 | 27 | Production hardening: busy_timeout, race condition safety nets, request body size limit | 0.0.15 |
 | 28 | Image generation prompt fix: fixed style prompt, no-text instruction, removed factText param | 0.0.16 |
 | 29 | NODE_ENV-based config: nodeEnv field, Twilio/Postmark nullable in dev, required in production | 0.0.17 |
+| 30-31 | DB schema (email, token, nullable phone) + subscriber DAL (findByEmail/Token, updateContactInfo) | 0.0.18 |
 
 ---
 
@@ -289,10 +258,8 @@ Priorities 1-29 are implemented and committed. A comprehensive spec-vs-implement
 ```
 P41 (Animated swimming platypus) ─── independent, can be done anytime
 
-P30 (DB schema: email, token, nullable phone) ──┐
-                                                  │
-P31 (Subscriber DAL: findByEmail/Token, etc.) ──┤
-                                                  │
+P30-31 (DB schema + DAL) ──── DONE ──┐
+                                       │
 P32 (Email provider + Postmark + dev email) ────┤
                                                   │
 P33 (Dev SMS provider) ─────────────────────────┤
@@ -318,16 +285,15 @@ P43 (Infra configs for email) ─── last
 
 ### Dependency Details
 
-- **P30** (DB schema) must precede P31 (DAL functions that query the new columns).
-- **P31** (subscriber DAL) must precede P34 (subscription flow uses `findByEmail`, `findByToken`, `updateContactInfo`).
+- **P30-31** (DB schema + DAL) are complete. All downstream priorities can now use `findByEmail`, `findByToken`, `updateContactInfo`, `createSubscriber({ phone?, email? })`.
 - **P32** (email provider) must precede P34 (subscription flow sends confirmation/already-subscribed emails), P36 (confirmation page), P38 (daily send emails).
   - **Includes extracting `escapeHtml`/`isSafeUrl` to shared utility** -- needed by email templates and new page templates.
 - **P34** (subscription flow) must precede P35 (signup form calls into subscription flow with email).
   - **Includes email validation** (basic `@` + domain check) and **conflict detection** (phone→subscriber A, email→subscriber B).
   - **Includes updating success messages** to mention email channel.
-- **P36** and **P37** depend on P31 (token lookup) and P32 (email templates for context).
-- **P38** (daily send email) depends on P30 (nullable phone_number), P32 (email provider), and P34 (updated subscriber types).
-  - **Must fix null phone_number crash**: `subscriber.phone_number.slice(-4)` on line 105 of daily-send.ts will throw for email-only subscribers.
+- **P36** and **P37** depend on P32 (email templates for context) and P30-31 (token lookup -- already done).
+- **P38** (daily send email) depends on P32 (email provider) and P34 (updated subscriber types).
+  - **Must fix null phone_number crash**: `subscriber.phone_number.slice(-4)` in daily-send.ts will throw for email-only subscribers.
   - **Should add per-channel result breakdown** to `DailySendResult`.
 - **P39** (dev viewer) depends on P32 (dev email provider) and P33 (dev SMS provider) for stored messages.
 - **P40** (--force) depends on P29 (NODE_ENV for production rejection).
@@ -341,17 +307,17 @@ P43 (Infra configs for email) ─── last
 
 For reference, here is the complete gap inventory mapped to their priorities:
 
-### In P30 (DB schema):
-7. `phone_number TEXT NOT NULL UNIQUE` should be `TEXT UNIQUE` (nullable)
-8. No `email TEXT UNIQUE` column
-9. No `token TEXT NOT NULL UNIQUE` column
-10. `Subscriber` TypeScript interface missing `email`, `token`, nullable `phone_number`
+### ~~In P30 (DB schema)~~ -- DONE (0.0.18):
+~~7. `phone_number TEXT NOT NULL UNIQUE` should be `TEXT UNIQUE` (nullable)~~
+~~8. No `email TEXT UNIQUE` column~~
+~~9. No `token TEXT NOT NULL UNIQUE` column~~
+~~10. `Subscriber` TypeScript interface missing `email`, `token`, nullable `phone_number`~~
 
-### In P31 (Subscriber DAL):
-11. No `findByEmail()` function
-12. No `findByToken()` function
-13. `createSubscriber()` doesn't accept email or generate token
-14. No `updateContactInfo()` function
+### ~~In P31 (Subscriber DAL)~~ -- DONE (0.0.18):
+~~11. No `findByEmail()` function~~
+~~12. No `findByToken()` function~~
+~~13. `createSubscriber()` doesn't accept email or generate token~~
+~~14. No `updateContactInfo()` function~~
 
 ### In P32 (Email provider):
 15. No `EmailProvider` interface

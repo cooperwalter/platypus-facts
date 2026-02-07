@@ -89,19 +89,33 @@ function makeFactRow(
 function makeSubscriberRow(
 	db: Database,
 	overrides: {
-		phone_number?: string;
+		phone_number?: string | null;
+		email?: string | null;
+		token?: string;
 		status?: "pending" | "active" | "unsubscribed";
 		confirmed_at?: string | null;
 		unsubscribed_at?: string | null;
 	} = {},
 ): number {
-	const phone = overrides.phone_number ?? `+1555${String(Date.now()).slice(-7)}`;
+	const phone =
+		overrides.phone_number === undefined
+			? `+1555${String(Date.now()).slice(-7)}`
+			: overrides.phone_number;
+	const email = overrides.email ?? null;
+	const token = overrides.token ?? crypto.randomUUID();
 	const status = overrides.status ?? "pending";
 	const result = db
 		.prepare(
-			"INSERT INTO subscribers (phone_number, status, confirmed_at, unsubscribed_at) VALUES (?, ?, ?, ?)",
+			"INSERT INTO subscribers (phone_number, email, token, status, confirmed_at, unsubscribed_at) VALUES (?, ?, ?, ?, ?, ?)",
 		)
-		.run(phone, status, overrides.confirmed_at ?? null, overrides.unsubscribed_at ?? null);
+		.run(
+			phone,
+			email,
+			token,
+			status,
+			overrides.confirmed_at ?? null,
+			overrides.unsubscribed_at ?? null,
+		);
 	return Number(result.lastInsertRowid);
 }
 

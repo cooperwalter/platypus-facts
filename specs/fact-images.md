@@ -10,21 +10,22 @@ All images are generated in a consistent style: **minimalist line drawing** feat
 - Hand-drawn, sketchy aesthetic with a warm, whimsical feel
 - Occasional subtle color accents (e.g., rosy pink cheeks, soft blush marks)
 - Cute and charming — character-focused
-- The platypus is depicted in a scene or pose related to the fact content
+- The platypus in various cute poses and scenes — NOT related to the fact content, just adorable platypuses being platypuses
 - Simple compositions — no complex backgrounds, just the character and minimal context elements (a sun, stars, small props)
+- **No text, letters, words, or numbers anywhere in the image** — the prompt must explicitly instruct the model to exclude all text
 - Consistent with the *Life is Strange: Double Exposure* indie, handcrafted aesthetic
 
 ## Image Generation
 
-Images are generated using an AI image generation API (e.g., OpenAI DALL-E, or similar). The generation prompt combines the fixed style description above with context from the fact text to produce a relevant illustration.
+Images are generated using an AI image generation API (e.g., OpenAI DALL-E, or similar). A single fixed prompt is used for all images — the fact text is NOT included in the prompt. Each image is simply a cute platypus; the variety comes from the model's natural variation across generations.
 
 ### Prompt Template
 
-A system-level style prompt ensures visual consistency across all images. The fact text is appended to provide scene context. For example:
+A fixed prompt is used for every image. For example:
 
-> Minimalist black line drawing of a cute platypus on a white background. Hand-drawn sketchy style with occasional rosy pink cheek accents. Simple, whimsical, charming. [Scene context derived from the fact text.]
+> Minimalist black line drawing of a cute platypus on a white background. Hand-drawn sketchy style with occasional rosy pink cheek accents. Simple, whimsical, charming. No text, no letters, no words, no numbers anywhere in the image.
 
-The exact prompt template is maintained in code and can be iterated on. The goal is that all generated images feel like they belong to the same illustration series.
+The exact prompt is maintained in code and can be iterated on. The goal is that all generated images feel like they belong to the same illustration series while each being a unique cute platypus.
 
 ### When Images Are Generated
 

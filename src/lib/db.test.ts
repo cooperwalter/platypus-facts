@@ -92,11 +92,11 @@ describe("database setup", () => {
 	test("enforces subscribers.phone_number uniqueness by rejecting duplicate phone numbers", () => {
 		const db = makeTestDatabase();
 		db.prepare(
-			"INSERT INTO subscribers (phone_number, status) VALUES ('+15551234567', 'pending')",
+			"INSERT INTO subscribers (phone_number, token, status) VALUES ('+15551234567', 'tok-1', 'pending')",
 		).run();
 		expect(() => {
 			db.prepare(
-				"INSERT INTO subscribers (phone_number, status) VALUES ('+15551234567', 'pending')",
+				"INSERT INTO subscribers (phone_number, token, status) VALUES ('+15551234567', 'tok-2', 'pending')",
 			).run();
 		}).toThrow();
 	});

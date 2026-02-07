@@ -10,7 +10,7 @@ The interface should support:
 - **Send message**: Given a phone number, message body, and an optional image URL, send an SMS or MMS.
 - **Incoming message webhook handler**: Parse incoming SMS replies from the provider's webhook format.
 
-## Twilio Implementation
+## Twilio Implementation (Production)
 
 ### Sending Messages
 
@@ -18,6 +18,18 @@ Use the Twilio REST API to send SMS. Requires:
 - Account SID (env: `TWILIO_ACCOUNT_SID`)
 - Auth Token (env: `TWILIO_AUTH_TOKEN`)
 - Sending phone number (env: `TWILIO_PHONE_NUMBER`)
+
+Twilio is used when all three Twilio environment variables are configured.
+
+## Dev SMS Provider (Development)
+
+When Twilio environment variables are not configured, the application uses a development SMS provider that:
+
+1. Logs a summary of each sent message to the console (recipient, body preview).
+2. Stores sent messages in memory for the lifetime of the server process.
+3. Makes sent messages viewable via the dev message viewer (see `web-pages.md`).
+
+No external service or API key is required for development.
 
 ### Receiving Messages (Webhooks)
 
@@ -50,9 +62,7 @@ The image is attached via its publicly accessible URL (`{base_url}/images/facts/
 
 ### SMS fallback (no image)
 
-If a fact does not have a generated image, the message is sent as a plain SMS with the same text format above.
-
-The linked page displays the fact with its illustration and all its sources.
+If a fact does not have a generated image (`image_path` is NULL), the message is sent as a plain SMS with the same text format above. No `MediaUrl` parameter is included — the message is text-only and delivers as a standard SMS.
 
 ## Cost Considerations
 

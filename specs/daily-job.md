@@ -10,9 +10,13 @@ Runs once per day at a configured UTC time via system cron (e.g., `crontab`). Th
 
 1. **Select today's fact** using the fact cycling algorithm (see `fact-cycling.md`).
 2. **Query all active Platypus Fans** (status = `active` in `subscribers` table).
-3. **Send the message** to each Platypus Fan via the SMS provider. The message includes the fact text, a link to the fact's web page, and — if the fact has a generated illustration — the image as an MMS attachment (see `sms-integration.md` and `fact-images.md`).
+3. **Send to each Platypus Fan** via their configured channel(s):
+   - If the subscriber has a phone number: send MMS (with illustration) or SMS (without) depending on whether the fact has a generated image (see `sms-integration.md`).
+   - If the subscriber has an email: send a daily fact email, including the illustration if available (see `email-integration.md`).
+   - Subscribers with both receive both.
+   - A missing image never prevents delivery — the fact text and sources link are always sent regardless of image availability.
 4. **Record the send** in `sent_facts` with today's date and current cycle number.
-5. **Log results**: total Platypus Fans messaged, any delivery failures.
+5. **Log results**: total Platypus Fans messaged (broken down by channel), any delivery failures.
 
 ## Idempotency
 
@@ -23,6 +27,10 @@ The job checks `sent_facts` for today's date before executing. If a fact has alr
 - If an individual SMS fails to send, log the error and continue with remaining Platypus Fans. Do not halt the entire job for one failed delivery.
 - The fact is still recorded in `sent_facts` even if some individual deliveries fail — the fact selection should not change for the day.
 - Failed deliveries can be retried manually or by a future retry mechanism.
+
+## Manual Trigger
+
+The daily send can be triggered manually via CLI. A `--force` flag bypasses the idempotency check (development only). See `cli.md`.
 
 ## Implementation
 

@@ -22,21 +22,33 @@ Each daily SMS includes a short link to a web page that displays the fact with i
 
 Facts are maintained in a `data/facts.json` file rather than through an admin UI. This keeps the project simple, provides version history via git, and avoids building authentication for an admin interface.
 
+## Multi-channel delivery: SMS and/or email
+
+Subscribers choose their delivery channel(s) at signup: phone number, email, or both. Each subscriber has a single status (`pending`/`active`/`unsubscribed`) that applies across all their channels. This avoids the complexity of per-channel status tracking while still allowing flexible delivery.
+
 ## SMS provider: Twilio behind an abstraction
 
 Twilio is the initial provider, but the SMS functionality is accessed through an interface so the provider can be swapped if a cheaper or better option becomes available.
 
-## Double opt-in with "PERRY" easter egg
+## Email provider: Postmark behind an abstraction
 
-Confirmation accepts both `1` (standard) and `PERRY` (case-insensitive) as a nod to Perry the Platypus. This adds personality without complicating the flow.
+Postmark is the initial email provider, accessed through an interface so it can be swapped. Chosen for its transactional email focus, simple API, and good deliverability.
 
-## Unsubscribe: STOP keyword only
+## Dev providers: No API keys required for development
 
-Relies on Twilio's built-in STOP keyword handling at the carrier level. No web-based unsubscribe page. This is the simplest approach and is carrier-compliant.
+In development, when provider API keys (Twilio, Postmark) are not configured, dev providers are used that log messages to the console and store them in memory. A dev-only web route (`/dev/messages`) lets developers view all sent SMS and email messages in the browser. This means a developer can run the full application locally with just `BASE_URL` set — no Twilio account, no Postmark account, no OpenAI key needed.
+
+## Double opt-in: Confirm via either channel
+
+Confirmation accepts SMS reply (`1` or `PERRY`) or clicking an email confirmation link. Confirming via **either** channel activates the subscription for **all** provided channels. This avoids forcing users who provide both to confirm twice.
+
+## Unsubscribe: All-or-nothing
+
+Unsubscribing via any channel (STOP via SMS or email unsubscribe link) unsubscribes from all channels. This keeps the model simple: one subscriber record, one status. Per-channel unsubscribe (e.g., keep email but stop SMS) could be added later if needed.
 
 ## Re-subscribe: Website only
 
-After unsubscribing, users can only re-subscribe by visiting the website and entering their phone number again. Texting keywords (including `1`, `PERRY`, or Twilio's `START`) does NOT re-activate a subscription. This prevents accidental re-subscribes and ensures a deliberate opt-in via the full double opt-in flow.
+After unsubscribing, users can only re-subscribe by visiting the website and entering their contact info again. Texting keywords (including `1`, `PERRY`, or Twilio's `START`) does NOT re-activate a subscription. This prevents accidental re-subscribes and ensures a deliberate opt-in via the full double opt-in flow.
 
 ## Database: SQLite
 
@@ -56,7 +68,11 @@ The signup page and fact pages have a themed design inspired by the aesthetic of
 
 ## Platypus Fan cap: Configurable, default 1,000
 
-Active Platypus Fans are capped at a configurable limit (`MAX_SUBSCRIBERS` env var, default 1,000) to control SMS costs. The cap is enforced both at signup and at confirmation time. The home page displays the current active count and the limit so visitors can see availability. Only `active` Platypus Fans count toward the cap — when someone unsubscribes, a slot opens up.
+Active Platypus Fans are capped at a configurable limit (`MAX_SUBSCRIBERS` env var, default 1,000) to control costs. The cap is enforced both at signup and at confirmation time. The home page displays the current active count and the limit so visitors can see availability. Only `active` Platypus Fans count toward the cap — when someone unsubscribes, a slot opens up.
+
+## CLI: Manual daily send with dev-only force
+
+The daily send can be triggered manually via `bun run daily-send`. A `--force` flag bypasses the idempotency check for repeated testing during development. The flag is rejected in production to prevent accidental double sends.
 
 ## Fact illustrations: AI-generated at sync time
 

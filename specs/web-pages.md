@@ -11,10 +11,12 @@ The landing page where visitors subscribe to Daily Platypus Facts.
 - Project title: "Daily Platypus Facts"
 - Tagline referencing the *Life is Strange: Double Exposure* inspiration
 - Current Platypus Fan count and limit displayed (e.g., "42 / 1,000 Platypus Fans")
-- A phone number input field with country code handling (default to US +1)
+- A phone number input field with country code handling (default to US +1) — optional
+- An email input field — optional
+- At least one of phone or email is required; the form validates this before submission
 - A submit button
-- Brief explanation of what the user is signing up for (one fact per day via SMS)
-- Note that standard message rates apply
+- Brief explanation of what the user is signing up for (one fact per day via SMS and/or email)
+- Note that standard message rates apply (for SMS)
 - When the Platypus Fan cap is reached, the signup form is replaced with a message indicating the service is at capacity (e.g., "We're currently at capacity! Check back later.")
 
 ### Design
@@ -23,11 +25,12 @@ The landing page where visitors subscribe to Daily Platypus Facts.
 - Warm, indie, handcrafted feel
 - Platypus imagery or illustrations
 - Personality and charm — this is a fun project
+- An **animated swimming platypus** cartoon prominently displayed on the page. The animation should be implemented with CSS (keyframe animations on an SVG or image element) — no JavaScript animation libraries, no GIFs, no external dependencies. The platypus should appear to swim across or within the page in a looping, fluid motion that adds life and delight without being distracting.
 
 ### Behavior
 
-- `POST /api/subscribe` with the phone number
-- On success: display a confirmation message telling the user to check their phone for a confirmation SMS
+- `POST /api/subscribe` with phone number and/or email
+- On success: display a confirmation message telling the user to check their phone and/or email
 - On validation error: display inline error (invalid phone number format)
 - On rate limit: display a friendly "try again later" message
 
@@ -37,22 +40,54 @@ Displays a single platypus fact with its sources. Linked from the daily SMS.
 
 ### Content
 
-- The AI-generated platypus illustration for this fact, displayed prominently above the fact text (see `fact-images.md` for style details). If no image exists for the fact, this section is omitted.
+- The AI-generated platypus illustration for this fact, displayed prominently above the fact text (see `fact-images.md` for style details).
 - The fact text prominently displayed
 - A list of sources with clickable links (and titles if available)
 - "Daily Platypus Facts" branding
 - "Inspired by *Life is Strange: Double Exposure*" attribution
 - Optional: a link to the signup page for visitors who aren't yet subscribed
 
+### No Image
+
+If a fact does not have a generated image (`image_path` is NULL), the page renders without the image section entirely — no broken image, no placeholder, no empty space. The fact text simply appears at the top. The page layout should look intentional and complete whether or not an image is present.
+
 ### Design
 
-Consistent with the signup page theme. Clean, focused on the illustration and fact content. The image should be centered and sized appropriately (max-width constrained, responsive).
+Consistent with the signup page theme. Clean, focused on the fact content (and illustration when available). When an image is present, it should be centered and sized appropriately (max-width constrained, responsive).
+
+## Confirmation Page (`GET /confirm/:token`)
+
+Handles email-based subscription confirmation.
+
+- Valid pending token: confirms the subscription, displays a success page.
+- Already active: displays "You're already confirmed!" page.
+- Invalid/unsubscribed token: displays an appropriate message.
+- Cap reached: displays a "we're at capacity" page.
+
+See `subscription-flow.md` for full confirmation logic.
+
+## Unsubscribe Pages (`GET /unsubscribe/:token`, `POST /unsubscribe/:token`)
+
+Handles email-based unsubscribe.
+
+- `GET`: Displays a confirmation page: "Are you sure you want to unsubscribe from Daily Platypus Facts?"
+- `POST`: Processes the unsubscribe, displays a success page.
+- Invalid token: displays an appropriate message.
+
+## Dev Message Viewer (Development Only)
+
+When running with dev providers (see `email-integration.md`, `sms-integration.md`), dev-only routes are available for viewing sent messages:
+
+- `GET /dev/messages` — Lists all sent messages (SMS and email, newest first) with recipient, type, subject/preview, and timestamp.
+- `GET /dev/messages/:id` — Displays a specific message. For emails, renders the HTML content. For SMS, displays the text body.
+
+These routes are only registered when dev providers are active. They are never available in production.
 
 ## API Endpoints
 
 ### `POST /api/subscribe`
 
-- **Body**: `{ "phoneNumber": string }`
+- **Body**: `{ "phoneNumber": string | null, "email": string | null }` (at least one required)
 - **Response**: `{ "success": true, "message": string }` or `{ "success": false, "error": string }`
 - **Rate limit**: 5 requests per IP per hour
 

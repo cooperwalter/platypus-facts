@@ -80,7 +80,7 @@ async function signup(
 	}
 
 	try {
-		createSubscriber(db, phone);
+		createSubscriber(db, { phone });
 	} catch (error: unknown) {
 		const errorMsg = error instanceof Error ? error.message : String(error);
 		if (errorMsg.includes("UNIQUE constraint failed")) {

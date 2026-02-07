@@ -126,7 +126,7 @@ describe("signup", () => {
 		const sms = makeMockSmsProvider();
 
 		db.prepare(
-			"INSERT INTO subscribers (phone_number, status) VALUES ('+15558234567', 'pending')",
+			"INSERT INTO subscribers (phone_number, token, status) VALUES ('+15558234567', 'tok-race', 'pending')",
 		).run();
 
 		const result = await signup(db, sms, "5558234567", 1000);

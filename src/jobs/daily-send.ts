@@ -97,6 +97,7 @@ async function runDailySend(
 	let failureCount = 0;
 
 	for (const subscriber of subscribers) {
+		if (!subscriber.phone_number) continue;
 		try {
 			await smsProvider.sendSms(subscriber.phone_number, message, imageUrl);
 			successCount++;

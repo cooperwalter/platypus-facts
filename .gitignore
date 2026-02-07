@@ -4,3 +4,4 @@ node_modules/
 *.db-wal
 .env
 dist/
+public/images/facts/

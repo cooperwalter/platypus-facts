@@ -12,7 +12,12 @@ import {
 } from "./lib/sms-templates";
 import { findByPhoneNumber, getActiveCount } from "./lib/subscribers";
 import { handleIncomingMessage, signup } from "./lib/subscription-flow";
-import { makeFactRow, makeMockSmsProvider, makeTestDatabase } from "./lib/test-utils";
+import {
+	makeFactRow,
+	makeMockSmsProvider,
+	makeSubscriberRow,
+	makeTestDatabase,
+} from "./lib/test-utils";
 import { syncFacts } from "./scripts/sync-facts";
 
 const BASE_URL = "https://platypusfacts.example.com";
@@ -84,15 +89,17 @@ describe("integration: daily send job", () => {
 			sources: [{ url: "https://example.com/venom", title: "Venom Research" }],
 		});
 
-		db.prepare(
-			"INSERT INTO subscribers (phone_number, status, confirmed_at) VALUES (?, 'active', datetime('now'))",
-		).run("+15558234567");
-		db.prepare(
-			"INSERT INTO subscribers (phone_number, status, confirmed_at) VALUES (?, 'active', datetime('now'))",
-		).run("+15559876543");
-		db.prepare("INSERT INTO subscribers (phone_number, status) VALUES (?, 'pending')").run(
-			"+15552223333",
-		);
+		makeSubscriberRow(db, {
+			phone_number: "+15558234567",
+			status: "active",
+			confirmed_at: new Date().toISOString(),
+		});
+		makeSubscriberRow(db, {
+			phone_number: "+15559876543",
+			status: "active",
+			confirmed_at: new Date().toISOString(),
+		});
+		makeSubscriberRow(db, { phone_number: "+15552223333" });
 
 		const result = await runDailySend(db, sms, BASE_URL, today);
 
@@ -192,9 +199,11 @@ describe("integration: unsubscribe flow", () => {
 		const sms = makeMockSmsProvider();
 		const phone = "+15558234567";
 
-		db.prepare(
-			"INSERT INTO subscribers (phone_number, status, confirmed_at) VALUES (?, 'active', datetime('now'))",
-		).run(phone);
+		makeSubscriberRow(db, {
+			phone_number: phone,
+			status: "active",
+			confirmed_at: new Date().toISOString(),
+		});
 		makeFactRow(db, {
 			text: "Platypuses are egg-laying mammals",
 			sources: [{ url: "https://example.com/eggs" }],
@@ -219,9 +228,12 @@ describe("integration: re-subscribe flow", () => {
 		const sms = makeMockSmsProvider();
 		const phone = "+15558234567";
 
-		db.prepare(
-			"INSERT INTO subscribers (phone_number, status, confirmed_at, unsubscribed_at) VALUES (?, 'unsubscribed', datetime('now', '-1 day'), datetime('now'))",
-		).run(phone);
+		makeSubscriberRow(db, {
+			phone_number: phone,
+			status: "unsubscribed",
+			confirmed_at: new Date(Date.now() - 86400000).toISOString(),
+			unsubscribed_at: new Date().toISOString(),
+		});
 
 		const signupResult = await signup(db, sms, "5558234567", MAX_SUBSCRIBERS);
 		expect(signupResult.success).toBe(true);
@@ -256,9 +268,11 @@ describe("integration: image in daily send", () => {
 			sources: [{ url: "https://example.com/venom" }],
 		});
 
-		db.prepare(
-			"INSERT INTO subscribers (phone_number, status, confirmed_at) VALUES (?, 'active', datetime('now'))",
-		).run("+15558234567");
+		makeSubscriberRow(db, {
+			phone_number: "+15558234567",
+			status: "active",
+			confirmed_at: new Date().toISOString(),
+		});
 
 		const result1 = await runDailySend(db, sms, BASE_URL, "2025-09-01");
 		if (result1.factId === null) throw new Error("Expected factId");
@@ -358,9 +372,11 @@ describe("integration: cap enforcement end-to-end", () => {
 		const signupResult = await signup(db, sms, "5558234567", maxCap);
 		expect(signupResult.success).toBe(true);
 
-		db.prepare(
-			"INSERT INTO subscribers (phone_number, status, confirmed_at) VALUES (?, 'active', datetime('now'))",
-		).run("+15559999999");
+		makeSubscriberRow(db, {
+			phone_number: "+15559999999",
+			status: "active",
+			confirmed_at: new Date().toISOString(),
+		});
 		expect(getActiveCount(db)).toBe(1);
 
 		const replyMessage = await handleIncomingMessage(db, "+15558234567", "1", BASE_URL, maxCap);

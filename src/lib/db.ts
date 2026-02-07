@@ -18,7 +18,9 @@ function initializeSchema(db: Database): void {
 
 		CREATE TABLE IF NOT EXISTS subscribers (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			phone_number TEXT NOT NULL UNIQUE,
+			phone_number TEXT UNIQUE,
+			email TEXT UNIQUE,
+			token TEXT NOT NULL UNIQUE,
 			status TEXT NOT NULL DEFAULT 'pending',
 			created_at TEXT NOT NULL DEFAULT (datetime('now')),
 			confirmed_at TEXT,
@@ -36,14 +38,33 @@ function initializeSchema(db: Database): void {
 	`);
 }
 
-function migrateSchema(db: Database): void {
+function tryAddColumn(db: Database, table: string, columnDef: string): void {
 	try {
-		db.exec("ALTER TABLE facts ADD COLUMN image_path TEXT");
+		db.exec(`ALTER TABLE ${table} ADD COLUMN ${columnDef}`);
 	} catch (error) {
 		if (error instanceof Error && error.message.includes("duplicate column name")) {
 			return;
 		}
 		throw error;
+	}
+}
+
+function migrateSchema(db: Database): void {
+	tryAddColumn(db, "facts", "image_path TEXT");
+	tryAddColumn(db, "subscribers", "email TEXT UNIQUE");
+	tryAddColumn(db, "subscribers", "token TEXT");
+
+	const needsToken = db
+		.query<{ count: number }, []>("SELECT COUNT(*) as count FROM subscribers WHERE token IS NULL")
+		.get();
+	if (needsToken && needsToken.count > 0) {
+		const rows = db
+			.query<{ id: number }, []>("SELECT id FROM subscribers WHERE token IS NULL")
+			.all();
+		const update = db.prepare("UPDATE subscribers SET token = ? WHERE id = ?");
+		for (const row of rows) {
+			update.run(crypto.randomUUID(), row.id);
+		}
 	}
 }
 

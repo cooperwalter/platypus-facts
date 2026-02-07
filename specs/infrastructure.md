@@ -61,17 +61,22 @@ The daily send job is scheduled via system `crontab` on the VPS. The cron entry 
 
 ## Environment Variables
 
-| Variable               | Description                              | Example                        |
-| ---------------------- | ---------------------------------------- | ------------------------------ |
-| `PORT`                 | HTTP server port                         | `3000`                         |
-| `BASE_URL`             | Public URL of the application            | `https://platypusfacts.example.com` |
-| `DATABASE_PATH`        | Path to SQLite database file             | `./data/platypus-facts.db`     |
-| `TWILIO_ACCOUNT_SID`   | Twilio account SID                       | `AC...`                        |
-| `TWILIO_AUTH_TOKEN`     | Twilio auth token                        | `...`                          |
-| `TWILIO_PHONE_NUMBER`  | Twilio sending phone number (E.164)      | `+15551234567`                 |
-| `DAILY_SEND_TIME_UTC`  | Time to send daily facts (HH:MM UTC)     | `14:00`                        |
-| `MAX_SUBSCRIBERS`      | Maximum number of active Platypus Fans   | `1000`                         |
-| `OPENAI_API_KEY`       | API key for AI image generation (optional — if unset, images are not generated) | `sk-...` |
+| Variable               | Description                              | Example                        | Required |
+| ---------------------- | ---------------------------------------- | ------------------------------ | -------- |
+| `PORT`                 | HTTP server port                         | `3000`                         | No (default: 3000) |
+| `BASE_URL`             | Public URL of the application            | `https://platypusfacts.example.com` | Yes |
+| `DATABASE_PATH`        | Path to SQLite database file             | `./data/platypus-facts.db`     | No (default: `./data/platypus-facts.db`) |
+| `NODE_ENV`             | Environment mode (`development` or `production`) | `production`            | No (default: `development`) |
+| `TWILIO_ACCOUNT_SID`   | Twilio account SID                       | `AC...`                        | Production only |
+| `TWILIO_AUTH_TOKEN`     | Twilio auth token                        | `...`                          | Production only |
+| `TWILIO_PHONE_NUMBER`  | Twilio sending phone number (E.164)      | `+15551234567`                 | Production only |
+| `POSTMARK_API_TOKEN`   | Postmark API token for sending email     | `...`                          | Production only |
+| `EMAIL_FROM`           | Sender email address for outbound emails | `facts@platypusfacts.example.com` | Production only |
+| `DAILY_SEND_TIME_UTC`  | Time to send daily facts (HH:MM UTC)     | `14:00`                        | No (default: 14:00) |
+| `MAX_SUBSCRIBERS`      | Maximum number of active Platypus Fans   | `1000`                         | No (default: 1000) |
+| `OPENAI_API_KEY`       | API key for AI image generation          | `sk-...`                       | No (images skipped if unset) |
+
+In development (`NODE_ENV` unset or `development`), provider API keys (Twilio, Postmark, OpenAI) are optional. When not configured, dev providers are used that log to the console and store messages in memory for the dev message viewer. In production (`NODE_ENV=production`), Twilio and Postmark variables are required and the server refuses to start without them.
 
 ## Backups
 

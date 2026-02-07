@@ -2,6 +2,8 @@
 
 How the application validates and normalizes user-provided phone numbers.
 
+Phone number is optional on the signup form (subscribers may provide email only), but when provided, it must pass all validation below.
+
 ## Scope
 
 US phone numbers only for v1. The Twilio phone number is a US number, and the service targets US users.
