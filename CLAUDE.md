@@ -43,7 +43,7 @@ Bun HTTP server (`Bun.serve()`) that sends daily platypus facts via email (Postm
 
 ### Database
 
-Four SQLite tables: `facts`, `fact_sources` (FK→facts, CASCADE DELETE), `subscribers` (UNIQUE email, UNIQUE token), `sent_facts` (UNIQUE sent_date, FK→facts, NO CASCADE). Plus `dev_messages` for dev email storage. WAL mode and foreign keys enabled. Schema auto-initializes on connection.
+Four SQLite tables: `facts`, `fact_sources` (FK→facts, CASCADE DELETE), `subscribers` (email NOT NULL UNIQUE, token NOT NULL UNIQUE), `sent_facts` (UNIQUE sent_date, FK→facts, NO CASCADE). Plus `dev_messages` for dev email storage. WAL mode and foreign keys enabled. Schema auto-initializes on connection. Migration auto-detects old schema with `phone_number` column and rebuilds the table.
 
 Prefer `db.run()` over `db.exec()` for executing SQL statements. `db.run()` uses prepared statements (safer, supports parameters), while `db.exec()` runs raw SQL strings.
 

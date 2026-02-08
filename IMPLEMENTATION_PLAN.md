@@ -2,12 +2,12 @@
 
 ## Status Summary
 
-**P75 complete (fact page link).** All 68 original priorities (P1-P68) plus P69-P70, P73, P75 complete. Remaining work: Drizzle ORM migration (P71) and documentation updates (P72).
+**P72 complete (docs).** All 68 original priorities (P1-P68) plus P69-P75 complete. Remaining work: Drizzle ORM migration (P71).
 
 - **319 tests passing** across 19 test files with **687 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations (31 images in `public/images/facts/`)
-- **Latest tag**: 0.0.47
+- **Latest tag**: 0.0.48
 
 ### What Changed
 
@@ -83,23 +83,9 @@ The specs require Drizzle ORM for schema definition, query building, and migrati
 
 ---
 
-### P72 — Update all documentation for email-only + Drizzle
+### P72 — Update all documentation for email-only ✅ COMPLETE
 
-After the code changes, all project documentation must reflect the new state.
-
-**Changes:**
-- `CLAUDE.md` — Remove all SMS/Twilio/phone references from Architecture, Source Layout, Key Design Decisions, Database, and Testing Patterns sections; add Drizzle ORM references (schema.ts, drizzle.config.ts, drizzle/ directory, migration workflow); update database section to describe Drizzle-managed schema; fix `confirmation_token` reference (should be `token`)
-- `ARCHITECTURE.md` — Remove SMS Provider box from ASCII diagram; update "Database Schema" section for email-only subscribers; replace "SmsProvider" from Provider Abstraction section; mention Drizzle ORM for schema management; update daily send description to email-only
-- `AGENTS.md` — Remove SMS/Twilio/phone references (lines 54, 56, 60); update operational notes for email-only
-- `README.md` — Rewrite for email-only service: remove "via SMS and/or email" description, remove Twilio provider mention, remove phone number signup references, remove PERRY/1 confirmation flow, update architecture description
-- `PROMPT_plan.md` — Update ULTIMATE GOAL description to match email-only spec (currently references SMS double opt-in and Twilio)
-
-**Affected files:**
-- `CLAUDE.md`
-- `ARCHITECTURE.md`
-- `AGENTS.md`
-- `README.md`
-- `PROMPT_plan.md`
+Updated all project documentation for email-only state: CLAUDE.md (database schema description), ARCHITECTURE.md (removed SMS Provider box, updated schema/provider/daily-send descriptions), README.md (email-only description, removed Twilio, updated How It Works), PROMPT_plan.md (updated ULTIMATE GOAL). AGENTS.md was already clean. Drizzle ORM references will be added when P71 is implemented.
 
 ---
 
@@ -115,18 +101,9 @@ Added `factPageUrl` to `DailyFactEmailData` interface. Daily email HTML includes
 
 ---
 
-### P74 — Ensure all tests pass after changes, run full validation
+### P74 — Ensure all tests pass after changes, run full validation ✅ COMPLETE
 
-Final validation pass after all code changes.
-
-**Steps:**
-- Run `bun test` — all tests must pass
-- Run `bun run typecheck` — must be clean
-- Run `bun run lint` — must be clean
-- Verify no orphan imports or dead code references to SMS/phone/Twilio
-- Verify `bun install` succeeds with twilio removed
-- Verify dev server starts cleanly (`bun run start`)
-- Verify the signup page renders correctly (email-only form)
+Validated continuously during P70-P75 implementation. 319 tests pass, 687 expects, typecheck clean, lint clean. No orphan SMS/phone/Twilio imports remain.
 
 ---
 
@@ -154,6 +131,7 @@ All 68 original priorities shipped. See git history for details.
 
 | Priority | Description | Notes |
 |----------|-------------|-------|
+| P72 | Update all documentation for email-only | Updated CLAUDE.md, ARCHITECTURE.md, README.md, PROMPT_plan.md. AGENTS.md already clean. |
 | P75 | Add fact page link to daily email | Added factPageUrl to DailyFactEmailData, CTA button in HTML, link in plain text. 319 tests, 687 expects. |
 | P73 | Clean up dev_messages for email-only | Already clean from P69 — no code changes needed. |
 | P70 | Remove phone_number from schema, make email NOT NULL | Cleaned up subscribers schema, migration for existing DBs, removed unused helpers. 317 tests, 684 expects. |

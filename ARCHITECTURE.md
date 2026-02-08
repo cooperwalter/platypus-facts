@@ -19,7 +19,6 @@
                          │  │  /confirm/:token│  │
                          │  │  /unsubscribe/  │  │
                          │  │  /api/subscribe │  │
-                         │  │  /api/webhooks/ │  │
                          │  │  /health        │  │
                          │  │  /dev/messages  │  │
                          │  └─────────────────┘  │
@@ -35,21 +34,21 @@
                          │  │ (signup, confirm,│  │
                          │  │  unsubscribe)    │  │
                          │  └─────────────────┘  │
-                         └──┬──────┬──────┬──────┘
-                            │      │      │
-              ┌─────────────┘      │      └─────────────┐
-              │                    │                     │
-   ┌──────────▼──────────┐  ┌─────▼──────┐  ┌──────────▼──────────┐
-   │   SMS Provider       │  │  SQLite DB │  │   Email Provider     │
-   │                      │  │            │  │                      │
-   │  Production: Twilio  │  │  facts     │  │  Production: Postmark│
-   │  Dev: DevSmsProvider │  │  fact_src  │  │  Dev: DevEmailProv.  │
-   │                      │  │  subscr.   │  │                      │
-   │  Send daily facts    │  │  sent_facts│  │  Send daily facts    │
-   │  (MMS with image)    │  │  dev_msgs  │  │  (HTML with image)   │
-   │  Receive incoming    │  │            │  │  Confirmation emails  │
-   │  SMS via webhook     │  │  WAL mode  │  │  Unsubscribe headers │
-   └──────────────────────┘  └──────┬─────┘  └──────────────────────┘
+                         └──┬──────────────┬─────┘
+                            │              │
+              ┌─────────────┘              └─────────────┐
+              │                                          │
+   ┌──────────▼──────────┐                    ┌──────────▼──────────┐
+   │   Email Provider     │                    │      SQLite DB      │
+   │                      │                    │                     │
+   │  Production: Postmark│                    │  facts              │
+   │  Dev: DevEmailProv.  │                    │  fact_sources       │
+   │                      │                    │  subscribers        │
+   │  Send daily facts    │                    │  sent_facts         │
+   │  (HTML with image)   │                    │  dev_messages       │
+   │  Confirmation emails │                    │                     │
+   │  Unsubscribe headers │                    │  WAL mode           │
+   └──────────────────────┘                    └──────────┬──────────┘
                                     │
                              ┌──────▼──────┐
                              │ Static Files│
@@ -65,7 +64,7 @@
    │                                                                 │
    │  1. Sync facts from data/facts.json                            │
    │  2. Select next fact (cycling algorithm)                       │
-   │  3. Send to all active subscribers via SMS and/or email        │
+   │  3. Send to all active subscribers via email                   │
    │  4. Record in sent_facts with date and cycle number            │
    └─────────────────────────────────────────────────────────────────┘
 
@@ -85,18 +84,17 @@ Five tables in SQLite with WAL mode and foreign keys enabled:
 
 - **facts** — Platypus facts with optional image paths
 - **fact_sources** — Source URLs per fact (CASCADE DELETE from facts)
-- **subscribers** — Phone and/or email with status lifecycle (pending → active → unsubscribed)
+- **subscribers** — Email (NOT NULL UNIQUE) with status lifecycle (pending → active → unsubscribed)
 - **sent_facts** — One row per day recording which fact was sent and which cycle
 - **dev_messages** — Development-only message log for the dev message viewer
 
 ## Provider Abstraction
 
-Both SMS and email use interface-based provider patterns:
+Email uses an interface-based provider pattern:
 
-- **SmsProvider** (`src/lib/sms/types.ts`) — `sendSms()`, `parseIncomingMessage()`, `validateWebhookSignature()`, `createWebhookResponse()`
 - **EmailProvider** (`src/lib/email/types.ts`) — `sendEmail()`
 
-Factory functions (`createSmsProvider`, `createEmailProvider`) select the implementation based on environment: Twilio/Postmark in production, dev providers (console + SQLite logging) in development.
+Factory function (`createEmailProvider`) selects the implementation based on environment: Postmark in production, dev provider (console + SQLite logging) in development.
 
 ## Fact Cycling
 
