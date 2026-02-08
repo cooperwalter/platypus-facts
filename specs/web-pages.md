@@ -9,8 +9,8 @@ The landing page where visitors subscribe to Daily Platypus Facts.
 ### Content
 
 - Project title: "Daily Platypus Facts"
-- Tagline referencing the *Life is Strange: Double Exposure* inspiration
-- Current Platypus Fan count and limit displayed (e.g., "42 / 1,000 Platypus Fans")
+- Tagline about daily platypus facts delivered to your inbox
+- Current Platypus Fan count and limit displayed (e.g., "42 / 200 Platypus Fans") with a warm note explaining the limit (e.g., "Since each fact is sent with love (and a small email cost), we can only support 200 Platypus Fans right now.")
 - An email input field (required)
 - A submit button
 - Brief explanation of what the user is signing up for (one platypus fact per day via email)
@@ -18,10 +18,9 @@ The landing page where visitors subscribe to Daily Platypus Facts.
 
 ### Design
 
-*Life is Strange: Double Exposure* / platypus themed. The aesthetic should evoke the game's style:
-- Warm, indie, handcrafted feel
+Platypus themed with a warm, indie, handcrafted feel:
 - Platypus imagery or illustrations
-- Personality and charm — this is a fun project
+- Personality and charm — this is a fun project. Use the platypus emoji combination (🦫🦆🥚) liberally throughout the page to add character — in the title, tagline, fan count, form labels, success/error messages, and footer.
 - **Repeating platypus background pattern** — all pages use a subtle, tiled background using the platypus SVG at `public/platypus-icon.svg`. Applied via CSS `background-image` with `background-repeat: repeat`. Low-opacity so it doesn't compete with page content, creating a soft watermark-style texture across the entire page. The icons should be **generously spaced** — not packed tightly together. Use `background-size` and/or padding within the tile to ensure visible gaps between each icon so the pattern feels airy and light, not dense or wallpaper-like.
 - **No animated platypus** — there should be no animated, moving, or swimming platypus element on any page. The background pattern is the only platypus decoration.
 - **Desktop top padding** — on desktop viewports, the main content area should have generous top padding so it doesn't start right at the top of the page. This gives the design breathing room and lets the background pattern show above the content.
@@ -43,7 +42,6 @@ Displays a single platypus fact with its sources. Linked from the daily email.
 - The fact text prominently displayed
 - A list of sources with clickable links (and titles if available)
 - "Daily Platypus Facts" branding
-- "Inspired by *Life is Strange: Double Exposure*" attribution
 - Optional: a link to the signup page for visitors who aren't yet subscribed
 
 ### No Image
@@ -72,6 +70,14 @@ Handles email-based unsubscribe.
 - `GET`: Displays a confirmation page: "Are you sure you want to unsubscribe from Daily Platypus Facts?"
 - `POST`: Processes the unsubscribe, displays a success page.
 - Invalid token: displays an appropriate message.
+
+## Footer
+
+All public pages include a shared footer with:
+
+- **Inspiration** link — links to an `/inspiration` page (or section) explaining the *Life is Strange: Double Exposure* origin of the project
+- **About** link — links to an `/about` page (or section) with information about the project
+- **"Made with ❤️ by Cooper Walter"** — displayed prominently in the footer
 
 ## Dev Message Viewer (Development Only)
 

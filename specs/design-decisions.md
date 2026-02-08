@@ -26,13 +26,13 @@ Facts are maintained in a `data/facts.json` file rather than through an admin UI
 
 The service delivers facts exclusively via email. This keeps costs minimal (no SMS/MMS charges), simplifies the subscription flow (no phone number handling, no Twilio webhooks), and still provides a rich experience with inline illustrations.
 
-## Email provider: Postmark behind an abstraction
+## Email provider: Brevo behind an abstraction
 
-Postmark is the initial email provider, accessed through an interface so it can be swapped. Chosen for its transactional email focus, simple API, and good deliverability.
+[Brevo](https://developers.brevo.com/) is the email provider, accessed through an interface so it can be swapped. Chosen for its generous free tier (300 emails/day), simple REST API, and good deliverability. The free tier is sufficient for up to ~300 daily subscribers at zero cost.
 
 ## Dev providers: No API keys required for development
 
-In development, when `POSTMARK_API_TOKEN` is not configured, a dev email provider is used that logs emails to the console and stores them in SQLite. A dev-only web route (`/dev/messages`) lets developers view all sent emails in the browser. This means a developer can run the full application locally with just `BASE_URL` set — no Postmark account, no OpenAI key needed.
+In development, when `BREVO_API_KEY` is not configured, a dev email provider is used that logs emails to the console and stores them in SQLite. A dev-only web route (`/dev/messages`) lets developers view all sent emails in the browser. This means a developer can run the full application locally with just `BASE_URL` set — no Brevo account, no OpenAI key needed.
 
 ## Double opt-in: Confirm via email link
 
@@ -60,9 +60,9 @@ IP-based rate limiting (5 signups per IP per hour) on the subscribe endpoint. Co
 
 The signup page and fact pages have a themed design inspired by the aesthetic of *Life is Strange: Double Exposure* — warm, indie, handcrafted feel with platypus personality.
 
-## Platypus Fan cap: Configurable, default 1,000
+## Platypus Fan cap: Configurable, default 200
 
-Active Platypus Fans are capped at a configurable limit (`MAX_SUBSCRIBERS` env var, default 1,000) to control costs. The cap is enforced both at signup and at confirmation time. The home page displays the current active count and the limit so visitors can see availability. Only `active` Platypus Fans count toward the cap — when someone unsubscribes, a slot opens up.
+Active Platypus Fans are capped at a configurable limit (`MAX_SUBSCRIBERS` env var, default 200) to control costs and stay within Brevo's free tier (300 emails/day). The cap is enforced both at signup and at confirmation time. The home page displays the current active count and the limit so visitors can see availability. Only `active` Platypus Fans count toward the cap — when someone unsubscribes, a slot opens up.
 
 ## CLI: Manual daily send with dev-only force
 

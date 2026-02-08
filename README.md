@@ -9,7 +9,7 @@ Inspired by the Daily Platypus Facts in [*Life is Strange: Double Exposure*](htt
 - **Runtime**: [Bun](https://bun.sh)
 - **Language**: TypeScript
 - **Database**: SQLite (via Bun's built-in `bun:sqlite`)
-- **Email Provider**: Postmark (behind an abstraction layer)
+- **Email Provider**: Brevo (behind an abstraction layer)
 - **Deployment**: Docker + [Kamal](https://kamal-deploy.org/)
 
 ## Getting Started

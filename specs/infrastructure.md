@@ -72,13 +72,13 @@ The daily send job is scheduled via system `crontab` on the Pi. The cron entry e
 | `BASE_URL`             | Public URL of the application            | `https://platypus-facts.cooperwalter.dev` | Yes |
 | `DATABASE_PATH`        | Path to SQLite database file             | `./data/platypus-facts.db`     | No (default: `./data/platypus-facts.db`) |
 | `NODE_ENV`             | Environment mode (`development` or `production`) | `production`            | No (default: `development`) |
-| `POSTMARK_API_TOKEN`   | Postmark API token for sending email     | `...`                          | Production only |
+| `BREVO_API_KEY`        | Brevo API key for sending email          | `xkeysib-...`                  | Production only |
 | `EMAIL_FROM`           | Sender email address for outbound emails | `facts@platypus-facts.cooperwalter.dev` | Production only |
 | `DAILY_SEND_TIME_UTC`  | Time to send daily facts (HH:MM UTC)     | `14:00`                        | No (default: 14:00) |
-| `MAX_SUBSCRIBERS`      | Maximum number of active Platypus Fans   | `1000`                         | No (default: 1000) |
+| `MAX_SUBSCRIBERS`      | Maximum number of active Platypus Fans   | `200`                          | No (default: 200) |
 | `OPENAI_API_KEY`       | API key for AI image generation          | `sk-...`                       | No (images skipped if unset) |
 
-In development (`NODE_ENV` unset or `development`), provider API keys (Postmark, OpenAI) are optional. When `POSTMARK_API_TOKEN` is not configured, a dev email provider is used that logs to the console and stores emails in SQLite for the dev message viewer. In production (`NODE_ENV=production`), `POSTMARK_API_TOKEN` and `EMAIL_FROM` are required and the server refuses to start without them.
+In development (`NODE_ENV` unset or `development`), provider API keys (Brevo, OpenAI) are optional. When `BREVO_API_KEY` is not configured, a dev email provider is used that logs to the console and stores emails in SQLite for the dev message viewer. In production (`NODE_ENV=production`), `BREVO_API_KEY` and `EMAIL_FROM` are required and the server refuses to start without them.
 
 ### `.env.development`
 

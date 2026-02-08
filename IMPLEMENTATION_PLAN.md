@@ -2,158 +2,151 @@
 
 ## Status Summary
 
-**P71 complete (Drizzle ORM).** All 68 original priorities (P1-P68) plus P69-P75 complete. No remaining code priorities.
+**P76 complete. 5 spec gaps remain (P77-P81).** All 76 priorities shipped. Brevo is now the production email provider.
 
-- **319 tests passing** across 19 test files with **687 expect() calls**
+- **319 tests passing** across 19 test files with **686 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations (31 images in `public/images/facts/`)
 - **Latest tag**: 0.0.49
 
-### What Changed
+---
 
-The specs were updated to make the service email-only and to require Drizzle ORM. The most recent commit (`546a8f8`) updated the spec files but did **not** change any application code. The specs are the source of truth; the code must be brought into alignment.
+## Remaining Priorities
 
-**Note on PROMPT_plan.md**: The ULTIMATE GOAL in `PROMPT_plan.md` still references SMS double opt-in and Twilio. This is outdated — the spec files (`specs/overview.md`, `specs/design-decisions.md`, `specs/data-model.md`) are the authoritative source of truth and define an email-only service. P72 includes updating `PROMPT_plan.md` to match.
+### P77 — Add footer to all public pages ⬜ TODO
+
+**Priority: HIGH** — The spec (`specs/web-pages.md` lines 74-80) requires a shared footer on all public pages with:
+- **"Inspiration" link** → `/inspiration` page explaining the *Life is Strange: Double Exposure* origin
+- **"About" link** → `/about` page with information about the project
+- **"Made with ❤️ by Cooper Walter"**
+
+**Current state:** No pages have a footer. All pages close with `</main></body></html>` with no footer content.
+
+**What needs to change:**
+
+- **`src/routes/pages.ts`**: Create a shared `renderFooter()` helper that returns the footer HTML. Insert it before `</body>` in every page renderer: `renderSignupPage`, `renderFactPage`, `renderConfirmationPage` (via `renderMessagePage`), `renderUnsubscribePage`, `render404Page`, `renderDevMessageList`, `renderDevEmailDetail`.
+- **`public/styles.css`**: Add footer styling consistent with the existing warm/indie design.
+- **`src/routes/routes.test.ts`**: Add tests verifying the footer content appears on rendered pages.
 
 ---
 
-## New Priorities
+### P78 — Add /inspiration and /about pages ⬜ TODO
 
-### P69 — Remove all SMS/phone support ✅ COMPLETE
+**Priority: HIGH** — The spec (`specs/web-pages.md` lines 78-79) requires these two pages. Neither exists. These are linked from the footer (P77).
 
-Removed entire SMS infrastructure: 13 files deleted (sms/ directory, phone validation, SMS templates, webhook handler), 22 files modified to remove all Twilio/SMS/phone references. Twilio dependency removed from package.json. Integration tests rewritten for email-only flows. 317 tests pass, typecheck and lint clean.
+**What needs to change:**
 
----
-
-### P70 — Remove phone_number from database schema, make email NOT NULL ✅ COMPLETE
-
-Removed `phone_number TEXT UNIQUE` from subscribers table schema, changed `email` to `NOT NULL UNIQUE`. Migration detects old schema (has `phone_number` column) and rebuilds subscribers table using ALTER TABLE rename pattern, dropping phone-only rows. Removed unused migration helpers (`tryAddColumn`, `isColumnNullable`, `migrateSubscribersConstraints`). `subscribers.ts` and `test-utils.ts` were already clean from P69. Updated db.test.ts to test email NOT NULL enforcement instead of phone_number uniqueness. 317 tests pass.
+- **`src/routes/pages.ts`**: Add `renderInspirationPage()` and `renderAboutPage()` functions. The inspiration page should explain the *Life is Strange: Double Exposure* origin. The about page should describe the project.
+- **`src/server.ts`**: Register `GET /inspiration` and `GET /about` routes.
+- **`src/server.test.ts`** and/or **`src/routes/routes.test.ts`**: Add tests for the new routes.
 
 ---
 
-### P71 — Migrate to Drizzle ORM ✅ COMPLETE
+### P79 — Add platypus emoji (🦫🦆🥚) throughout web pages ⬜ TODO
 
-Installed `drizzle-orm` and `drizzle-kit`. Created `src/lib/schema.ts` with Drizzle table definitions for all 5 tables using `sqliteTable()`. Created `drizzle.config.ts`. Generated baseline migration with `drizzle-kit generate`. Rewrote `src/lib/db.ts`: replaced `initializeSchema()`/`migrateSchema()` with Drizzle's `migrate()` from `drizzle-orm/bun-sqlite/migrator`. `createDatabase()` and `createInMemoryDatabase()` now return `{ db: DrizzleDatabase, sqlite: Database }`. Added `markBaselineMigrationApplied()` to handle existing databases transitioning to Drizzle (seeds `__drizzle_migrations` table). Retained `migratePhoneNumber()` for legacy databases. Updated all entry points (`index.ts`, `daily-send.ts`, `sync-facts.ts`) to destructure `{ sqlite: db }`. Updated `test-utils.ts` to return `.sqlite`. Added `"generate"` script to `package.json`. Added `"drizzle"` to `biome.json` ignore (generated files use spaces). Query files continue using raw `sqlite` (Database) — Drizzle query builder adoption deferred. 319 tests, 687 expects, typecheck clean, lint clean.
+**Priority: MEDIUM** — The spec (`specs/web-pages.md` line 23) says to "Use the platypus emoji combination (🦫🦆🥚) liberally throughout the page to add character — in the title, tagline, fan count, form labels, success/error messages, and footer."
 
-**Key learnings:**
-- Drizzle schema defaults must use `sql` template tag for SQL expressions: `default(sql\`(datetime('now'))\`)` — string defaults produce escaped literal strings
-- Drizzle's `__drizzle_migrations` table has columns: `id`, `hash` (sha256 of SQL file), `created_at` (timestamp from journal entry `when` field)
-- Generated migration files in `drizzle/` use space indentation — must be excluded from Biome
+**Current state:** No instances of 🦫🦆🥚 appear anywhere in `src/`. Pages use the duck emoji (🦆) only in the favicon.
 
----
+**What needs to change:**
 
-### P72 — Update all documentation for email-only ✅ COMPLETE
-
-Updated all project documentation for email-only state: CLAUDE.md (database schema description), ARCHITECTURE.md (removed SMS Provider box, updated schema/provider/daily-send descriptions), README.md (email-only description, removed Twilio, updated How It Works), PROMPT_plan.md (updated ULTIMATE GOAL). AGENTS.md was already clean. Drizzle ORM references will be added when P71 is implemented.
+- **`src/routes/pages.ts`**: Add 🦫🦆🥚 to page titles/headings, taglines, fan count section, form labels, success messages, error messages, and footer.
+- **`src/lib/email-templates.ts`**: Consider adding the emoji to email branding (if appropriate — spec says "wherever emoji are appropriate").
 
 ---
 
-### P73 — Clean up dev_messages table for email-only ✅ COMPLETE
+### P80 — Add warm note explaining the subscriber cap ⬜ TODO
 
-All dev_messages code was already email-only after P69. `dev.ts` hardcodes type to `'email'`, viewer routes only handle email messages, no `.dev-badge-sms` CSS class exists. No code changes needed.
+**Priority: LOW** — The spec (`specs/web-pages.md` line 13) says the signup page should show "a warm note explaining the limit (e.g., 'Since each fact is sent with love (and a small email cost), we can only support 200 Platypus Fans right now.')"
 
----
+**Current state:** The fan count is displayed (`42 / 200 Platypus Fans`) but there is no explanatory note.
 
-### P75 — Add fact page link to daily email ✅ COMPLETE
+**What needs to change:**
 
-Added `factPageUrl` to `DailyFactEmailData` interface. Daily email HTML includes a "View this fact with sources" CTA button linking to `/facts/{id}`. Plain text email includes the same link. `daily-send.ts` constructs the URL from baseUrl and factId. Sources remain inline in the email (per spec). 2 new tests added (319 total, 687 expects).
-
----
-
-### P74 — Ensure all tests pass after changes, run full validation ✅ COMPLETE
-
-Validated continuously during P70-P75 implementation. 319 tests pass, 687 expects, typecheck clean, lint clean. No orphan SMS/phone/Twilio imports remain.
+- **`src/routes/pages.ts`**: Add a short warm note below/near the fan count explaining why there's a limit.
 
 ---
 
-## Outstanding Items
+### P81 — Fix MAX_SUBSCRIBERS default to match spec ⬜ TODO
 
-### Pi 5 Server IP — Deferred (requires physical setup)
+**Priority: LOW** — The spec (`specs/infrastructure.md` line 78, `specs/subscription-flow.md` line 57, `specs/design-decisions.md` line 65) all say `MAX_SUBSCRIBERS` defaults to `200`. The code (`src/lib/config.ts` line 64) defaults to `1000`. The `.env.development` and `.env.example` files also set `1000`. The `config/deploy.yml` also sets `1000`.
 
-`config/deploy.yml` line 9 still has `<your-server-ip>` placeholder. This requires the Raspberry Pi 5 to be set up on the local network and its IP confirmed. All other deploy config values are filled in.
+**What needs to change:**
 
----
-
-## Remaining After New Priorities
-
-- Convert query files to Drizzle query builder (subscribers.ts, facts.ts, fact-cycling.ts, daily-send.ts, sync-facts.ts) — deferred, not spec-blocking
-- Confirm Pi 5 server IP and update `config/deploy.yml`
-- Manual testing with Postmark before production launch
-- Database backup strategy (post-launch, not spec-required)
+- **`src/lib/config.ts`**: Change default from `"1000"` to `"200"` (line 64).
+- **`src/lib/config.test.ts`**: Update test "defaults to 1000" → "defaults to 200".
+- **`.env.development`** and **`.env.example`**: Change `MAX_SUBSCRIBERS=1000` → `MAX_SUBSCRIBERS=200`.
+- **`config/deploy.yml`**: Change `MAX_SUBSCRIBERS: 1000` → `MAX_SUBSCRIBERS: 200` (line 25).
+- Note: The deploy.yml explicitly sets this, so the production value is controlled there. The spec default of 200 is about the code's fallback behavior when the env var is unset.
 
 ---
 
-## Completed Priorities (1-68)
+## Priority Order
 
-All 68 original priorities shipped. See git history for details.
+| # | Description | Impact | Effort |
+|---|-------------|--------|--------|
+| P77 | Add footer to all public pages | High (spec compliance, visible on every page) | Medium (shared helper + CSS) |
+| P78 | Add /inspiration and /about pages | High (spec compliance, footer links need targets) | Low-Medium (2 new page renderers + routes) |
+| P81 | Fix MAX_SUBSCRIBERS default | Low (spec compliance, behavioral default mismatch) | Low (4 files, value change) |
+| P80 | Add warm note about subscriber cap | Low (spec compliance, minor UI element) | Low (one line of HTML) |
+| P79 | Add platypus emoji throughout | Medium (spec compliance, design polish) | Low (string changes across pages) |
 
-### Recent Completions
+**Recommended order:** P77 → P78 → P81 → P80 → P79
+
+P77 and P78 together because the footer links need the target pages. P81 is a quick fix. P80 and P79 are cosmetic polish.
+
+---
+
+## Recently Completed
 
 | Priority | Description | Notes |
 |----------|-------------|-------|
-| P71 | Migrate to Drizzle ORM | Schema definitions, drizzle-kit migrations, db.ts rewrite. Query files still use raw sqlite. 319 tests, 687 expects. |
-| P72 | Update all documentation for email-only | Updated CLAUDE.md, ARCHITECTURE.md, README.md, PROMPT_plan.md. AGENTS.md already clean. |
-| P75 | Add fact page link to daily email | Added factPageUrl to DailyFactEmailData, CTA button in HTML, link in plain text. 319 tests, 687 expects. |
-| P73 | Clean up dev_messages for email-only | Already clean from P69 — no code changes needed. |
-| P70 | Remove phone_number from schema, make email NOT NULL | Cleaned up subscribers schema, migration for existing DBs, removed unused helpers. 317 tests, 684 expects. |
-| P69 | Remove all SMS/phone support (email-only) | Deleted 13 SMS files, modified 22 files, removed twilio dependency. Rewrote integration tests for email-only. 317 tests, 684 expects. |
-| P68 | Extract `createRequestHandler` + 33 server tests | Refactored `handleRequest` out of `index.ts` into testable `server.ts` factory. Tests cover route dispatching, static file serving, path traversal protection, 404 fallback, dev route gating, method restrictions, and URL pattern matching. |
-| P67 | Fix .env.example PORT | Changed PORT from 3090 to 3000 to match production deploy config. |
-| P66 | Platypus emoji in README | Added platypus emoji combo to README heading per spec. |
-| P65 | Fill deploy.yml placeholders | Image, host filled in. Server IP deferred. |
+| P76 | Switch Postmark → Brevo | Renamed `postmarkApiToken` → `brevoApiKey` in Config, wired `BrevoEmailProvider` in factory, added sender name, deleted Postmark files, updated all config/deploy/docs. 319 tests, 686 expects. |
+| P75 | Add fact page link to daily email | Added factPageUrl to DailyFactEmailData, CTA button in HTML, link in plain text. |
+| P74 | Ensure all tests pass after changes | 319 tests, 687 expects, typecheck clean, lint clean. |
 
 ---
 
-## Resolved Items
+## Outstanding Items (Non-Blocking)
 
-### P53 — EmailProvider `imageUrl` parameter — CLOSED (intentional deviation)
-
-Image URL passed via HTML template data structure instead of interface parameter. Functionally equivalent.
-
-### P54 — Twilio opt-out webhook — CLOSED (removed in P69)
-
-Twilio webhook removed entirely as part of SMS removal.
-
-### sent_facts ON DELETE RESTRICT — NOT A GAP
-
-SQLite's default NO ACTION behaves identically to RESTRICT. Correct behavior for historical send records.
-
-### Dockerfile fact sync — NOT A GAP
-
-`src/index.ts` calls `syncFacts()` on server startup, satisfying the spec requirement.
+- **Pi 5 Server IP**: `config/deploy.yml` line 9 still has `<your-server-ip>` placeholder (requires physical setup)
+- **Drizzle query builder adoption**: Query files still use raw `sqlite` (Database) — deferred, not spec-blocking
+- **Manual Brevo testing**: Test with real Brevo API before production launch
+- **Database backup strategy**: Post-launch, not spec-required
 
 ---
 
-## Known Non-Gaps
+## Spec Compliance Summary
 
-- **Logging**: No spec covers structured logging. Using `console.log`/`console.error` for v1.
-- **Backups**: Spec mentions options but doesn't require implementation. Deferred.
-- **`.env.development` Loading**: Bun handles automatically.
-- **`dev_messages` Table**: Created unconditionally. Harmless in production. Spec says "only created when dev providers are active" but this is a known acceptable deviation.
-
----
-
-## Audit Trail
-
-### Files found with SMS/phone/Twilio references (confirmed complete)
-
-Every file in the codebase with SMS, phone, or Twilio references has been accounted for in the priorities above. The deep audit identified these files that were **missing from the original plan**:
-
-| File | Issue | Added to Priority |
-|------|-------|-------------------|
-| `src/integration.test.ts` | Nearly every test uses SMS flows | P69 |
-| `src/lib/email/index.test.ts` | Twilio config values in test objects | P69 |
-| `config/deploy.yml` | Twilio secrets in Kamal deploy config | P69 |
-| `.github/workflows/deploy.yml` | Twilio env vars in CI deploy step | P69 |
-| `public/styles.css` | `.dev-badge-sms` CSS class | P69/P73 |
-| `AGENTS.md` | SMS/Twilio/phone operational notes | P72 |
-| `README.md` | SMS/Twilio/phone descriptions | P72 |
-| `PROMPT_plan.md` | SMS double opt-in in ULTIMATE GOAL | P72 |
-| `src/routes/routes.test.ts` | Was incorrectly listed as `pages.test.ts` | P69 (filename corrected) |
-| `src/lib/db.test.ts` | Was listed as "if exists" — it exists | P70 (confirmed) |
-
-### Behavioral gap found
-
-| Issue | Description | Priority |
-|-------|-------------|----------|
-| Daily email missing fact page link | `design-decisions.md` says email links to fact web page; code inlines sources but has no link to `/facts/{id}` | P75 (new) |
+| Area | Status | Notes |
+|------|--------|-------|
+| Email provider (Brevo) | ✅ Complete | Brevo wired in, sender name included, Postmark removed |
+| Subscription flow | ✅ Complete | Cap checked at signup + confirmation, List-Unsubscribe headers on all emails |
+| Email templates | ✅ Complete | All 3 templates, correct subjects, plain-text fallbacks, source links, fact page link |
+| Fact cycling | ✅ Complete | New facts prioritized, re-randomized per cycle |
+| Daily send | ✅ Complete | Idempotent, --force dev-only, graceful failure handling |
+| Sync + images | ✅ Complete | Upsert by text, image generation, auth failure handling |
+| Drizzle schema | ✅ Complete | All 5 tables match spec exactly |
+| Signup page | ⚠️ Mostly | Missing: emoji (P79), warm note (P80) |
+| Fact page | ✅ Complete | Illustration, sources, branding, signup link |
+| Footer | ❌ Missing | P77 |
+| /inspiration page | ❌ Missing | P78 |
+| /about page | ❌ Missing | P78 |
+| Platypus emoji | ❌ Missing from pages | P79 |
+| MAX_SUBSCRIBERS default | ❌ 1000 instead of 200 | P81 |
+| Confirmation page | ✅ Complete | All states handled, cap check |
+| Unsubscribe pages | ✅ Complete | GET confirmation + POST processing |
+| Health endpoint | ✅ Complete | GET /health returns 200 |
+| Dev message viewer | ✅ Complete | /dev/messages list + detail |
+| Rate limiting | ✅ Complete | 5 per IP per hour on subscribe |
+| Infrastructure/deploy | ✅ Complete | Brevo in deploy config, GitHub Actions updated |
+| Background pattern | ✅ Complete | SVG repeat with low opacity |
+| Desktop top padding | ✅ Complete | 6rem padding on ≥768px |
+| CRON_SETUP.md | ✅ Complete | Cron documentation exists |
+| Dockerfile | ✅ Complete | Multi-stage, oven/bun, arm64 handled by CI |
+| Life is Strange attribution | ✅ Complete | README, signup page, welcome email |
+| ARCHITECTURE.md diagram | ✅ Complete | Up-to-date |
+| Fact sources | ✅ Complete | All 27 facts have sources in data/facts.json |
+| Responsive design | ✅ Complete | Mobile breakpoints implemented |
+| .dockerignore | ✅ Complete | Exists |
+| CI/CD pipeline | ✅ Complete | GitHub Actions workflow |

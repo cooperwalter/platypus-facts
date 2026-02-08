@@ -41,7 +41,7 @@
    ┌──────────▼──────────┐                    ┌──────────▼──────────┐
    │   Email Provider     │                    │      SQLite DB      │
    │                      │                    │                     │
-   │  Production: Postmark│                    │  facts              │
+   │  Production: Brevo   │                    │  facts              │
    │  Dev: DevEmailProv.  │                    │  fact_sources       │
    │                      │                    │  subscribers        │
    │  Send daily facts    │                    │  sent_facts         │
@@ -94,7 +94,7 @@ Email uses an interface-based provider pattern:
 
 - **EmailProvider** (`src/lib/email/types.ts`) — `sendEmail()`
 
-Factory function (`createEmailProvider`) selects the implementation based on environment: Postmark in production, dev provider (console + SQLite logging) in development.
+Factory function (`createEmailProvider`) selects the implementation based on environment: Brevo in production, dev provider (console + SQLite logging) in development.
 
 ## Fact Cycling
 

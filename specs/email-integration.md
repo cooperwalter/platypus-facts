@@ -9,19 +9,23 @@ Email functionality is accessed through a provider interface so the underlying s
 The interface should support:
 - **Send email**: Given a recipient email address, subject, HTML body, and optional plain-text body, send an email. Optionally accepts an `imageUrl` for emails that include the fact illustration.
 
-## Postmark Implementation (Production)
+## Brevo Implementation (Production)
 
 ### Sending Emails
 
-Use the Postmark API to send transactional emails. Requires:
-- API token (env: `POSTMARK_API_TOKEN`)
+Use the [Brevo transactional email API](https://developers.brevo.com/docs/send-a-transactional-email) to send emails. `POST https://api.brevo.com/v3/smtp/email` with `api-key` header for authentication.
+
+Requires:
+- API key (env: `BREVO_API_KEY`)
 - Sender email address (env: `EMAIL_FROM`)
 
-Postmark is used when `POSTMARK_API_TOKEN` is configured.
+Request body includes `sender` (object with `name` and `email`), `to` (array of recipient objects), `subject`, and `htmlContent`. Optional `textContent` for plain-text body. Optional `headers` object for custom headers (e.g., `List-Unsubscribe`).
+
+Brevo is used when `BREVO_API_KEY` is configured.
 
 ## Dev Email Provider (Development)
 
-When `POSTMARK_API_TOKEN` is not configured, the application uses a development email provider that:
+When `BREVO_API_KEY` is not configured, the application uses a development email provider that:
 
 1. Logs a summary of each sent email to the console (recipient, subject).
 2. Stores sent emails in the SQLite database (`dev_messages` table) so they persist across processes — messages sent by the daily-send CLI job are visible in the web server's dev message viewer.
@@ -66,6 +70,6 @@ All emails include a `List-Unsubscribe` header pointing to `{base_url}/unsubscri
 
 ## Cost Considerations
 
-- Postmark pricing: ~$1.25 per 1,000 emails.
-- Very affordable for transactional email volumes.
+- Brevo free tier: 300 emails/day (~9,000/month). Starter plan: $9/month for 5,000 emails.
+- Prepaid credits: ~$0.006/email (5k pack) down to ~$0.002/email (500k+ pack).
 - See `cost-estimate.md` for full projections.

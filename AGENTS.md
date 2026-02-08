@@ -51,11 +51,11 @@ Resolve all issues raised by the UX/UI review subagent before committing.
 ## Operational Notes
 
 - Database: SQLite file at path configured by `DATABASE_PATH` env var (default `./data/platypus-facts.db`)
-- Email: Postmark — requires `POSTMARK_API_TOKEN` and `EMAIL_FROM` env vars for production
+- Email: Brevo — requires `BREVO_API_KEY` and `EMAIL_FROM` env vars for production
 - Fact data lives in `data/facts.json`, synced to DB on startup/deploy
 
 ### Codebase Patterns
 
-- Email provider is behind an abstraction interface (not Postmark-specific in application code)
+- Email provider is behind an abstraction interface (not Brevo-specific in application code)
 - Shared utilities go in `src/lib/`
 - Never use `any` in TypeScript — use real types or `unknown`

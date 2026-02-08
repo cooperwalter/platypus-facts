@@ -54,7 +54,7 @@ See `email-integration.md` for full email template details (confirmation, daily 
 
 ## Subscriber Cap
 
-The total number of active Platypus Fans is capped to control costs. Configured via the `MAX_SUBSCRIBERS` environment variable (default: `1000`).
+The total number of active Platypus Fans is capped to control costs. Configured via the `MAX_SUBSCRIBERS` environment variable (default: `200`).
 
 The cap is checked at two points:
 1. **At signup** (step 3): If active Platypus Fan count >= `MAX_SUBSCRIBERS`, reject the signup with a friendly message. The signup page should also visually indicate when the service is at capacity.

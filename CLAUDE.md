@@ -18,7 +18,7 @@ bun run daily-send              # Execute the daily send job
 
 ## Architecture
 
-Bun HTTP server (`Bun.serve()`) that sends daily platypus facts via email (Postmark). No build step — Bun runs TypeScript directly. SQLite database via `bun:sqlite` with Drizzle ORM for schema definition and migrations. Server-rendered HTML pages via template literals (no framework).
+Bun HTTP server (`Bun.serve()`) that sends daily platypus facts via email (Brevo). No build step — Bun runs TypeScript directly. SQLite database via `bun:sqlite` with Drizzle ORM for schema definition and migrations. Server-rendered HTML pages via template literals (no framework).
 
 ### Source Layout
 
@@ -27,7 +27,7 @@ Bun HTTP server (`Bun.serve()`) that sends daily platypus facts via email (Postm
 - **`src/lib/`** — Core modules: database, config, schema (Drizzle), subscribers, facts, fact cycling, rate limiting, email provider, subscription flow
 - **`drizzle/`** — Generated migration SQL files (managed by `drizzle-kit generate`)
 - **`drizzle.config.ts`** — Drizzle Kit configuration
-- **`src/lib/email/`** — Email provider abstraction: Postmark implementation + dev provider (persists to `dev_messages` table)
+- **`src/lib/email/`** — Email provider abstraction: Brevo implementation + dev provider (persists to `dev_messages` table)
 - **`src/routes/`** — Route handlers: health check, HTML pages (including dev message viewer), subscribe API
 - **`src/jobs/daily-send.ts`** — Cron job: selects next fact and sends to all active subscribers via email
 - **`src/scripts/sync-facts.ts`** — Syncs seed data from `data/facts.json` into the database
@@ -36,7 +36,7 @@ Bun HTTP server (`Bun.serve()`) that sends daily platypus facts via email (Postm
 
 ### Key Design Decisions
 
-- **Email provider is interface-based** (`EmailProvider` in `src/lib/email/types.ts`) — Postmark implementation for production, `DevEmailProvider` for development, `makeMockEmailProvider()` for tests
+- **Email provider is interface-based** (`EmailProvider` in `src/lib/email/types.ts`) — Brevo implementation for production, `DevEmailProvider` for development, `makeMockEmailProvider()` for tests
 - **Dev email provider** persists to SQLite `dev_messages` table; dev viewer routes are conditionally registered via `instanceof` checks
 - **Fact cycling** ensures every fact is sent before any repeats, tracking cycles in the `sent_facts` table
 - **`runDailySend`** accepts a `todayOverride` param because Date mocking doesn't work in Bun's test runner; accepts `--force` flag to re-send (blocked in production)

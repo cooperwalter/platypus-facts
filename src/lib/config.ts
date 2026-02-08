@@ -3,7 +3,7 @@ interface Config {
 	port: number;
 	baseUrl: string;
 	databasePath: string;
-	postmarkApiToken: string | null;
+	brevoApiKey: string | null;
 	emailFrom: string | null;
 	dailySendTimeUtc: string;
 	maxSubscribers: number;
@@ -38,14 +38,14 @@ function loadConfig(): Config {
 	}
 	const baseUrl = rawBaseUrl.replace(/\/+$/, "");
 
-	let postmarkApiToken: string | null = null;
+	let brevoApiKey: string | null = null;
 	let emailFrom: string | null = null;
 
 	if (isProduction) {
-		postmarkApiToken = requireEnv("POSTMARK_API_TOKEN");
+		brevoApiKey = requireEnv("BREVO_API_KEY");
 		emailFrom = requireEnv("EMAIL_FROM");
 	} else {
-		postmarkApiToken = process.env.POSTMARK_API_TOKEN ?? null;
+		brevoApiKey = process.env.BREVO_API_KEY ?? null;
 		emailFrom = process.env.EMAIL_FROM ?? null;
 	}
 
@@ -77,7 +77,7 @@ function loadConfig(): Config {
 		port,
 		baseUrl,
 		databasePath,
-		postmarkApiToken,
+		brevoApiKey,
 		emailFrom,
 		dailySendTimeUtc,
 		maxSubscribers,

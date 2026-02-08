@@ -4,14 +4,14 @@ import { loadConfig } from "./config";
 const DEV_REQUIRED_ENV = {
 	BASE_URL: "https://example.com",
 	NODE_ENV: undefined as string | undefined,
-	POSTMARK_API_TOKEN: undefined as string | undefined,
+	BREVO_API_KEY: undefined as string | undefined,
 	EMAIL_FROM: undefined as string | undefined,
 };
 
 const PROD_REQUIRED_ENV = {
 	BASE_URL: "https://example.com",
 	NODE_ENV: "production",
-	POSTMARK_API_TOKEN: "test-postmark-token",
+	BREVO_API_KEY: "xkeysib-test-brevo-key",
 	EMAIL_FROM: "facts@example.com",
 };
 
@@ -63,43 +63,41 @@ describe("loadConfig - NODE_ENV", () => {
 	});
 });
 
-describe("loadConfig - development mode (Postmark optional)", () => {
-	test("loads successfully without Postmark env vars in development", () => {
+describe("loadConfig - development mode (Brevo optional)", () => {
+	test("loads successfully without Brevo env vars in development", () => {
 		withEnv({ ...DEV_REQUIRED_ENV }, () => {
 			expect(() => loadConfig()).not.toThrow();
 		});
 	});
 
-	test("returns null for Postmark vars when not set in development", () => {
+	test("returns null for Brevo vars when not set in development", () => {
 		withEnv({ ...DEV_REQUIRED_ENV }, () => {
 			const config = loadConfig();
-			expect(config.postmarkApiToken).toBeNull();
+			expect(config.brevoApiKey).toBeNull();
 			expect(config.emailFrom).toBeNull();
 		});
 	});
 
-	test("returns Postmark vars when set in development", () => {
+	test("returns Brevo vars when set in development", () => {
 		withEnv(
 			{
 				...DEV_REQUIRED_ENV,
-				POSTMARK_API_TOKEN: "dev-postmark-token",
+				BREVO_API_KEY: "xkeysib-dev-brevo-key",
 				EMAIL_FROM: "dev@example.com",
 			},
 			() => {
 				const config = loadConfig();
-				expect(config.postmarkApiToken).toBe("dev-postmark-token");
+				expect(config.brevoApiKey).toBe("xkeysib-dev-brevo-key");
 				expect(config.emailFrom).toBe("dev@example.com");
 			},
 		);
 	});
 });
 
-describe("loadConfig - production mode (Postmark required)", () => {
-	test("throws when POSTMARK_API_TOKEN is missing in production", () => {
-		withEnv({ ...PROD_REQUIRED_ENV, POSTMARK_API_TOKEN: undefined }, () => {
-			expect(() => loadConfig()).toThrow(
-				"Missing required environment variable: POSTMARK_API_TOKEN",
-			);
+describe("loadConfig - production mode (Brevo required)", () => {
+	test("throws when BREVO_API_KEY is missing in production", () => {
+		withEnv({ ...PROD_REQUIRED_ENV, BREVO_API_KEY: undefined }, () => {
+			expect(() => loadConfig()).toThrow("Missing required environment variable: BREVO_API_KEY");
 		});
 	});
 
@@ -112,7 +110,7 @@ describe("loadConfig - production mode (Postmark required)", () => {
 	test("returns all provider vars when set in production", () => {
 		withEnv({ ...PROD_REQUIRED_ENV }, () => {
 			const config = loadConfig();
-			expect(config.postmarkApiToken).toBe("test-postmark-token");
+			expect(config.brevoApiKey).toBe("xkeysib-test-brevo-key");
 			expect(config.emailFrom).toBe("facts@example.com");
 		});
 	});
@@ -323,7 +321,7 @@ describe("loadConfig - development defaults applied correctly", () => {
 				const config = loadConfig();
 				expect(config.nodeEnv).toBe("development");
 				expect(config.baseUrl).toBe("https://example.com");
-				expect(config.postmarkApiToken).toBeNull();
+				expect(config.brevoApiKey).toBeNull();
 				expect(config.emailFrom).toBeNull();
 				expect(config.port).toBe(3000);
 				expect(config.dailySendTimeUtc).toBe("14:00");
@@ -350,7 +348,7 @@ describe("loadConfig - production defaults applied correctly", () => {
 				const config = loadConfig();
 				expect(config.nodeEnv).toBe("production");
 				expect(config.baseUrl).toBe("https://example.com");
-				expect(config.postmarkApiToken).toBe("test-postmark-token");
+				expect(config.brevoApiKey).toBe("xkeysib-test-brevo-key");
 				expect(config.emailFrom).toBe("facts@example.com");
 				expect(config.port).toBe(3000);
 				expect(config.dailySendTimeUtc).toBe("14:00");

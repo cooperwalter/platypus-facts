@@ -27,7 +27,7 @@ env:
   secret:
     - BASE_URL
     - OPENAI_API_KEY
-    - POSTMARK_API_TOKEN
+    - BREVO_API_KEY
     - EMAIL_FROM
 
 volumes:
