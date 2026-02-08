@@ -4,9 +4,6 @@ import { loadConfig } from "./config";
 const DEV_REQUIRED_ENV = {
 	BASE_URL: "https://example.com",
 	NODE_ENV: undefined as string | undefined,
-	TWILIO_ACCOUNT_SID: undefined as string | undefined,
-	TWILIO_AUTH_TOKEN: undefined as string | undefined,
-	TWILIO_PHONE_NUMBER: undefined as string | undefined,
 	POSTMARK_API_TOKEN: undefined as string | undefined,
 	EMAIL_FROM: undefined as string | undefined,
 };
@@ -14,9 +11,6 @@ const DEV_REQUIRED_ENV = {
 const PROD_REQUIRED_ENV = {
 	BASE_URL: "https://example.com",
 	NODE_ENV: "production",
-	TWILIO_ACCOUNT_SID: "test-sid",
-	TWILIO_AUTH_TOKEN: "test-token",
-	TWILIO_PHONE_NUMBER: "+15551234567",
 	POSTMARK_API_TOKEN: "test-postmark-token",
 	EMAIL_FROM: "facts@example.com",
 };
@@ -69,37 +63,11 @@ describe("loadConfig - NODE_ENV", () => {
 	});
 });
 
-describe("loadConfig - development mode (Twilio/Postmark optional)", () => {
-	test("loads successfully without Twilio env vars in development", () => {
+describe("loadConfig - development mode (Postmark optional)", () => {
+	test("loads successfully without Postmark env vars in development", () => {
 		withEnv({ ...DEV_REQUIRED_ENV }, () => {
 			expect(() => loadConfig()).not.toThrow();
 		});
-	});
-
-	test("returns null for Twilio vars when not set in development", () => {
-		withEnv({ ...DEV_REQUIRED_ENV }, () => {
-			const config = loadConfig();
-			expect(config.twilioAccountSid).toBeNull();
-			expect(config.twilioAuthToken).toBeNull();
-			expect(config.twilioPhoneNumber).toBeNull();
-		});
-	});
-
-	test("returns Twilio vars when set in development", () => {
-		withEnv(
-			{
-				...DEV_REQUIRED_ENV,
-				TWILIO_ACCOUNT_SID: "dev-sid",
-				TWILIO_AUTH_TOKEN: "dev-token",
-				TWILIO_PHONE_NUMBER: "+15559876543",
-			},
-			() => {
-				const config = loadConfig();
-				expect(config.twilioAccountSid).toBe("dev-sid");
-				expect(config.twilioAuthToken).toBe("dev-token");
-				expect(config.twilioPhoneNumber).toBe("+15559876543");
-			},
-		);
 	});
 
 	test("returns null for Postmark vars when not set in development", () => {
@@ -126,31 +94,7 @@ describe("loadConfig - development mode (Twilio/Postmark optional)", () => {
 	});
 });
 
-describe("loadConfig - production mode (Twilio/Postmark required)", () => {
-	test("throws when TWILIO_ACCOUNT_SID is missing in production", () => {
-		withEnv({ ...PROD_REQUIRED_ENV, TWILIO_ACCOUNT_SID: undefined }, () => {
-			expect(() => loadConfig()).toThrow(
-				"Missing required environment variable: TWILIO_ACCOUNT_SID",
-			);
-		});
-	});
-
-	test("throws when TWILIO_AUTH_TOKEN is missing in production", () => {
-		withEnv({ ...PROD_REQUIRED_ENV, TWILIO_AUTH_TOKEN: undefined }, () => {
-			expect(() => loadConfig()).toThrow(
-				"Missing required environment variable: TWILIO_AUTH_TOKEN",
-			);
-		});
-	});
-
-	test("throws when TWILIO_PHONE_NUMBER is missing in production", () => {
-		withEnv({ ...PROD_REQUIRED_ENV, TWILIO_PHONE_NUMBER: undefined }, () => {
-			expect(() => loadConfig()).toThrow(
-				"Missing required environment variable: TWILIO_PHONE_NUMBER",
-			);
-		});
-	});
-
+describe("loadConfig - production mode (Postmark required)", () => {
 	test("throws when POSTMARK_API_TOKEN is missing in production", () => {
 		withEnv({ ...PROD_REQUIRED_ENV, POSTMARK_API_TOKEN: undefined }, () => {
 			expect(() => loadConfig()).toThrow(
@@ -168,9 +112,6 @@ describe("loadConfig - production mode (Twilio/Postmark required)", () => {
 	test("returns all provider vars when set in production", () => {
 		withEnv({ ...PROD_REQUIRED_ENV }, () => {
 			const config = loadConfig();
-			expect(config.twilioAccountSid).toBe("test-sid");
-			expect(config.twilioAuthToken).toBe("test-token");
-			expect(config.twilioPhoneNumber).toBe("+15551234567");
 			expect(config.postmarkApiToken).toBe("test-postmark-token");
 			expect(config.emailFrom).toBe("facts@example.com");
 		});
@@ -201,35 +142,6 @@ describe("loadConfig - BASE_URL validation", () => {
 		withEnv({ ...DEV_REQUIRED_ENV, BASE_URL: "https://platypus.example.com" }, () => {
 			const config = loadConfig();
 			expect(config.baseUrl).toBe("https://platypus.example.com");
-		});
-	});
-});
-
-describe("loadConfig - TWILIO_PHONE_NUMBER E.164 validation", () => {
-	test("throws when TWILIO_PHONE_NUMBER is not in E.164 format", () => {
-		withEnv({ ...DEV_REQUIRED_ENV, TWILIO_PHONE_NUMBER: "5551234567" }, () => {
-			expect(() => loadConfig()).toThrow("TWILIO_PHONE_NUMBER must be in E.164 format");
-		});
-	});
-
-	test("throws when TWILIO_PHONE_NUMBER has no plus prefix", () => {
-		withEnv({ ...DEV_REQUIRED_ENV, TWILIO_PHONE_NUMBER: "15551234567" }, () => {
-			expect(() => loadConfig()).toThrow("TWILIO_PHONE_NUMBER must be in E.164 format");
-		});
-	});
-
-	test("accepts valid E.164 phone number", () => {
-		withEnv({ ...DEV_REQUIRED_ENV, TWILIO_PHONE_NUMBER: "+15559876543" }, () => {
-			const config = loadConfig();
-			expect(config.twilioPhoneNumber).toBe("+15559876543");
-		});
-	});
-
-	test("skips E.164 validation when TWILIO_PHONE_NUMBER is not set in development", () => {
-		withEnv({ ...DEV_REQUIRED_ENV, TWILIO_PHONE_NUMBER: undefined }, () => {
-			expect(() => loadConfig()).not.toThrow();
-			const config = loadConfig();
-			expect(config.twilioPhoneNumber).toBeNull();
 		});
 	});
 });
@@ -411,9 +323,6 @@ describe("loadConfig - development defaults applied correctly", () => {
 				const config = loadConfig();
 				expect(config.nodeEnv).toBe("development");
 				expect(config.baseUrl).toBe("https://example.com");
-				expect(config.twilioAccountSid).toBeNull();
-				expect(config.twilioAuthToken).toBeNull();
-				expect(config.twilioPhoneNumber).toBeNull();
 				expect(config.postmarkApiToken).toBeNull();
 				expect(config.emailFrom).toBeNull();
 				expect(config.port).toBe(3000);
@@ -441,9 +350,6 @@ describe("loadConfig - production defaults applied correctly", () => {
 				const config = loadConfig();
 				expect(config.nodeEnv).toBe("production");
 				expect(config.baseUrl).toBe("https://example.com");
-				expect(config.twilioAccountSid).toBe("test-sid");
-				expect(config.twilioAuthToken).toBe("test-token");
-				expect(config.twilioPhoneNumber).toBe("+15551234567");
 				expect(config.postmarkApiToken).toBe("test-postmark-token");
 				expect(config.emailFrom).toBe("facts@example.com");
 				expect(config.port).toBe(3000);

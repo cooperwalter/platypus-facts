@@ -6,8 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 bun test                        # Run all tests
-bun test src/lib/phone.test.ts  # Run a single test file
-bun test --test-name-pattern "normalizes" # Run tests matching pattern
+bun test src/lib/subscribers.test.ts  # Run a single test file
+bun test --test-name-pattern "signup" # Run tests matching pattern
 bun run start                   # Start the server (requires .env)
 bun run typecheck               # TypeScript type checking (bunx tsc --noEmit)
 bun run lint                    # Biome lint + format check
@@ -18,34 +18,32 @@ bun run daily-send              # Execute the daily send job
 
 ## Architecture
 
-Bun HTTP server (`Bun.serve()`) that sends daily platypus facts via SMS (Twilio) and/or email (Postmark). No build step — Bun runs TypeScript directly. SQLite database via `bun:sqlite`. Server-rendered HTML pages via template literals (no framework).
+Bun HTTP server (`Bun.serve()`) that sends daily platypus facts via email (Postmark). No build step — Bun runs TypeScript directly. SQLite database via `bun:sqlite`. Server-rendered HTML pages via template literals (no framework).
 
 ### Source Layout
 
 - **`src/index.ts`** — Entry point: HTTP server with route matching, static file serving, graceful shutdown, dev message viewer routes (when dev providers are active)
-- **`src/lib/`** — Core modules: database, config, phone validation, subscribers, facts, fact cycling, rate limiting, SMS provider, email provider, subscription flow
-- **`src/lib/sms/`** — SMS provider abstraction: Twilio implementation + dev provider (in-memory message store)
-- **`src/lib/email/`** — Email provider abstraction: Postmark implementation + dev provider (in-memory message store)
-- **`src/routes/`** — Route handlers: health check, HTML pages (including dev message viewer), subscribe API, Twilio webhook
-- **`src/jobs/daily-send.ts`** — Cron job: selects next fact and sends to all active subscribers via SMS and/or email
+- **`src/server.ts`** — `createRequestHandler(deps)` factory: testable request handler extracted from index.ts
+- **`src/lib/`** — Core modules: database, config, subscribers, facts, fact cycling, rate limiting, email provider, subscription flow
+- **`src/lib/email/`** — Email provider abstraction: Postmark implementation + dev provider (persists to `dev_messages` table)
+- **`src/routes/`** — Route handlers: health check, HTML pages (including dev message viewer), subscribe API
+- **`src/jobs/daily-send.ts`** — Cron job: selects next fact and sends to all active subscribers via email
 - **`src/scripts/sync-facts.ts`** — Syncs seed data from `data/facts.json` into the database
 - **`data/facts.json`** — Seed data (array of `{text, sources: [{url, title}]}`)
 - **`public/`** — Static assets (CSS, fact images)
 
 ### Key Design Decisions
 
-- **SMS provider is interface-based** (`SmsProvider` in `src/lib/sms/types.ts`) — Twilio implementation for production, `DevSmsProvider` for development, `makeMockSmsProvider()` for tests
 - **Email provider is interface-based** (`EmailProvider` in `src/lib/email/types.ts`) — Postmark implementation for production, `DevEmailProvider` for development, `makeMockEmailProvider()` for tests
-- **Dev providers** store messages in-memory with `getStoredMessages()`/`getStoredEmails()` methods; dev viewer routes are conditionally registered via `instanceof` checks
+- **Dev email provider** persists to SQLite `dev_messages` table; dev viewer routes are conditionally registered via `instanceof` checks
 - **Fact cycling** ensures every fact is sent before any repeats, tracking cycles in the `sent_facts` table
-- **`handleIncomingMessage`** returns a message string (not a Response) — the caller wraps it in TwiML
 - **`runDailySend`** accepts a `todayOverride` param because Date mocking doesn't work in Bun's test runner; accepts `--force` flag to re-send (blocked in production)
 - **Rate limiting** is in-memory per-process (fixed window, configured at 5 req/hr in index.ts)
 - **Config** (`loadConfig()`) validates all env vars on startup and strips trailing slashes from BASE_URL
 
 ### Database
 
-Four SQLite tables: `facts`, `fact_sources` (FK→facts, CASCADE DELETE), `subscribers` (UNIQUE phone_number, UNIQUE email, UNIQUE confirmation_token), `sent_facts` (UNIQUE sent_date, FK→facts, NO CASCADE). WAL mode and foreign keys enabled. Schema auto-initializes on connection.
+Four SQLite tables: `facts`, `fact_sources` (FK→facts, CASCADE DELETE), `subscribers` (UNIQUE email, UNIQUE token), `sent_facts` (UNIQUE sent_date, FK→facts, NO CASCADE). Plus `dev_messages` for dev email storage. WAL mode and foreign keys enabled. Schema auto-initializes on connection.
 
 Prefer `db.run()` over `db.exec()` for executing SQL statements. `db.run()` uses prepared statements (safer, supports parameters), while `db.exec()` runs raw SQL strings.
 
@@ -54,11 +52,8 @@ Prefer `db.run()` over `db.exec()` for executing SQL statements. `db.run()` uses
 Tests use Bun's test runner (`describe`/`test`/`expect`). Test utilities in `src/lib/test-utils.ts`:
 
 - `makeTestDatabase()` — in-memory SQLite with schema initialized
-- `makeMockSmsProvider()` — mock implementing `SmsProvider` with `sentMessages` array for assertions
 - `makeMockEmailProvider()` — mock implementing `EmailProvider` with `sentEmails` array for assertions
 - `makeFactRow(db, overrides?)`, `makeSubscriberRow(db, overrides?)`, `makeSentFactRow(db, overrides?)` — data builders (generator pattern, not beforeEach/afterEach)
-
-Phone numbers in tests: avoid area codes or exchanges starting with 0 or 1 (NANP validation rejects them).
 
 ## Linting / Style
 

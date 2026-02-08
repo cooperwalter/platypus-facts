@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { createRateLimiter } from "../lib/rate-limiter";
 import {
 	makeFactRow,
-	makeMockSmsProvider,
+	makeMockEmailProvider,
 	makeSubscriberRow,
 	makeTestDatabase,
 } from "../lib/test-utils";
@@ -11,14 +11,13 @@ import {
 	handleUnsubscribe,
 	render404Page,
 	renderConfirmationPage,
-	renderDevMessage,
+	renderDevEmailDetail,
 	renderDevMessageList,
 	renderFactPage,
 	renderSignupPage,
 	renderUnsubscribePage,
 } from "./pages";
 import { getClientIp, handleSubscribe } from "./subscribe";
-import { handleTwilioWebhook } from "./webhook";
 
 const BASE_URL = "https://example.com";
 
@@ -44,13 +43,13 @@ describe("POST /api/subscribe", () => {
 		});
 	}
 
-	test("returns success JSON for valid phone number", async () => {
+	test("returns success JSON for valid email", async () => {
 		const db = makeTestDatabase();
-		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
 		const limiter = createRateLimiter(5, 60 * 60 * 1000);
 
-		const request = makeRequest(JSON.stringify({ phoneNumber: "5552345678" }));
-		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
+		const request = makeRequest(JSON.stringify({ email: "test@example.com" }));
+		const response = await handleSubscribe(request, db, email, limiter, 1000, BASE_URL);
 		const body = (await response.json()) as Record<string, unknown>;
 
 		expect(response.status).toBe(200);
@@ -58,61 +57,60 @@ describe("POST /api/subscribe", () => {
 		expect(typeof body.message).toBe("string");
 	});
 
-	test("returns error JSON for invalid phone number", async () => {
+	test("returns error JSON for invalid email", async () => {
 		const db = makeTestDatabase();
-		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
 		const limiter = createRateLimiter(5, 60 * 60 * 1000);
 
-		const request = makeRequest(JSON.stringify({ phoneNumber: "123" }));
-		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
+		const request = makeRequest(JSON.stringify({ email: "notanemail" }));
+		const response = await handleSubscribe(request, db, email, limiter, 1000, BASE_URL);
 		const body = (await response.json()) as Record<string, unknown>;
 
 		expect(response.status).toBe(200);
 		expect(body.success).toBe(false);
-		expect(typeof body.error).toBe("string");
 	});
 
 	test("returns 400 for malformed JSON body", async () => {
 		const db = makeTestDatabase();
-		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
 		const limiter = createRateLimiter(5, 60 * 60 * 1000);
 
 		const request = makeRequest("not json");
-		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
+		const response = await handleSubscribe(request, db, email, limiter, 1000, BASE_URL);
 		const body = await response.json();
 
 		expect(response.status).toBe(400);
 		expect(body).toEqual({ success: false, error: "Invalid request body" });
 	});
 
-	test("returns 400 when neither phoneNumber nor email is provided", async () => {
+	test("returns 400 when email is not provided", async () => {
 		const db = makeTestDatabase();
-		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
 		const limiter = createRateLimiter(5, 60 * 60 * 1000);
 
-		const request = makeRequest(JSON.stringify({ phone: "5551234567" }));
-		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
+		const request = makeRequest(JSON.stringify({ name: "test" }));
+		const response = await handleSubscribe(request, db, email, limiter, 1000, BASE_URL);
 		const body = await response.json();
 
 		expect(response.status).toBe(400);
 		expect(body).toEqual({
 			success: false,
-			error: "Please provide a phone number or email address.",
+			error: "Please provide an email address.",
 		});
 	});
 
 	test("returns 429 when rate limited", async () => {
 		const db = makeTestDatabase();
-		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
 		const limiter = createRateLimiter(2, 60 * 60 * 1000);
 
 		for (let i = 0; i < 2; i++) {
-			const req = makeRequest(JSON.stringify({ phoneNumber: "5551234567" }));
-			await handleSubscribe(req, db, sms, limiter, 1000, BASE_URL);
+			const req = makeRequest(JSON.stringify({ email: `test${i}@example.com` }));
+			await handleSubscribe(req, db, email, limiter, 1000, BASE_URL);
 		}
 
-		const request = makeRequest(JSON.stringify({ phoneNumber: "5551234567" }));
-		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
+		const request = makeRequest(JSON.stringify({ email: "test@example.com" }));
+		const response = await handleSubscribe(request, db, email, limiter, 1000, BASE_URL);
 		const body = await response.json();
 
 		expect(response.status).toBe(429);
@@ -121,13 +119,13 @@ describe("POST /api/subscribe", () => {
 
 	test("returns success:false when at capacity", async () => {
 		const db = makeTestDatabase();
-		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
 		const limiter = createRateLimiter(5, 60 * 60 * 1000);
 
-		makeSubscriberRow(db, { phone_number: "+15559999999", status: "active" });
+		makeSubscriberRow(db, { email: "existing@example.com", status: "active" });
 
-		const request = makeRequest(JSON.stringify({ phoneNumber: "5551234567" }));
-		const response = await handleSubscribe(request, db, sms, limiter, 1, BASE_URL);
+		const request = makeRequest(JSON.stringify({ email: "new@example.com" }));
+		const response = await handleSubscribe(request, db, email, limiter, 1, BASE_URL);
 		const body = (await response.json()) as Record<string, unknown>;
 
 		expect(response.status).toBe(200);
@@ -136,47 +134,8 @@ describe("POST /api/subscribe", () => {
 	});
 });
 
-describe("POST /api/webhooks/twilio/incoming", () => {
-	function makeWebhookRequest(from: string, body: string): Request {
-		const formData = new URLSearchParams();
-		formData.set("From", from);
-		formData.set("Body", body);
-
-		return new Request("http://localhost/api/webhooks/twilio/incoming", {
-			method: "POST",
-			headers: { "Content-Type": "application/x-www-form-urlencoded" },
-			body: formData.toString(),
-		});
-	}
-
-	test("processes valid webhook and returns TwiML XML", async () => {
-		const db = makeTestDatabase();
-		const sms = makeMockSmsProvider();
-		makeSubscriberRow(db, { phone_number: "+15551234567", status: "pending" });
-
-		const request = makeWebhookRequest("+15551234567", "1");
-		const response = await handleTwilioWebhook(request, db, sms, "https://example.com", 1000);
-
-		expect(response.status).toBe(200);
-		expect(response.headers.get("Content-Type")).toBe("text/xml");
-		const text = await response.text();
-		expect(text).toContain("<Response>");
-	});
-
-	test("returns 403 when webhook signature is invalid", async () => {
-		const db = makeTestDatabase();
-		const sms = makeMockSmsProvider();
-		sms.validateWebhookSignature = async () => false;
-
-		const request = makeWebhookRequest("+15551234567", "1");
-		const response = await handleTwilioWebhook(request, db, sms, "https://example.com", 1000);
-
-		expect(response.status).toBe(403);
-	});
-});
-
 describe("GET /", () => {
-	test("returns HTML with signup form containing phone and email inputs", async () => {
+	test("returns HTML with signup form containing email input", async () => {
 		const db = makeTestDatabase();
 		const response = renderSignupPage(db, 1000);
 
@@ -186,10 +145,8 @@ describe("GET /", () => {
 		const html = await response.text();
 		expect(html).toContain("Daily Platypus Facts");
 		expect(html).toContain("signup-form");
-		expect(html).toContain('type="tel"');
 		expect(html).toContain('type="email"');
 		expect(html).toContain('id="email-input"');
-		expect(html).toContain("and / or");
 	});
 
 	test("does not render animated swimming platypus element", async () => {
@@ -204,9 +161,9 @@ describe("GET /", () => {
 
 	test("renders current Platypus Fan count and max capacity", async () => {
 		const db = makeTestDatabase();
-		makeSubscriberRow(db, { phone_number: "+15551234567", status: "active" });
-		makeSubscriberRow(db, { phone_number: "+15559876543", status: "active" });
-		makeSubscriberRow(db, { phone_number: "+15550001111", status: "pending" });
+		makeSubscriberRow(db, { email: "a@example.com", status: "active" });
+		makeSubscriberRow(db, { email: "b@example.com", status: "active" });
+		makeSubscriberRow(db, { email: "c@example.com", status: "pending" });
 
 		const response = renderSignupPage(db, 1000);
 		const html = await response.text();
@@ -218,7 +175,7 @@ describe("GET /", () => {
 
 	test("renders capacity message instead of signup form when at capacity", async () => {
 		const db = makeTestDatabase();
-		makeSubscriberRow(db, { phone_number: "+15551234567", status: "active" });
+		makeSubscriberRow(db, { email: "a@example.com", status: "active" });
 
 		const response = renderSignupPage(db, 1);
 		const html = await response.text();
@@ -494,7 +451,7 @@ describe("POST /api/subscribe - getClientIp", () => {
 describe("POST /api/subscribe - body size limit", () => {
 	test("returns 413 when Content-Length header exceeds 4096 bytes", async () => {
 		const db = makeTestDatabase();
-		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
 		const limiter = createRateLimiter(5, 60 * 60 * 1000);
 
 		const request = new Request("http://localhost/api/subscribe", {
@@ -504,9 +461,9 @@ describe("POST /api/subscribe - body size limit", () => {
 				"X-Forwarded-For": "192.168.1.1",
 				"Content-Length": "10000",
 			},
-			body: JSON.stringify({ phoneNumber: "5552345678" }),
+			body: JSON.stringify({ email: "test@example.com" }),
 		});
-		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
+		const response = await handleSubscribe(request, db, email, limiter, 1000, BASE_URL);
 		const body = await response.json();
 
 		expect(response.status).toBe(413);
@@ -515,10 +472,10 @@ describe("POST /api/subscribe - body size limit", () => {
 
 	test("returns 413 when actual body exceeds 4096 bytes without Content-Length header", async () => {
 		const db = makeTestDatabase();
-		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
 		const limiter = createRateLimiter(5, 60 * 60 * 1000);
 
-		const largeBody = JSON.stringify({ phoneNumber: "5552345678", padding: "x".repeat(5000) });
+		const largeBody = JSON.stringify({ email: "test@example.com", padding: "x".repeat(5000) });
 		const request = new Request("http://localhost/api/subscribe", {
 			method: "POST",
 			headers: {
@@ -527,7 +484,7 @@ describe("POST /api/subscribe - body size limit", () => {
 			},
 			body: largeBody,
 		});
-		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
+		const response = await handleSubscribe(request, db, email, limiter, 1000, BASE_URL);
 		const body = await response.json();
 
 		expect(response.status).toBe(413);
@@ -536,7 +493,7 @@ describe("POST /api/subscribe - body size limit", () => {
 
 	test("accepts request body under 4096 bytes", async () => {
 		const db = makeTestDatabase();
-		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
 		const limiter = createRateLimiter(5, 60 * 60 * 1000);
 
 		const request = new Request("http://localhost/api/subscribe", {
@@ -545,9 +502,9 @@ describe("POST /api/subscribe - body size limit", () => {
 				"Content-Type": "application/json",
 				"X-Forwarded-For": "192.168.1.1",
 			},
-			body: JSON.stringify({ phoneNumber: "5552345678" }),
+			body: JSON.stringify({ email: "test@example.com" }),
 		});
-		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
+		const response = await handleSubscribe(request, db, email, limiter, 1000, BASE_URL);
 		const body = (await response.json()) as Record<string, unknown>;
 
 		expect(response.status).toBe(200);
@@ -568,29 +525,29 @@ describe("POST /api/subscribe - body validation edge cases", () => {
 		});
 	}
 
-	test("returns 400 when phoneNumber is a number instead of string", async () => {
+	test("returns 400 when email is a number instead of string", async () => {
 		const db = makeTestDatabase();
-		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
 		const limiter = createRateLimiter(5, 60 * 60 * 1000);
 
-		const request = makeRequest(JSON.stringify({ phoneNumber: 5551234567 }));
-		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
+		const request = makeRequest(JSON.stringify({ email: 12345 }));
+		const response = await handleSubscribe(request, db, email, limiter, 1000, BASE_URL);
 		const body = await response.json();
 
 		expect(response.status).toBe(400);
 		expect(body).toEqual({
 			success: false,
-			error: "Please provide a phone number or email address.",
+			error: "Please provide an email address.",
 		});
 	});
 
 	test("returns 400 when body is a JSON array instead of object", async () => {
 		const db = makeTestDatabase();
-		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
 		const limiter = createRateLimiter(5, 60 * 60 * 1000);
 
-		const request = makeRequest(JSON.stringify(["5551234567"]));
-		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
+		const request = makeRequest(JSON.stringify(["test@example.com"]));
+		const response = await handleSubscribe(request, db, email, limiter, 1000, BASE_URL);
 		const body = await response.json();
 
 		expect(response.status).toBe(400);
@@ -599,11 +556,11 @@ describe("POST /api/subscribe - body validation edge cases", () => {
 
 	test("returns 400 when body is JSON null", async () => {
 		const db = makeTestDatabase();
-		const sms = makeMockSmsProvider();
+		const email = makeMockEmailProvider();
 		const limiter = createRateLimiter(5, 60 * 60 * 1000);
 
 		const request = makeRequest("null");
-		const response = await handleSubscribe(request, db, sms, limiter, 1000, BASE_URL);
+		const response = await handleSubscribe(request, db, email, limiter, 1000, BASE_URL);
 		const body = await response.json();
 
 		expect(response.status).toBe(400);
@@ -611,85 +568,10 @@ describe("POST /api/subscribe - body validation edge cases", () => {
 	});
 });
 
-describe("POST /api/webhooks/twilio/incoming - error handling", () => {
-	test("returns empty TwiML when parseIncomingMessage throws", async () => {
-		const db = makeTestDatabase();
-		const sms = makeMockSmsProvider();
-		sms.parseIncomingMessage = async () => {
-			throw new Error("Parse failure");
-		};
-
-		const request = new Request("http://localhost/api/webhooks/twilio/incoming", {
-			method: "POST",
-			headers: { "Content-Type": "application/x-www-form-urlencoded" },
-			body: "invalid-data",
-		});
-		const response = await handleTwilioWebhook(request, db, sms, "https://example.com", 1000);
-
-		expect(response.status).toBe(200);
-		expect(response.headers.get("Content-Type")).toBe("text/xml");
-		const text = await response.text();
-		expect(text).toContain("<Response");
-		expect(text).not.toContain("<Message>");
-	});
-
-	test("returns empty TwiML when handleIncomingMessage throws", async () => {
-		const db = makeTestDatabase();
-		const sms = makeMockSmsProvider();
-
-		const formData = new URLSearchParams();
-		formData.set("From", "+15551234567");
-		formData.set("Body", "1");
-
-		const request = new Request("http://localhost/api/webhooks/twilio/incoming", {
-			method: "POST",
-			headers: { "Content-Type": "application/x-www-form-urlencoded" },
-			body: formData.toString(),
-		});
-
-		const originalParse = sms.parseIncomingMessage.bind(sms);
-		let parseCount = 0;
-		sms.parseIncomingMessage = async (req: Request) => {
-			parseCount++;
-			if (parseCount === 1) {
-				return { from: "not-a-valid-phone!!!", body: "\0\0\0" };
-			}
-			return originalParse(req);
-		};
-
-		const response = await handleTwilioWebhook(request, db, sms, "https://example.com", 1000);
-
-		expect(response.status).toBe(200);
-		expect(response.headers.get("Content-Type")).toBe("text/xml");
-	});
-
-	test("returns TwiML with no message body when STOP word sent by known subscriber", async () => {
-		const db = makeTestDatabase();
-		const sms = makeMockSmsProvider();
-		makeSubscriberRow(db, { phone_number: "+15551234567", status: "active" });
-
-		const formData = new URLSearchParams();
-		formData.set("From", "+15551234567");
-		formData.set("Body", "STOP");
-
-		const request = new Request("http://localhost/api/webhooks/twilio/incoming", {
-			method: "POST",
-			headers: { "Content-Type": "application/x-www-form-urlencoded" },
-			body: formData.toString(),
-		});
-
-		const response = await handleTwilioWebhook(request, db, sms, "https://example.com", 1000);
-		const text = await response.text();
-
-		expect(response.status).toBe(200);
-		expect(text).not.toContain("<Message>");
-	});
-});
-
 describe("GET / - signup page at capacity details", () => {
 	test("does not include form submission script when at capacity", async () => {
 		const db = makeTestDatabase();
-		makeSubscriberRow(db, { phone_number: "+15551234567", status: "active" });
+		makeSubscriberRow(db, { email: "a@example.com", status: "active" });
 
 		const response = renderSignupPage(db, 1);
 		const html = await response.text();
@@ -708,41 +590,29 @@ describe("GET / - signup page at capacity details", () => {
 		expect(html).toContain("/api/subscribe");
 	});
 
-	test("phone input is not required (both fields optional, at least one needed)", async () => {
+	test("email input has required attribute", async () => {
 		const db = makeTestDatabase();
 		const response = renderSignupPage(db, 1000);
 		const html = await response.text();
 
-		expect(html).not.toContain("required");
+		expect(html).toContain("required");
 	});
 
-	test("form script sends both phoneNumber and email in payload", async () => {
+	test("form script sends email in payload", async () => {
 		const db = makeTestDatabase();
 		const response = renderSignupPage(db, 1000);
 		const html = await response.text();
 
-		expect(html).toContain("payload.phoneNumber");
-		expect(html).toContain("payload.email");
+		expect(html).toContain("email: emailValue");
 	});
 
-	test("form script validates at least one of phone or email is provided", async () => {
-		const db = makeTestDatabase();
-		const response = renderSignupPage(db, 1000);
-		const html = await response.text();
-
-		expect(html).toContain("!phoneValue && !emailValue");
-		expect(html).toContain("Please enter a phone number or email address");
-	});
-
-	test("includes description text about daily platypus facts via SMS and/or email", async () => {
+	test("includes description text about daily platypus facts via email", async () => {
 		const db = makeTestDatabase();
 
 		const response = renderSignupPage(db, 1000);
 		const html = await response.text();
 
-		expect(html).toContain(
-			"Get one fascinating platypus fact delivered every day via SMS and/or email",
-		);
+		expect(html).toContain("Get one fascinating platypus fact delivered every day via email");
 	});
 });
 
@@ -750,7 +620,7 @@ describe("GET /confirm/:token", () => {
 	test("activates pending subscriber and shows success page", async () => {
 		const db = makeTestDatabase();
 		const id = makeSubscriberRow(db, {
-			phone_number: "+15552345678",
+			email: "test@example.com",
 			token: "11111111-1111-1111-1111-111111111111",
 			status: "pending",
 		});
@@ -773,7 +643,7 @@ describe("GET /confirm/:token", () => {
 	test("shows 'already confirmed' page for active subscriber", async () => {
 		const db = makeTestDatabase();
 		makeSubscriberRow(db, {
-			phone_number: "+15552345678",
+			email: "test@example.com",
 			token: "22222222-2222-2222-2222-222222222222",
 			status: "active",
 			confirmed_at: "2025-01-01T00:00:00Z",
@@ -789,7 +659,7 @@ describe("GET /confirm/:token", () => {
 	test("shows inactive message for unsubscribed subscriber", async () => {
 		const db = makeTestDatabase();
 		makeSubscriberRow(db, {
-			phone_number: "+15552345678",
+			email: "test@example.com",
 			token: "33333333-3333-3333-3333-333333333333",
 			status: "unsubscribed",
 			unsubscribed_at: "2025-01-01T00:00:00Z",
@@ -816,12 +686,12 @@ describe("GET /confirm/:token", () => {
 	test("shows at-capacity page when cap reached during confirmation", async () => {
 		const db = makeTestDatabase();
 		makeSubscriberRow(db, {
-			phone_number: "+15559999999",
+			email: "existing@example.com",
 			status: "active",
 			confirmed_at: "2025-01-01T00:00:00Z",
 		});
 		makeSubscriberRow(db, {
-			phone_number: "+15552345678",
+			email: "pending@example.com",
 			token: "44444444-4444-4444-4444-444444444444",
 			status: "pending",
 		});
@@ -842,7 +712,7 @@ describe("GET /confirm/:token", () => {
 	test("confirmation page includes Daily Platypus Facts branding", async () => {
 		const db = makeTestDatabase();
 		makeSubscriberRow(db, {
-			phone_number: "+15552345678",
+			email: "test@example.com",
 			token: "55555555-5555-5555-5555-555555555555",
 			status: "pending",
 		});
@@ -860,7 +730,7 @@ describe("GET /unsubscribe/:token", () => {
 	test("shows confirmation form for active subscriber", async () => {
 		const db = makeTestDatabase();
 		makeSubscriberRow(db, {
-			phone_number: "+15552345678",
+			email: "test@example.com",
 			token: "aaaa1111-1111-1111-1111-111111111111",
 			status: "active",
 			confirmed_at: "2025-01-01T00:00:00Z",
@@ -878,7 +748,7 @@ describe("GET /unsubscribe/:token", () => {
 	test("shows confirmation form for pending subscriber", async () => {
 		const db = makeTestDatabase();
 		makeSubscriberRow(db, {
-			phone_number: "+15552345678",
+			email: "test@example.com",
 			token: "aaaa2222-2222-2222-2222-222222222222",
 			status: "pending",
 		});
@@ -893,7 +763,7 @@ describe("GET /unsubscribe/:token", () => {
 	test("shows already-unsubscribed message for unsubscribed subscriber", async () => {
 		const db = makeTestDatabase();
 		makeSubscriberRow(db, {
-			phone_number: "+15552345678",
+			email: "test@example.com",
 			token: "aaaa3333-3333-3333-3333-333333333333",
 			status: "unsubscribed",
 			unsubscribed_at: "2025-01-01T00:00:00Z",
@@ -921,7 +791,7 @@ describe("POST /unsubscribe/:token", () => {
 	test("unsubscribes active subscriber and shows success page", async () => {
 		const db = makeTestDatabase();
 		const id = makeSubscriberRow(db, {
-			phone_number: "+15552345678",
+			email: "test@example.com",
 			token: "bbbb1111-1111-1111-1111-111111111111",
 			status: "active",
 			confirmed_at: "2025-01-01T00:00:00Z",
@@ -947,7 +817,7 @@ describe("POST /unsubscribe/:token", () => {
 	test("unsubscribes pending subscriber and shows success page", async () => {
 		const db = makeTestDatabase();
 		const id = makeSubscriberRow(db, {
-			phone_number: "+15552345678",
+			email: "test@example.com",
 			token: "bbbb2222-2222-2222-2222-222222222222",
 			status: "pending",
 		});
@@ -967,7 +837,7 @@ describe("POST /unsubscribe/:token", () => {
 	test("shows already-unsubscribed message for already unsubscribed subscriber", async () => {
 		const db = makeTestDatabase();
 		makeSubscriberRow(db, {
-			phone_number: "+15552345678",
+			email: "test@example.com",
 			token: "bbbb3333-3333-3333-3333-333333333333",
 			status: "unsubscribed",
 			unsubscribed_at: "2025-01-01T00:00:00Z",
@@ -992,38 +862,16 @@ describe("POST /unsubscribe/:token", () => {
 });
 
 describe("GET /dev/messages", () => {
-	test("renders empty state when no messages have been sent", async () => {
-		const response = renderDevMessageList([], []);
+	test("renders empty state when no email messages have been sent", async () => {
+		const response = renderDevMessageList([]);
 		const html = await response.text();
 
 		expect(response.status).toBe(200);
 		expect(response.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
-		expect(html).toContain("Sent Messages (0)");
 		expect(html).toContain("No messages sent yet.");
 	});
 
-	test("lists SMS messages with recipient, type badge, preview, and timestamp", async () => {
-		const smsMessages = [
-			{
-				id: 1,
-				to: "+15552345678",
-				body: "Daily Platypus Fact: They glow!",
-				mediaUrl: undefined,
-				timestamp: "2025-06-15T14:00:00Z",
-			},
-		];
-		const response = renderDevMessageList(smsMessages, []);
-		const html = await response.text();
-
-		expect(html).toContain("Sent Messages (1)");
-		expect(html).toContain("+15552345678");
-		expect(html).toContain("SMS");
-		expect(html).toContain("They glow!");
-		expect(html).toContain("2025-06-15T14:00:00Z");
-		expect(html).toContain('href="/dev/messages/sms-1"');
-	});
-
-	test("lists email messages with recipient, type badge, subject, and timestamp", async () => {
+	test("lists email messages with recipient, subject, and timestamp", async () => {
 		const emailMessages = [
 			{
 				id: 1,
@@ -1035,117 +883,27 @@ describe("GET /dev/messages", () => {
 				timestamp: "2025-06-15T14:00:00Z",
 			},
 		];
-		const response = renderDevMessageList([], emailMessages);
+		const response = renderDevMessageList(emailMessages);
 		const html = await response.text();
 
-		expect(html).toContain("Sent Messages (1)");
 		expect(html).toContain("fan@example.com");
-		expect(html).toContain("EMAIL");
 		expect(html).toContain("🦆 Daily Platypus Fact");
 		expect(html).toContain('href="/dev/messages/email-1"');
-	});
-
-	test("combines SMS and email messages sorted newest first", async () => {
-		const smsMessages = [
-			{
-				id: 1,
-				to: "+15552345678",
-				body: "Old SMS",
-				mediaUrl: undefined,
-				timestamp: "2025-06-15T12:00:00Z",
-			},
-		];
-		const emailMessages = [
-			{
-				id: 1,
-				recipient: "fan@example.com",
-				subject: "New Email",
-				htmlBody: "<p>Fact</p>",
-				plainBody: "Fact",
-				headers: undefined,
-				timestamp: "2025-06-15T14:00:00Z",
-			},
-		];
-		const response = renderDevMessageList(smsMessages, emailMessages);
-		const html = await response.text();
-
-		expect(html).toContain("Sent Messages (2)");
-		const emailPos = html.indexOf("fan@example.com");
-		const smsPos = html.indexOf("+15552345678");
-		expect(emailPos).toBeLessThan(smsPos);
-	});
-
-	test("truncates SMS body preview to 80 characters", async () => {
-		const longBody = "A".repeat(100);
-		const smsMessages = [
-			{
-				id: 1,
-				to: "+15552345678",
-				body: longBody,
-				mediaUrl: undefined,
-				timestamp: "2025-06-15T14:00:00Z",
-			},
-		];
-		const response = renderDevMessageList(smsMessages, []);
-		const html = await response.text();
-
-		expect(html).toContain(`${"A".repeat(80)}...`);
-		expect(html).not.toContain("A".repeat(81));
 	});
 });
 
 describe("GET /dev/messages/:id", () => {
-	test("renders SMS detail with recipient, timestamp, and full body text", async () => {
-		const smsMessages = [
-			{
-				id: 1,
-				to: "+15552345678",
-				body: "Daily Platypus Fact: They glow under UV!",
-				mediaUrl: undefined,
-				timestamp: "2025-06-15T14:00:00Z",
-			},
-		];
-		const response = renderDevMessage("sms-1", smsMessages, []);
-		const html = await response.text();
-
-		expect(response.status).toBe(200);
-		expect(html).toContain("SMS Message");
-		expect(html).toContain("+15552345678");
-		expect(html).toContain("Daily Platypus Fact: They glow under UV!");
-		expect(html).toContain("2025-06-15T14:00:00Z");
-		expect(html).toContain('href="/dev/messages"');
-	});
-
-	test("renders SMS detail with media URL when present", async () => {
-		const smsMessages = [
-			{
-				id: 1,
-				to: "+15552345678",
-				body: "Fact with image",
-				mediaUrl: "https://example.com/images/facts/1.png",
-				timestamp: "2025-06-15T14:00:00Z",
-			},
-		];
-		const response = renderDevMessage("sms-1", smsMessages, []);
-		const html = await response.text();
-
-		expect(html).toContain("Media");
-		expect(html).toContain("https://example.com/images/facts/1.png");
-	});
-
 	test("renders email detail with recipient, subject, timestamp, and HTML body", async () => {
-		const emailMessages = [
-			{
-				id: 1,
-				recipient: "fan@example.com",
-				subject: "🦆 Daily Platypus Fact",
-				htmlBody: "<p>Platypuses glow under UV light!</p>",
-				plainBody: "Platypuses glow under UV light!",
-				headers: undefined,
-				timestamp: "2025-06-15T14:00:00Z",
-			},
-		];
-		const response = renderDevMessage("email-1", [], emailMessages);
+		const emailMessage = {
+			id: 1,
+			recipient: "fan@example.com",
+			subject: "🦆 Daily Platypus Fact",
+			htmlBody: "<p>Platypuses glow under UV light!</p>",
+			plainBody: "Platypuses glow under UV light!",
+			headers: undefined,
+			timestamp: "2025-06-15T14:00:00Z",
+		};
+		const response = renderDevEmailDetail(emailMessage);
 		const html = await response.text();
 
 		expect(response.status).toBe(200);
@@ -1154,29 +912,5 @@ describe("GET /dev/messages/:id", () => {
 		expect(html).toContain("🦆 Daily Platypus Fact");
 		expect(html).toContain("<p>Platypuses glow under UV light!</p>");
 		expect(html).toContain("2025-06-15T14:00:00Z");
-	});
-
-	test("returns 404 for nonexistent SMS message ID", async () => {
-		const response = renderDevMessage("sms-999", [], []);
-
-		expect(response.status).toBe(404);
-		const html = await response.text();
-		expect(html).toContain("Not Found");
-	});
-
-	test("returns 404 for nonexistent email message ID", async () => {
-		const response = renderDevMessage("email-999", [], []);
-
-		expect(response.status).toBe(404);
-		const html = await response.text();
-		expect(html).toContain("Not Found");
-	});
-
-	test("returns 404 for invalid message ID format", async () => {
-		const response = renderDevMessage("invalid-id", [], []);
-
-		expect(response.status).toBe(404);
-		const html = await response.text();
-		expect(html).toContain("Not Found");
 	});
 });

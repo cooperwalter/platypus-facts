@@ -1,11 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { DevEmailProvider } from "./lib/email/dev";
 import { createRateLimiter } from "./lib/rate-limiter";
-import { DevSmsProvider } from "./lib/sms/dev";
 import {
 	makeFactRow,
 	makeMockEmailProvider,
-	makeMockSmsProvider,
 	makeSubscriberRow,
 	makeTestDatabase,
 } from "./lib/test-utils";
@@ -13,29 +11,24 @@ import { createRequestHandler } from "./server";
 
 function makeHandler(
 	overrides: {
-		devSms?: boolean;
 		devEmail?: boolean;
 	} = {},
 ) {
 	const db = makeTestDatabase();
-	const smsProvider = makeMockSmsProvider();
 	const emailProvider = makeMockEmailProvider();
 	const rateLimiter = createRateLimiter(5, 60 * 60 * 1000);
-	const devSmsProvider = overrides.devSms ? new DevSmsProvider(db) : null;
 	const devEmailProvider = overrides.devEmail ? new DevEmailProvider(db) : null;
 
 	const handler = createRequestHandler({
 		db,
-		smsProvider,
 		emailProvider,
 		rateLimiter,
 		maxSubscribers: 1000,
 		baseUrl: "https://example.com",
-		devSmsProvider,
 		devEmailProvider,
 	});
 
-	return { handler, db, smsProvider, emailProvider, rateLimiter };
+	return { handler, db, emailProvider, rateLimiter };
 }
 
 function get(url: string): Request {
@@ -74,7 +67,7 @@ describe("createRequestHandler", () => {
 		test("routes POST /api/subscribe to subscribe handler", async () => {
 			const { handler } = makeHandler();
 			const response = await handler(
-				post("/api/subscribe", JSON.stringify({ phoneNumber: "5558234567" })),
+				post("/api/subscribe", JSON.stringify({ email: "test@example.com" })),
 			);
 			expect(response.status).toBe(200);
 			const body = (await response.json()) as { success: boolean };
@@ -202,18 +195,12 @@ describe("createRequestHandler", () => {
 	});
 
 	describe("dev routes", () => {
-		test("enables dev message list when devSmsProvider is set", async () => {
-			const { handler } = makeHandler({ devSms: true });
-			const response = await handler(get("/dev/messages"));
-			expect(response.status).toBe(200);
-			const html = await response.text();
-			expect(html).toContain("Dev Messages");
-		});
-
 		test("enables dev message list when devEmailProvider is set", async () => {
 			const { handler } = makeHandler({ devEmail: true });
 			const response = await handler(get("/dev/messages"));
 			expect(response.status).toBe(200);
+			const html = await response.text();
+			expect(html).toContain("Sent Emails");
 		});
 
 		test("returns 404 for dev routes when dev providers are disabled", async () => {
@@ -224,20 +211,8 @@ describe("createRequestHandler", () => {
 
 		test("returns 404 for dev message detail when dev providers are disabled", async () => {
 			const { handler } = makeHandler();
-			const response = await handler(get("/dev/messages/sms-1"));
+			const response = await handler(get("/dev/messages/email-1"));
 			expect(response.status).toBe(404);
-		});
-
-		test("routes dev message detail with sms prefix", async () => {
-			const { handler, db } = makeHandler({ devSms: true });
-			db.run(
-				"INSERT INTO dev_messages (type, recipient, body) VALUES ('sms', '+15558234567', 'test')",
-			);
-			const row = db
-				.query<{ id: number }, []>("SELECT id FROM dev_messages ORDER BY id DESC LIMIT 1")
-				.get();
-			const response = await handler(get(`/dev/messages/sms-${row?.id}`));
-			expect(response.status).toBe(200);
 		});
 
 		test("routes dev message detail with email prefix", async () => {
@@ -278,21 +253,6 @@ describe("createRequestHandler", () => {
 			const { handler } = makeHandler();
 			const response = await handler(get("/facts/1/extra"));
 			expect(response.status).toBe(404);
-		});
-
-		test("handles POST to webhook path", async () => {
-			const { handler } = makeHandler();
-			const formData = new FormData();
-			formData.set("From", "+15558234567");
-			formData.set("Body", "hello");
-			const request = new Request("http://localhost/api/webhooks/twilio/incoming", {
-				method: "POST",
-				body: formData,
-			});
-			const response = await handler(request);
-			expect(response.status).toBe(200);
-			const text = await response.text();
-			expect(text).toContain("<Response>");
 		});
 	});
 

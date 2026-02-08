@@ -1,6 +1,13 @@
 # Data Model
 
-SQLite database with the following tables.
+SQLite database managed by [Drizzle ORM](https://orm.drizzle.team/). The schema is defined in TypeScript using Drizzle's schema declaration API (`drizzle-orm/sqlite-core`). All table definitions live in the codebase as the single source of truth — `drizzle-kit generate` produces SQL migration files, and the application applies them automatically on startup via Drizzle's programmatic `migrate()` function.
+
+## Schema Management
+
+- **Schema definition**: TypeScript schema files using `sqliteTable()` from `drizzle-orm/sqlite-core`.
+- **Migration generation**: `drizzle-kit generate` compares the current schema to the last snapshot and produces incremental SQL migration files in a `drizzle/` directory.
+- **Migration application**: On application startup, `migrate()` from `drizzle-orm/bun-sqlite/migrator` applies any pending migrations. This preserves the existing behavior of auto-applying schema changes on startup — no manual migration step is required.
+- **Migration from existing hand-written schema**: The transition to Drizzle should be as seamless as possible. The initial Drizzle schema must exactly match the current database structure so that existing databases continue working without data loss. Use `drizzle-kit generate` to create a baseline migration from the Drizzle schema, then mark it as already applied for existing databases.
 
 ## Tables
 

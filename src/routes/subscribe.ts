@@ -1,7 +1,6 @@
 import type { Database } from "bun:sqlite";
 import type { EmailProvider } from "../lib/email/types";
 import type { RateLimiter } from "../lib/rate-limiter";
-import type { SmsProvider } from "../lib/sms/types";
 import { signup } from "../lib/subscription-flow";
 
 function getClientIp(request: Request): string {
@@ -15,11 +14,10 @@ function getClientIp(request: Request): string {
 async function handleSubscribe(
 	request: Request,
 	db: Database,
-	smsProvider: SmsProvider,
+	emailProvider: EmailProvider,
 	rateLimiter: RateLimiter,
 	maxSubscribers: number,
 	baseUrl: string,
-	emailProvider?: EmailProvider | null,
 ): Promise<Response> {
 	const ip = getClientIp(request);
 
@@ -51,27 +49,16 @@ async function handleSubscribe(
 	}
 
 	const parsed = body as Record<string, unknown>;
-	const phoneNumber =
-		typeof parsed.phoneNumber === "string" && parsed.phoneNumber.trim()
-			? parsed.phoneNumber
-			: undefined;
 	const email = typeof parsed.email === "string" && parsed.email.trim() ? parsed.email : undefined;
 
-	if (!phoneNumber && !email) {
+	if (!email) {
 		return Response.json(
-			{ success: false, error: "Please provide a phone number or email address." },
+			{ success: false, error: "Please provide an email address." },
 			{ status: 400 },
 		);
 	}
 
-	const result = await signup(
-		db,
-		smsProvider,
-		{ phone: phoneNumber, email },
-		maxSubscribers,
-		baseUrl,
-		emailProvider,
-	);
+	const result = await signup(db, emailProvider, email, maxSubscribers, baseUrl);
 
 	if (result.success) {
 		return Response.json({ success: true, message: result.message });

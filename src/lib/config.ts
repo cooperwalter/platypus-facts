@@ -3,9 +3,6 @@ interface Config {
 	port: number;
 	baseUrl: string;
 	databasePath: string;
-	twilioAccountSid: string | null;
-	twilioAuthToken: string | null;
-	twilioPhoneNumber: string | null;
 	postmarkApiToken: string | null;
 	emailFrom: string | null;
 	dailySendTimeUtc: string;
@@ -19,10 +16,6 @@ function validateTimeFormat(time: string): boolean {
 	const hours = Number.parseInt(match[1], 10);
 	const minutes = Number.parseInt(match[2], 10);
 	return hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59;
-}
-
-function validateE164(phone: string): boolean {
-	return /^\+\d{10,15}$/.test(phone);
 }
 
 function requireEnv(name: string): string {
@@ -44,26 +37,6 @@ function loadConfig(): Config {
 		throw new Error(`BASE_URL must be a valid URL (e.g., https://example.com), got: ${rawBaseUrl}`);
 	}
 	const baseUrl = rawBaseUrl.replace(/\/+$/, "");
-
-	let twilioAccountSid: string | null = null;
-	let twilioAuthToken: string | null = null;
-	let twilioPhoneNumber: string | null = null;
-
-	if (isProduction) {
-		twilioAccountSid = requireEnv("TWILIO_ACCOUNT_SID");
-		twilioAuthToken = requireEnv("TWILIO_AUTH_TOKEN");
-		twilioPhoneNumber = requireEnv("TWILIO_PHONE_NUMBER");
-	} else {
-		twilioAccountSid = process.env.TWILIO_ACCOUNT_SID ?? null;
-		twilioAuthToken = process.env.TWILIO_AUTH_TOKEN ?? null;
-		twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER ?? null;
-	}
-
-	if (twilioPhoneNumber && !validateE164(twilioPhoneNumber)) {
-		throw new Error(
-			`TWILIO_PHONE_NUMBER must be in E.164 format (e.g., +15551234567), got: ${twilioPhoneNumber}`,
-		);
-	}
 
 	let postmarkApiToken: string | null = null;
 	let emailFrom: string | null = null;
@@ -104,9 +77,6 @@ function loadConfig(): Config {
 		port,
 		baseUrl,
 		databasePath,
-		twilioAccountSid,
-		twilioAuthToken,
-		twilioPhoneNumber,
 		postmarkApiToken,
 		emailFrom,
 		dailySendTimeUtc,

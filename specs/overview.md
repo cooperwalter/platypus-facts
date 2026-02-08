@@ -8,7 +8,8 @@ A service that sends one platypus fact per day via email to all confirmed Platyp
 
 - **Runtime**: Bun
 - **Language**: TypeScript
-- **Database**: SQLite
+- **Database**: SQLite via `bun:sqlite`
+- **ORM**: [Drizzle ORM](https://orm.drizzle.team/) with `drizzle-kit` for migrations
 - **Email Provider**: Postmark (behind a provider abstraction for future switching)
 - **Hosting**: Raspberry Pi 5 with Kamal deploys and Cloudflare Tunnel
 

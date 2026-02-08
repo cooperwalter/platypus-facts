@@ -42,9 +42,11 @@ Subscribers confirm by clicking a confirmation link in their email. This is the 
 
 After unsubscribing, users can only re-subscribe by visiting the website and entering their email again. This prevents accidental re-subscribes and ensures a deliberate opt-in via the full double opt-in flow.
 
-## Database: SQLite
+## Database: SQLite with Drizzle ORM
 
 Eliminates database hosting costs entirely. The file lives on the VPS alongside the application. Sufficient for the expected scale of this project.
+
+[Drizzle ORM](https://orm.drizzle.team/) is used for schema definition, query building, and migrations. Chosen because it works natively with `bun:sqlite` (no extra driver needed), has a TypeScript-first schema definition that serves as the single source of truth, generates standard SQL migration files via `drizzle-kit`, and supports programmatic migration application on startup via `migrate()`. The migration to Drizzle from the existing hand-written schema should be seamless — the initial Drizzle schema must match the existing database structure exactly so no data is lost or tables recreated.
 
 ## Hosting: VPS with Kamal deploys
 

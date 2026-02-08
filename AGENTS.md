@@ -51,12 +51,11 @@ Resolve all issues raised by the UX/UI review subagent before committing.
 ## Operational Notes
 
 - Database: SQLite file at path configured by `DATABASE_PATH` env var (default `./data/platypus-facts.db`)
-- SMS: Twilio — requires `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` env vars
+- Email: Postmark — requires `POSTMARK_API_TOKEN` and `EMAIL_FROM` env vars for production
 - Fact data lives in `data/facts.json`, synced to DB on startup/deploy
-- Phone numbers stored in E.164 format (e.g., `+15551234567`)
 
 ### Codebase Patterns
 
-- SMS provider is behind an abstraction interface (not Twilio-specific in application code)
+- Email provider is behind an abstraction interface (not Postmark-specific in application code)
 - Shared utilities go in `src/lib/`
 - Never use `any` in TypeScript — use real types or `unknown`

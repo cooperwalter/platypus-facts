@@ -19,7 +19,5 @@
 	"peerDependencies": {
 		"typescript": "^5"
 	},
-	"dependencies": {
-		"twilio": "^5.5.0"
-	}
+	"dependencies": {}
 }

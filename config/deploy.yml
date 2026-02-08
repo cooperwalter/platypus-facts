@@ -26,9 +26,6 @@ env:
     NODE_ENV: production
   secret:
     - BASE_URL
-    - TWILIO_ACCOUNT_SID
-    - TWILIO_AUTH_TOKEN
-    - TWILIO_PHONE_NUMBER
     - OPENAI_API_KEY
     - POSTMARK_API_TOKEN
     - EMAIL_FROM

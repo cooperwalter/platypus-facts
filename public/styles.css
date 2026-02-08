@@ -154,51 +154,6 @@ a:focus-visible {
 	gap: 0.75rem;
 }
 
-.input-group {
-	display: flex;
-	align-items: center;
-	border: 2px solid var(--color-border);
-	border-radius: var(--radius);
-	background: var(--color-input-bg);
-	overflow: hidden;
-	transition: border-color 0.2s;
-}
-
-.input-group:focus-within {
-	border-color: var(--color-accent);
-}
-
-.input-prefix {
-	padding: 0.65rem 0.5rem 0.65rem 0.75rem;
-	color: var(--color-text-muted);
-	font-size: 1rem;
-	user-select: none;
-	flex-shrink: 0;
-}
-
-.input-group input {
-	flex: 1;
-	border: none;
-	outline: none;
-	padding: 0.65rem 0.75rem 0.65rem 0;
-	font-size: 1rem;
-	font-family: var(--font-body);
-	background: transparent;
-	color: var(--color-text);
-}
-
-.input-group input::placeholder {
-	color: var(--color-text-muted);
-	opacity: 0.6;
-}
-
-.input-divider {
-	text-align: center;
-	font-size: 0.85rem;
-	color: var(--color-text-muted);
-	font-style: italic;
-}
-
 .email-input {
 	border: 2px solid var(--color-border);
 	border-radius: var(--radius);
@@ -245,12 +200,6 @@ button[type="submit"]:focus-visible {
 button[type="submit"]:disabled {
 	opacity: 0.6;
 	cursor: not-allowed;
-}
-
-.rates-note {
-	text-align: center;
-	font-size: 0.85rem;
-	color: var(--color-text-muted);
 }
 
 .form-message {
@@ -431,11 +380,6 @@ button[type="submit"]:disabled {
 	font-size: 0.7rem;
 	font-weight: bold;
 	letter-spacing: 0.05em;
-}
-
-.dev-badge-sms {
-	background: #e0f0e0;
-	color: var(--color-success);
 }
 
 .dev-badge-email {

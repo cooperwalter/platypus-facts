@@ -3,14 +3,11 @@ import { createDatabase } from "./lib/db";
 import { DevEmailProvider } from "./lib/email/dev";
 import { createEmailProvider } from "./lib/email/index";
 import { createRateLimiter } from "./lib/rate-limiter";
-import { DevSmsProvider } from "./lib/sms/dev";
-import { createSmsProvider } from "./lib/sms/index";
 import { syncFacts } from "./scripts/sync-facts";
 import { createRequestHandler } from "./server";
 
 const config = loadConfig();
 const db = createDatabase(config.databasePath);
-const smsProvider = createSmsProvider(`${config.baseUrl}/api/webhooks/twilio/incoming`, db);
 const emailProvider = createEmailProvider(config, db);
 const rateLimiter = createRateLimiter(5, 60 * 60 * 1000);
 
@@ -30,17 +27,14 @@ try {
 	console.error("Fact sync failed on startup:", error);
 }
 
-const devSmsProvider = smsProvider instanceof DevSmsProvider ? smsProvider : null;
 const devEmailProvider = emailProvider instanceof DevEmailProvider ? emailProvider : null;
 
 const handleRequest = createRequestHandler({
 	db,
-	smsProvider,
 	emailProvider,
 	rateLimiter,
 	maxSubscribers: config.maxSubscribers,
 	baseUrl: config.baseUrl,
-	devSmsProvider,
 	devEmailProvider,
 });
 
