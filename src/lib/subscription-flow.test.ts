@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { eq } from "drizzle-orm";
+import { subscribers } from "./schema";
 import { findByEmail } from "./subscribers";
 import { signup } from "./subscription-flow";
 import { makeMockEmailProvider, makeSubscriberRow, makeTestDatabase } from "./test-utils";
@@ -74,9 +76,10 @@ describe("signup - email", () => {
 		const db = makeTestDatabase();
 		const emailProv = makeMockEmailProvider();
 		makeSubscriberRow(db, { email: "test@example.com", status: "unsubscribed" });
-		db.prepare(
-			"UPDATE subscribers SET unsubscribed_at = '2024-01-15T00:00:00.000Z' WHERE email = 'test@example.com'",
-		).run();
+		db.update(subscribers)
+			.set({ unsubscribed_at: "2024-01-15T00:00:00.000Z" })
+			.where(eq(subscribers.email, "test@example.com"))
+			.run();
 
 		await signup(db, emailProv, "test@example.com", 1000, BASE_URL);
 
@@ -114,9 +117,9 @@ describe("signup - email", () => {
 		const db = makeTestDatabase();
 		const emailProv = makeMockEmailProvider();
 
-		db.prepare(
-			"INSERT INTO subscribers (email, token, status) VALUES ('test@example.com', 'tok-race', 'pending')",
-		).run();
+		db.insert(subscribers)
+			.values({ email: "test@example.com", token: "tok-race", status: "pending" })
+			.run();
 
 		const result = await signup(db, emailProv, "test@example.com", 1000, BASE_URL);
 		expect(result.success).toBe(true);

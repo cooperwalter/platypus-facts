@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { eq } from "drizzle-orm";
 import {
 	getAllFactIds,
 	getCurrentCycle,
@@ -9,6 +10,7 @@ import {
 	getUnsentFactIdsInCycle,
 	recordSentFact,
 } from "./facts";
+import { sentFacts } from "./schema";
 import { makeFactRow, makeSentFactRow, makeTestDatabase } from "./test-utils";
 
 describe("getFactById", () => {
@@ -175,12 +177,18 @@ describe("recordSentFact", () => {
 		recordSentFact(db, factId, "2025-01-15", 2);
 
 		const row = db
-			.prepare("SELECT fact_id, sent_date, cycle FROM sent_facts WHERE fact_id = ?")
-			.get(factId) as { fact_id: number; sent_date: string; cycle: number };
+			.select({
+				fact_id: sentFacts.fact_id,
+				sent_date: sentFacts.sent_date,
+				cycle: sentFacts.cycle,
+			})
+			.from(sentFacts)
+			.where(eq(sentFacts.fact_id, factId))
+			.get();
 		expect(row).toBeDefined();
-		expect(row.fact_id).toBe(factId);
-		expect(row.sent_date).toBe("2025-01-15");
-		expect(row.cycle).toBe(2);
+		expect(row?.fact_id).toBe(factId);
+		expect(row?.sent_date).toBe("2025-01-15");
+		expect(row?.cycle).toBe(2);
 	});
 });
 

@@ -1,5 +1,5 @@
-import type { DrizzleDatabase } from "../db";
 import type { Config } from "../config";
+import type { DrizzleDatabase } from "../db";
 import { DevEmailProvider } from "./dev";
 import { PostmarkEmailProvider } from "./postmark";
 import type { EmailProvider } from "./types";

@@ -1,8 +1,8 @@
 import { describe, expect, mock, test } from "bun:test";
-import { asc, count, eq, isNull } from "drizzle-orm";
 import * as os from "node:os";
 import * as path from "node:path";
-import { facts, factSources } from "../lib/schema";
+import { asc, count, eq } from "drizzle-orm";
+import { factSources, facts } from "../lib/schema";
 import { makeTestDatabase } from "../lib/test-utils";
 import { syncFacts } from "./sync-facts";
 
@@ -255,7 +255,10 @@ describe("syncFacts", () => {
 		const tmpFile = await makeTempFactsFile(seedData);
 
 		await syncFacts(db, tmpFile);
-		db.update(facts).set({ image_path: "images/facts/1.png" }).where(eq(facts.text, "Fact 1")).run();
+		db.update(facts)
+			.set({ image_path: "images/facts/1.png" })
+			.where(eq(facts.text, "Fact 1"))
+			.run();
 
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = mock(async () => {

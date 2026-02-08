@@ -1,4 +1,4 @@
-import { eq, isNull, max, notInArray, sql } from "drizzle-orm";
+import { eq, isNull, max, notInArray } from "drizzle-orm";
 import type { DrizzleDatabase } from "./db";
 import { factSources, facts, sentFacts } from "./schema";
 
@@ -29,11 +29,7 @@ export function getFactWithSources(
 		return null;
 	}
 
-	const sources = db
-		.select()
-		.from(factSources)
-		.where(eq(factSources.fact_id, id))
-		.all();
+	const sources = db.select().from(factSources).where(eq(factSources.fact_id, id)).all();
 
 	return { fact, sources };
 }
@@ -81,9 +77,7 @@ export function recordSentFact(
 	sentDate: string,
 	cycle: number,
 ): void {
-	db.insert(sentFacts)
-		.values({ fact_id: factId, sent_date: sentDate, cycle })
-		.run();
+	db.insert(sentFacts).values({ fact_id: factId, sent_date: sentDate, cycle }).run();
 }
 
 export function getSentFactByDate(

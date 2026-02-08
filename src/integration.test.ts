@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { count } from "drizzle-orm";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { count } from "drizzle-orm";
 import { runDailySend } from "./jobs/daily-send";
 import { getFactWithSources, getSentFactByDate } from "./lib/facts";
 import { facts } from "./lib/schema";

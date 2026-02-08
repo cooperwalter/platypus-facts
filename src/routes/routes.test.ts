@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { eq } from "drizzle-orm";
 import { createRateLimiter } from "../lib/rate-limiter";
+import { subscribers } from "../lib/schema";
 import {
 	makeFactRow,
 	makeMockEmailProvider,
@@ -632,12 +634,13 @@ describe("GET /confirm/:token", () => {
 		expect(html).toContain("Welcome, Platypus Fan!");
 		expect(html).toContain("confirmed");
 
-		const row = db.prepare("SELECT status, confirmed_at FROM subscribers WHERE id = ?").get(id) as {
-			status: string;
-			confirmed_at: string | null;
-		};
-		expect(row.status).toBe("active");
-		expect(row.confirmed_at).toBeTruthy();
+		const row = db
+			.select({ status: subscribers.status, confirmed_at: subscribers.confirmed_at })
+			.from(subscribers)
+			.where(eq(subscribers.id, id))
+			.get();
+		expect(row?.status).toBe("active");
+		expect(row?.confirmed_at).toBeTruthy();
 	});
 
 	test("shows 'already confirmed' page for active subscriber", async () => {
@@ -704,9 +707,11 @@ describe("GET /confirm/:token", () => {
 		expect(html).toContain("at capacity");
 
 		const row = db
-			.prepare("SELECT status FROM subscribers WHERE token = ?")
-			.get("44444444-4444-4444-4444-444444444444") as { status: string };
-		expect(row.status).toBe("pending");
+			.select({ status: subscribers.status })
+			.from(subscribers)
+			.where(eq(subscribers.token, "44444444-4444-4444-4444-444444444444"))
+			.get();
+		expect(row?.status).toBe("pending");
 	});
 
 	test("confirmation page includes Daily Platypus Facts branding", async () => {
@@ -805,13 +810,12 @@ describe("POST /unsubscribe/:token", () => {
 		expect(html).toContain("unsubscribed from Daily Platypus Facts");
 
 		const row = db
-			.prepare("SELECT status, unsubscribed_at FROM subscribers WHERE id = ?")
-			.get(id) as {
-			status: string;
-			unsubscribed_at: string | null;
-		};
-		expect(row.status).toBe("unsubscribed");
-		expect(row.unsubscribed_at).toBeTruthy();
+			.select({ status: subscribers.status, unsubscribed_at: subscribers.unsubscribed_at })
+			.from(subscribers)
+			.where(eq(subscribers.id, id))
+			.get();
+		expect(row?.status).toBe("unsubscribed");
+		expect(row?.unsubscribed_at).toBeTruthy();
 	});
 
 	test("unsubscribes pending subscriber and shows success page", async () => {
@@ -828,10 +832,12 @@ describe("POST /unsubscribe/:token", () => {
 		expect(response.status).toBe(200);
 		expect(html).toContain("Unsubscribed");
 
-		const row = db.prepare("SELECT status FROM subscribers WHERE id = ?").get(id) as {
-			status: string;
-		};
-		expect(row.status).toBe("unsubscribed");
+		const row = db
+			.select({ status: subscribers.status })
+			.from(subscribers)
+			.where(eq(subscribers.id, id))
+			.get();
+		expect(row?.status).toBe("unsubscribed");
 	});
 
 	test("shows already-unsubscribed message for already unsubscribed subscriber", async () => {

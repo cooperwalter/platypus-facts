@@ -1,5 +1,5 @@
-import { count, eq, isNull } from "drizzle-orm";
 import * as path from "node:path";
+import { count, eq, isNull } from "drizzle-orm";
 import { createDatabase } from "../lib/db";
 import type { DrizzleDatabase } from "../lib/db";
 import { ImageAuthError, generateFactImage } from "../lib/image-generation";
@@ -171,10 +171,7 @@ export async function syncFacts(
 			try {
 				const imagePath = await generateFactImage(fact.id, openaiApiKey);
 				if (imagePath) {
-					db.update(facts)
-						.set({ image_path: imagePath })
-						.where(eq(facts.id, fact.id))
-						.run();
+					db.update(facts).set({ image_path: imagePath }).where(eq(facts.id, fact.id)).run();
 					results.imagesGenerated++;
 				} else {
 					results.imagesFailed++;
@@ -194,11 +191,7 @@ export async function syncFacts(
 			}
 		}
 	} else if (openaiApiKey === undefined || openaiApiKey === null) {
-		const row = db
-			.select({ count: count() })
-			.from(facts)
-			.where(isNull(facts.image_path))
-			.get();
+		const row = db.select({ count: count() }).from(facts).where(isNull(facts.image_path)).get();
 		const missingCount = row?.count ?? 0;
 		if (missingCount > 0) {
 			console.warn(

@@ -184,7 +184,11 @@ function renderFactPage(db: DrizzleDatabase, factId: number): Response {
 	});
 }
 
-function renderConfirmationPage(db: DrizzleDatabase, token: string, maxSubscribers: number): Response {
+function renderConfirmationPage(
+	db: DrizzleDatabase,
+	token: string,
+	maxSubscribers: number,
+): Response {
 	const subscriber = findByToken(db, token);
 
 	if (!subscriber) {

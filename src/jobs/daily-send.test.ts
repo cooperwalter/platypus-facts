@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { count, eq } from "drizzle-orm";
+import { sentFacts } from "../lib/schema";
 import {
 	makeFactRow,
 	makeMockEmailProvider,
@@ -7,7 +8,6 @@ import {
 	makeSubscriberRow,
 	makeTestDatabase,
 } from "../lib/test-utils";
-import { sentFacts } from "../lib/schema";
 import { runDailySend } from "./daily-send";
 
 describe("daily-send", () => {
