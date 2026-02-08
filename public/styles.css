@@ -136,6 +136,12 @@ a:focus-visible {
 	color: var(--color-accent);
 }
 
+.cap-note {
+	font-size: 0.85rem;
+	margin-top: 0.5rem;
+	font-style: italic;
+}
+
 .signup-section {
 	background: var(--color-surface);
 	border: 1px solid var(--color-border);

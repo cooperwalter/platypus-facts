@@ -119,6 +119,7 @@ function renderSignupPage(db: DrizzleDatabase, maxSubscribers: number): Response
 
 		<div class="fan-count" aria-label="${formattedCount} of ${formattedMax} Platypus Fans">
 			<span class="count">${formattedCount}</span> / <span class="max">${formattedMax}</span> Platypus Fans
+			<p class="cap-note">Since each fact is sent with love (and a small email cost), we can only support ${formattedMax} Platypus Fans right now.</p>
 		</div>
 
 		<section class="signup-section">

@@ -618,6 +618,25 @@ describe("GET / - signup page at capacity details", () => {
 
 		expect(html).toContain("Get one fascinating platypus fact delivered every day via email");
 	});
+
+	test("includes warm note explaining the subscriber cap", async () => {
+		const db = makeTestDatabase();
+
+		const response = renderSignupPage(db, 200);
+		const html = await response.text();
+
+		expect(html).toContain("sent with love");
+		expect(html).toContain("200 Platypus Fans");
+	});
+
+	test("warm note uses the dynamic max subscriber count", async () => {
+		const db = makeTestDatabase();
+
+		const response = renderSignupPage(db, 500);
+		const html = await response.text();
+
+		expect(html).toContain("500 Platypus Fans right now");
+	});
 });
 
 describe("GET /confirm/:token", () => {
