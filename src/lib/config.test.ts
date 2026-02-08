@@ -241,10 +241,10 @@ describe("loadConfig - PORT validation", () => {
 });
 
 describe("loadConfig - MAX_SUBSCRIBERS validation", () => {
-	test("defaults to 1000 when MAX_SUBSCRIBERS is not set", () => {
+	test("defaults to 200 when MAX_SUBSCRIBERS is not set", () => {
 		withEnv({ ...DEV_REQUIRED_ENV, MAX_SUBSCRIBERS: undefined }, () => {
 			const config = loadConfig();
-			expect(config.maxSubscribers).toBe(1000);
+			expect(config.maxSubscribers).toBe(200);
 		});
 	});
 
@@ -325,7 +325,7 @@ describe("loadConfig - development defaults applied correctly", () => {
 				expect(config.emailFrom).toBeNull();
 				expect(config.port).toBe(3000);
 				expect(config.dailySendTimeUtc).toBe("14:00");
-				expect(config.maxSubscribers).toBe(1000);
+				expect(config.maxSubscribers).toBe(200);
 				expect(config.databasePath).toBe("./data/platypus-facts.db");
 				expect(config.openaiApiKey).toBeNull();
 			},
@@ -352,7 +352,7 @@ describe("loadConfig - production defaults applied correctly", () => {
 				expect(config.emailFrom).toBe("facts@example.com");
 				expect(config.port).toBe(3000);
 				expect(config.dailySendTimeUtc).toBe("14:00");
-				expect(config.maxSubscribers).toBe(1000);
+				expect(config.maxSubscribers).toBe(200);
 				expect(config.databasePath).toBe("./data/platypus-facts.db");
 				expect(config.openaiApiKey).toBeNull();
 			},

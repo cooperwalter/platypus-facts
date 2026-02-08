@@ -2,7 +2,7 @@
 
 ## Status Summary
 
-**P76 complete. 5 spec gaps remain (P77-P81).** All 76 priorities shipped. Brevo is now the production email provider.
+**P81 complete. 4 spec gaps remain (P77-P80).** Brevo is the production email provider. MAX_SUBSCRIBERS defaults to 200.
 
 - **319 tests passing** across 19 test files with **686 expect() calls**
 - **Type check clean**, **lint clean**
@@ -67,33 +67,18 @@
 
 ---
 
-### P81 — Fix MAX_SUBSCRIBERS default to match spec ⬜ TODO
-
-**Priority: LOW** — The spec (`specs/infrastructure.md` line 78, `specs/subscription-flow.md` line 57, `specs/design-decisions.md` line 65) all say `MAX_SUBSCRIBERS` defaults to `200`. The code (`src/lib/config.ts` line 64) defaults to `1000`. The `.env.development` and `.env.example` files also set `1000`. The `config/deploy.yml` also sets `1000`.
-
-**What needs to change:**
-
-- **`src/lib/config.ts`**: Change default from `"1000"` to `"200"` (line 64).
-- **`src/lib/config.test.ts`**: Update test "defaults to 1000" → "defaults to 200".
-- **`.env.development`** and **`.env.example`**: Change `MAX_SUBSCRIBERS=1000` → `MAX_SUBSCRIBERS=200`.
-- **`config/deploy.yml`**: Change `MAX_SUBSCRIBERS: 1000` → `MAX_SUBSCRIBERS: 200` (line 25).
-- Note: The deploy.yml explicitly sets this, so the production value is controlled there. The spec default of 200 is about the code's fallback behavior when the env var is unset.
-
----
-
 ## Priority Order
 
 | # | Description | Impact | Effort |
 |---|-------------|--------|--------|
 | P77 | Add footer to all public pages | High (spec compliance, visible on every page) | Medium (shared helper + CSS) |
 | P78 | Add /inspiration and /about pages | High (spec compliance, footer links need targets) | Low-Medium (2 new page renderers + routes) |
-| P81 | Fix MAX_SUBSCRIBERS default | Low (spec compliance, behavioral default mismatch) | Low (4 files, value change) |
 | P80 | Add warm note about subscriber cap | Low (spec compliance, minor UI element) | Low (one line of HTML) |
 | P79 | Add platypus emoji throughout | Medium (spec compliance, design polish) | Low (string changes across pages) |
 
-**Recommended order:** P77 → P78 → P81 → P80 → P79
+**Recommended order:** P77 → P78 → P80 → P79
 
-P77 and P78 together because the footer links need the target pages. P81 is a quick fix. P80 and P79 are cosmetic polish.
+P77 and P78 together because the footer links need the target pages. P80 and P79 are cosmetic polish.
 
 ---
 
@@ -101,6 +86,7 @@ P77 and P78 together because the footer links need the target pages. P81 is a qu
 
 | Priority | Description | Notes |
 |----------|-------------|-------|
+| P81 | Fix MAX_SUBSCRIBERS default to 200 | Changed default from 1000 to 200 in config, tests, .env files, deploy.yml. |
 | P76 | Switch Postmark → Brevo | Renamed `postmarkApiToken` → `brevoApiKey` in Config, wired `BrevoEmailProvider` in factory, added sender name, deleted Postmark files, updated all config/deploy/docs. 319 tests, 686 expects. |
 | P75 | Add fact page link to daily email | Added factPageUrl to DailyFactEmailData, CTA button in HTML, link in plain text. |
 | P74 | Ensure all tests pass after changes | 319 tests, 687 expects, typecheck clean, lint clean. |
@@ -133,7 +119,7 @@ P77 and P78 together because the footer links need the target pages. P81 is a qu
 | /inspiration page | ❌ Missing | P78 |
 | /about page | ❌ Missing | P78 |
 | Platypus emoji | ❌ Missing from pages | P79 |
-| MAX_SUBSCRIBERS default | ❌ 1000 instead of 200 | P81 |
+| MAX_SUBSCRIBERS default | ✅ Complete | Default 200, matches spec |
 | Confirmation page | ✅ Complete | All states handled, cap check |
 | Unsubscribe pages | ✅ Complete | GET confirmation + POST processing |
 | Health endpoint | ✅ Complete | GET /health returns 200 |

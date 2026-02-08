@@ -61,7 +61,7 @@ function loadConfig(): Config {
 		throw new Error(`PORT must be a valid port number, got: ${process.env.PORT}`);
 	}
 
-	const maxSubscribers = Number.parseInt(process.env.MAX_SUBSCRIBERS ?? "1000", 10);
+	const maxSubscribers = Number.parseInt(process.env.MAX_SUBSCRIBERS ?? "200", 10);
 	if (Number.isNaN(maxSubscribers) || maxSubscribers < 1) {
 		throw new Error(
 			`MAX_SUBSCRIBERS must be a positive integer, got: ${process.env.MAX_SUBSCRIBERS}`,
