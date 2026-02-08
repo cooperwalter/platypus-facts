@@ -2,12 +2,12 @@
 
 ## Status Summary
 
-**P70 complete (schema cleanup).** All 68 original priorities (P1-P68) plus P69-P70 complete. Remaining work: Drizzle ORM migration, a missing fact-page link in daily emails, and documentation updates.
+**P75 complete (fact page link).** All 68 original priorities (P1-P68) plus P69-P70, P73, P75 complete. Remaining work: Drizzle ORM migration (P71) and documentation updates (P72).
 
-- **317 tests passing** across 19 test files with **684 expect() calls**
+- **319 tests passing** across 19 test files with **687 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations (31 images in `public/images/facts/`)
-- **Latest tag**: 0.0.45
+- **Latest tag**: 0.0.47
 
 ### What Changed
 
@@ -103,42 +103,15 @@ After the code changes, all project documentation must reflect the new state.
 
 ---
 
-### P73 — Clean up dev_messages table for email-only
+### P73 — Clean up dev_messages table for email-only ✅ COMPLETE
 
-The `dev_messages` table currently supports both `sms` and `email` types. With SMS removed, the `type` column should always be `email`. The dev message viewer routes should only handle email messages.
-
-**Changes:**
-- `src/lib/email/dev.ts` — Verify `type` is always set to `email` (likely already correct)
-- `src/routes/pages.ts` — Dev message viewer: remove any SMS-specific rendering or `sms-` prefixed ID handling
-- `src/server.ts` — Dev routes: remove SMS message fetching from dev viewer
-- `public/styles.css` — Remove `.dev-badge-sms` CSS class (if not already done in P69)
-
-**Affected files:**
-- `src/lib/email/dev.ts`
-- `src/routes/pages.ts`
-- `src/server.ts`
-- `public/styles.css`
+All dev_messages code was already email-only after P69. `dev.ts` hardcodes type to `'email'`, viewer routes only handle email messages, no `.dev-badge-sms` CSS class exists. No code changes needed.
 
 ---
 
-### P75 — Add fact page link to daily email
+### P75 — Add fact page link to daily email ✅ COMPLETE
 
-**Spec gap**: `design-decisions.md` lines 17-19 state: "Sources: Linked web page (not inline in email) — Each daily email includes a link to a web page that displays the fact with its full sources."
-
-The current `dailyFactEmailHtml()` renders source links inline in the email body but does NOT include a link to the fact page (`{base_url}/facts/{id}`). The fact URL should be passed to the email template.
-
-**Changes:**
-- `src/lib/email-templates.ts` — Add `factPageUrl` field to `DailyFactEmailData` interface; add a prominent link to the fact page in the daily email HTML body (e.g., "View this fact with sources" linking to `{base_url}/facts/{id}`); add the link in `dailyFactEmailPlain` too
-- `src/lib/email-templates.test.ts` — Add test cases for fact page URL rendering in daily email
-- `src/jobs/daily-send.ts` — Pass `factUrl` to the email template data as `factPageUrl`
-
-**Design note**: The email should still render source links inline (the spec's `email-integration.md` says "Source links (clickable)"). The fact page link is an _additional_ link, not a replacement. The design decision says "linked web page" meaning the email links TO the page; sources can be shown both places.
-
-**Affected files:**
-- `src/lib/email-templates.ts`
-- `src/lib/email-templates.test.ts`
-- `src/jobs/daily-send.ts`
-- `src/jobs/daily-send.test.ts`
+Added `factPageUrl` to `DailyFactEmailData` interface. Daily email HTML includes a "View this fact with sources" CTA button linking to `/facts/{id}`. Plain text email includes the same link. `daily-send.ts` constructs the URL from baseUrl and factId. Sources remain inline in the email (per spec). 2 new tests added (319 total, 687 expects).
 
 ---
 
@@ -181,6 +154,8 @@ All 68 original priorities shipped. See git history for details.
 
 | Priority | Description | Notes |
 |----------|-------------|-------|
+| P75 | Add fact page link to daily email | Added factPageUrl to DailyFactEmailData, CTA button in HTML, link in plain text. 319 tests, 687 expects. |
+| P73 | Clean up dev_messages for email-only | Already clean from P69 — no code changes needed. |
 | P70 | Remove phone_number from schema, make email NOT NULL | Cleaned up subscribers schema, migration for existing DBs, removed unused helpers. 317 tests, 684 expects. |
 | P69 | Remove all SMS/phone support (email-only) | Deleted 13 SMS files, modified 22 files, removed twilio dependency. Rewrote integration tests for email-only. 317 tests, 684 expects. |
 | P68 | Extract `createRequestHandler` + 33 server tests | Refactored `handleRequest` out of `index.ts` into testable `server.ts` factory. Tests cover route dispatching, static file serving, path traversal protection, 404 fallback, dev route gating, method restrictions, and URL pattern matching. |

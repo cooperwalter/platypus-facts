@@ -4,6 +4,7 @@ interface DailyFactEmailData {
 	factText: string;
 	sources: Array<{ url: string; title: string | null }>;
 	imageUrl: string | null;
+	factPageUrl: string;
 	unsubscribeUrl: string;
 }
 
@@ -74,6 +75,9 @@ ${sourceLinks}
 	const body = `${imageSection}
 <p class="fact-text">${escapeHtml(data.factText)}</p>
 ${sourcesSection}
+<p style="text-align: center; margin: 24px 0;">
+<a href="${escapeHtml(data.factPageUrl)}" class="cta-button">View this fact with sources</a>
+</p>
 <div class="footer">
 <p><a href="${escapeHtml(data.unsubscribeUrl)}">Unsubscribe</a></p>
 </div>`;
@@ -96,6 +100,8 @@ function dailyFactEmailPlain(data: DailyFactEmailData): string {
 
 ${data.factText}
 ${sourcesSection}
+View this fact with sources: ${data.factPageUrl}
+
 ---
 Daily Platypus Facts — Inspired by Life is Strange: Double Exposure
 Unsubscribe: ${data.unsubscribeUrl}`;

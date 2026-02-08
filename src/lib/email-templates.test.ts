@@ -15,6 +15,7 @@ describe("dailyFactEmailHtml", () => {
 			factText: "Platypuses are venomous.",
 			sources: [{ url: "https://example.com", title: "Wikipedia" }],
 			imageUrl: null,
+			factPageUrl: "https://example.com/facts/1",
 			unsubscribeUrl: "https://example.com/unsubscribe/abc",
 		});
 		expect(html).toContain("Platypuses are venomous.");
@@ -25,6 +26,7 @@ describe("dailyFactEmailHtml", () => {
 			factText: "Platypuses are venomous.",
 			sources: [],
 			imageUrl: "https://example.com/images/facts/1.png",
+			factPageUrl: "https://example.com/facts/1",
 			unsubscribeUrl: "https://example.com/unsubscribe/abc",
 		});
 		expect(html).toContain("<img");
@@ -36,6 +38,7 @@ describe("dailyFactEmailHtml", () => {
 			factText: "Platypuses are venomous.",
 			sources: [],
 			imageUrl: null,
+			factPageUrl: "https://example.com/facts/1",
 			unsubscribeUrl: "https://example.com/unsubscribe/abc",
 		});
 		expect(html).not.toContain("<img");
@@ -49,6 +52,7 @@ describe("dailyFactEmailHtml", () => {
 				{ url: "https://example.com/source2", title: null },
 			],
 			imageUrl: null,
+			factPageUrl: "https://example.com/facts/1",
 			unsubscribeUrl: "https://example.com/unsubscribe/abc",
 		});
 		expect(html).toContain("Source 1");
@@ -60,6 +64,7 @@ describe("dailyFactEmailHtml", () => {
 			factText: "Fact.",
 			sources: [{ url: "javascript:alert(1)", title: "Bad" }],
 			imageUrl: null,
+			factPageUrl: "https://example.com/facts/1",
 			unsubscribeUrl: "https://example.com/unsubscribe/abc",
 		});
 		expect(html).not.toContain("javascript:");
@@ -70,6 +75,7 @@ describe("dailyFactEmailHtml", () => {
 			factText: "Fact.",
 			sources: [],
 			imageUrl: null,
+			factPageUrl: "https://example.com/facts/1",
 			unsubscribeUrl: "https://example.com/unsubscribe/abc",
 		});
 		expect(html).toContain("https://example.com/unsubscribe/abc");
@@ -81,6 +87,7 @@ describe("dailyFactEmailHtml", () => {
 			factText: "Fact.",
 			sources: [],
 			imageUrl: null,
+			factPageUrl: "https://example.com/facts/1",
 			unsubscribeUrl: "https://example.com/unsubscribe/abc",
 		});
 		expect(html).toContain("Daily Platypus Facts");
@@ -91,6 +98,7 @@ describe("dailyFactEmailHtml", () => {
 			factText: "Fact.",
 			sources: [],
 			imageUrl: null,
+			factPageUrl: "https://example.com/facts/1",
 			unsubscribeUrl: "https://example.com/unsubscribe/abc",
 		});
 		expect(html).toContain("Life is Strange: Double Exposure");
@@ -101,10 +109,23 @@ describe("dailyFactEmailHtml", () => {
 			factText: "Platypuses use <electroreception> & hunt",
 			sources: [],
 			imageUrl: null,
+			factPageUrl: "https://example.com/facts/1",
 			unsubscribeUrl: "https://example.com/unsubscribe/abc",
 		});
 		expect(html).toContain("&lt;electroreception&gt;");
 		expect(html).toContain("&amp; hunt");
+	});
+
+	test("includes fact page link with 'View this fact with sources' text", () => {
+		const html = dailyFactEmailHtml({
+			factText: "Fact.",
+			sources: [],
+			imageUrl: null,
+			factPageUrl: "https://example.com/facts/42",
+			unsubscribeUrl: "https://example.com/unsubscribe/abc",
+		});
+		expect(html).toContain("https://example.com/facts/42");
+		expect(html).toContain("View this fact with sources");
 	});
 });
 
@@ -114,6 +135,7 @@ describe("dailyFactEmailPlain", () => {
 			factText: "Platypuses are venomous.",
 			sources: [{ url: "https://example.com", title: "Wikipedia" }],
 			imageUrl: null,
+			factPageUrl: "https://example.com/facts/1",
 			unsubscribeUrl: "https://example.com/unsubscribe/abc",
 		});
 		expect(plain).toContain("Platypuses are venomous.");
@@ -124,6 +146,7 @@ describe("dailyFactEmailPlain", () => {
 			factText: "Fact.",
 			sources: [{ url: "https://example.com/source", title: "Wikipedia" }],
 			imageUrl: null,
+			factPageUrl: "https://example.com/facts/1",
 			unsubscribeUrl: "https://example.com/unsubscribe/abc",
 		});
 		expect(plain).toContain("Wikipedia: https://example.com/source");
@@ -134,9 +157,21 @@ describe("dailyFactEmailPlain", () => {
 			factText: "Fact.",
 			sources: [],
 			imageUrl: null,
+			factPageUrl: "https://example.com/facts/1",
 			unsubscribeUrl: "https://example.com/unsubscribe/abc",
 		});
 		expect(plain).toContain("Unsubscribe: https://example.com/unsubscribe/abc");
+	});
+
+	test("includes fact page URL with 'View this fact with sources' label", () => {
+		const plain = dailyFactEmailPlain({
+			factText: "Fact.",
+			sources: [],
+			imageUrl: null,
+			factPageUrl: "https://example.com/facts/42",
+			unsubscribeUrl: "https://example.com/unsubscribe/abc",
+		});
+		expect(plain).toContain("View this fact with sources: https://example.com/facts/42");
 	});
 });
 

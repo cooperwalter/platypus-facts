@@ -100,6 +100,8 @@ async function runDailySend(
 	let emailSuccess = 0;
 	let emailFail = 0;
 
+	const factPageUrl = `${baseUrl}/facts/${selected.factId}`;
+
 	for (const subscriber of subscribers) {
 		const unsubUrl = `${baseUrl}/unsubscribe/${subscriber.token}`;
 		try {
@@ -110,12 +112,14 @@ async function runDailySend(
 					factText: factData.fact.text,
 					sources: factData.sources,
 					imageUrl: imageUrl ?? null,
+					factPageUrl,
 					unsubscribeUrl: unsubUrl,
 				}),
 				dailyFactEmailPlain({
 					factText: factData.fact.text,
 					sources: factData.sources,
 					imageUrl: null,
+					factPageUrl,
 					unsubscribeUrl: unsubUrl,
 				}),
 				unsubscribeHeaders(unsubUrl),
