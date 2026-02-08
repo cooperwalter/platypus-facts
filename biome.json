@@ -15,6 +15,6 @@
 		"lineWidth": 100
 	},
 	"files": {
-		"ignore": ["node_modules", "dist", "data/*.json"]
+		"ignore": ["node_modules", "dist", "data/*.json", "drizzle"]
 	}
 }

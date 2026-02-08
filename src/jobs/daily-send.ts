@@ -163,7 +163,7 @@ if (import.meta.main) {
 		process.exit(1);
 	}
 
-	const db = createDatabase(config.databasePath);
+	const { sqlite: db } = createDatabase(config.databasePath);
 	const ep = createEmailProvider(config, db);
 
 	try {

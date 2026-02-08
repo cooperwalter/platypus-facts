@@ -2,12 +2,12 @@
 
 ## Status Summary
 
-**P72 complete (docs).** All 68 original priorities (P1-P68) plus P69-P75 complete. Remaining work: Drizzle ORM migration (P71).
+**P71 complete (Drizzle ORM).** All 68 original priorities (P1-P68) plus P69-P75 complete. No remaining code priorities.
 
 - **319 tests passing** across 19 test files with **687 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations (31 images in `public/images/facts/`)
-- **Latest tag**: 0.0.48
+- **Latest tag**: 0.0.49
 
 ### What Changed
 
@@ -31,55 +31,14 @@ Removed `phone_number TEXT UNIQUE` from subscribers table schema, changed `email
 
 ---
 
-### P71 — Migrate to Drizzle ORM
+### P71 — Migrate to Drizzle ORM ✅ COMPLETE
 
-The specs require Drizzle ORM for schema definition, query building, and migrations. Currently the project uses raw SQL with hand-written migrations.
+Installed `drizzle-orm` and `drizzle-kit`. Created `src/lib/schema.ts` with Drizzle table definitions for all 5 tables using `sqliteTable()`. Created `drizzle.config.ts`. Generated baseline migration with `drizzle-kit generate`. Rewrote `src/lib/db.ts`: replaced `initializeSchema()`/`migrateSchema()` with Drizzle's `migrate()` from `drizzle-orm/bun-sqlite/migrator`. `createDatabase()` and `createInMemoryDatabase()` now return `{ db: DrizzleDatabase, sqlite: Database }`. Added `markBaselineMigrationApplied()` to handle existing databases transitioning to Drizzle (seeds `__drizzle_migrations` table). Retained `migratePhoneNumber()` for legacy databases. Updated all entry points (`index.ts`, `daily-send.ts`, `sync-facts.ts`) to destructure `{ sqlite: db }`. Updated `test-utils.ts` to return `.sqlite`. Added `"generate"` script to `package.json`. Added `"drizzle"` to `biome.json` ignore (generated files use spaces). Query files continue using raw `sqlite` (Database) — Drizzle query builder adoption deferred. 319 tests, 687 expects, typecheck clean, lint clean.
 
-**Install dependencies:**
-- `drizzle-orm` — ORM package
-- `drizzle-kit` — Migration generation CLI (devDependency)
-
-**Create new files:**
-- `src/lib/schema.ts` — Drizzle schema definitions using `sqliteTable()` from `drizzle-orm/sqlite-core` for all 5 tables (`facts`, `fact_sources`, `subscribers`, `sent_facts`, `dev_messages`) matching the spec exactly
-- `drizzle.config.ts` — Drizzle Kit configuration pointing to schema file, SQLite dialect, `drizzle/` output directory
-- `drizzle/` — Directory for generated SQL migration files (created by `drizzle-kit generate`)
-
-**Steps:**
-1. Define Drizzle schema in `src/lib/schema.ts` that exactly matches the current (post-P70) database structure
-2. Create `drizzle.config.ts`
-3. Run `drizzle-kit generate` to create the baseline migration
-4. Mark baseline migration as already-applied for existing databases (journal entry or custom logic)
-5. Update `src/lib/db.ts`:
-   - Replace `initializeSchema()` and `migrateSchema()` with Drizzle's `migrate()` from `drizzle-orm/bun-sqlite/migrator`
-   - Create `drizzle()` instance wrapping the `bun:sqlite` Database
-   - Export both the raw `Database` (for any remaining raw queries) and the Drizzle instance
-6. Update query files to use Drizzle query builder where practical:
-   - `src/lib/subscribers.ts` — Use Drizzle select/insert/update
-   - `src/lib/facts.ts` — Use Drizzle select/insert
-   - `src/lib/fact-cycling.ts` — Use Drizzle queries
-   - `src/jobs/daily-send.ts` — Use Drizzle queries
-   - `src/scripts/sync-facts.ts` — Use Drizzle queries
-7. Update `package.json` scripts — add `"generate": "drizzle-kit generate"` script
-8. Update test utilities to work with Drizzle (in-memory database + migrate)
-
-**Affected files:**
-- `src/lib/db.ts` (major rewrite)
-- `src/lib/db.test.ts`
-- `src/lib/subscribers.ts`
-- `src/lib/subscribers.test.ts`
-- `src/lib/facts.ts`
-- `src/lib/facts.test.ts`
-- `src/lib/fact-cycling.ts`
-- `src/lib/fact-cycling.test.ts`
-- `src/jobs/daily-send.ts`
-- `src/jobs/daily-send.test.ts`
-- `src/scripts/sync-facts.ts`
-- `src/scripts/sync-facts.test.ts`
-- `src/lib/test-utils.ts`
-- `package.json`
-- `drizzle.config.ts` (new)
-- `src/lib/schema.ts` (new)
-- `drizzle/` directory (new, generated)
+**Key learnings:**
+- Drizzle schema defaults must use `sql` template tag for SQL expressions: `default(sql\`(datetime('now'))\`)` — string defaults produce escaped literal strings
+- Drizzle's `__drizzle_migrations` table has columns: `id`, `hash` (sha256 of SQL file), `created_at` (timestamp from journal entry `when` field)
+- Generated migration files in `drizzle/` use space indentation — must be excluded from Biome
 
 ---
 
@@ -117,6 +76,7 @@ Validated continuously during P70-P75 implementation. 319 tests pass, 687 expect
 
 ## Remaining After New Priorities
 
+- Convert query files to Drizzle query builder (subscribers.ts, facts.ts, fact-cycling.ts, daily-send.ts, sync-facts.ts) — deferred, not spec-blocking
 - Confirm Pi 5 server IP and update `config/deploy.yml`
 - Manual testing with Postmark before production launch
 - Database backup strategy (post-launch, not spec-required)
@@ -131,6 +91,7 @@ All 68 original priorities shipped. See git history for details.
 
 | Priority | Description | Notes |
 |----------|-------------|-------|
+| P71 | Migrate to Drizzle ORM | Schema definitions, drizzle-kit migrations, db.ts rewrite. Query files still use raw sqlite. 319 tests, 687 expects. |
 | P72 | Update all documentation for email-only | Updated CLAUDE.md, ARCHITECTURE.md, README.md, PROMPT_plan.md. AGENTS.md already clean. |
 | P75 | Add fact page link to daily email | Added factPageUrl to DailyFactEmailData, CTA button in HTML, link in plain text. 319 tests, 687 expects. |
 | P73 | Clean up dev_messages for email-only | Already clean from P69 — no code changes needed. |

@@ -18,13 +18,15 @@ bun run daily-send              # Execute the daily send job
 
 ## Architecture
 
-Bun HTTP server (`Bun.serve()`) that sends daily platypus facts via email (Postmark). No build step — Bun runs TypeScript directly. SQLite database via `bun:sqlite`. Server-rendered HTML pages via template literals (no framework).
+Bun HTTP server (`Bun.serve()`) that sends daily platypus facts via email (Postmark). No build step — Bun runs TypeScript directly. SQLite database via `bun:sqlite` with Drizzle ORM for schema definition and migrations. Server-rendered HTML pages via template literals (no framework).
 
 ### Source Layout
 
 - **`src/index.ts`** — Entry point: HTTP server with route matching, static file serving, graceful shutdown, dev message viewer routes (when dev providers are active)
 - **`src/server.ts`** — `createRequestHandler(deps)` factory: testable request handler extracted from index.ts
-- **`src/lib/`** — Core modules: database, config, subscribers, facts, fact cycling, rate limiting, email provider, subscription flow
+- **`src/lib/`** — Core modules: database, config, schema (Drizzle), subscribers, facts, fact cycling, rate limiting, email provider, subscription flow
+- **`drizzle/`** — Generated migration SQL files (managed by `drizzle-kit generate`)
+- **`drizzle.config.ts`** — Drizzle Kit configuration
 - **`src/lib/email/`** — Email provider abstraction: Postmark implementation + dev provider (persists to `dev_messages` table)
 - **`src/routes/`** — Route handlers: health check, HTML pages (including dev message viewer), subscribe API
 - **`src/jobs/daily-send.ts`** — Cron job: selects next fact and sends to all active subscribers via email
@@ -43,9 +45,9 @@ Bun HTTP server (`Bun.serve()`) that sends daily platypus facts via email (Postm
 
 ### Database
 
-Four SQLite tables: `facts`, `fact_sources` (FK→facts, CASCADE DELETE), `subscribers` (email NOT NULL UNIQUE, token NOT NULL UNIQUE), `sent_facts` (UNIQUE sent_date, FK→facts, NO CASCADE). Plus `dev_messages` for dev email storage. WAL mode and foreign keys enabled. Schema auto-initializes on connection. Migration auto-detects old schema with `phone_number` column and rebuilds the table.
+Five SQLite tables defined in `src/lib/schema.ts`: `facts`, `fact_sources` (FK→facts, CASCADE DELETE), `subscribers` (email NOT NULL UNIQUE, token NOT NULL UNIQUE), `sent_facts` (UNIQUE sent_date, FK→facts, NO CASCADE), `dev_messages`. WAL mode and foreign keys enabled. Drizzle's `migrate()` manages schema; `createDatabase()`/`createInMemoryDatabase()` return `{ db: DrizzleDatabase, sqlite: Database }`. Query code uses raw `sqlite` (Database) with prepared statements. Legacy phone_number migration runs before Drizzle migration for old databases.
 
-Prefer `db.run()` over `db.exec()` for executing SQL statements. `db.run()` uses prepared statements (safer, supports parameters), while `db.exec()` runs raw SQL strings.
+Prefer `db.run()` over `db.exec()` for executing SQL statements. `db.run()` uses prepared statements (safer, supports parameters), while `db.exec()` runs raw SQL strings. To add schema changes: update `src/lib/schema.ts`, then run `bun run generate` to create a new migration.
 
 ## Testing Patterns
 

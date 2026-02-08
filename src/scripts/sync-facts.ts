@@ -209,7 +209,7 @@ export async function syncFacts(
 if (import.meta.main) {
 	const databasePath = process.env.DATABASE_PATH || "./data/platypus-facts.db";
 	const openaiApiKey = process.env.OPENAI_API_KEY ?? null;
-	const db = createDatabase(databasePath);
+	const { sqlite: db } = createDatabase(databasePath);
 
 	const results = await syncFacts(db, undefined, openaiApiKey);
 

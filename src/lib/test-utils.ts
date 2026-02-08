@@ -3,7 +3,7 @@ import { createInMemoryDatabase } from "./db";
 import type { EmailProvider } from "./email/types";
 
 function makeTestDatabase(): Database {
-	return createInMemoryDatabase();
+	return createInMemoryDatabase().sqlite;
 }
 
 function makeFactRow(
