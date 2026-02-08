@@ -1,6 +1,6 @@
 # Fact Images
 
-Each platypus fact has one AI-generated illustration that accompanies it on the web and in SMS.
+Each platypus fact has one AI-generated illustration that accompanies it on the web and in daily emails.
 
 ## Style
 
@@ -40,7 +40,7 @@ This means image generation happens once per fact, at sync time. Existing facts 
 ### Image Format and Size
 
 - Format: PNG
-- Dimensions: 1024x1024 pixels (DALL-E 3 minimum; provides good quality for MMS and web display)
+- Dimensions: 1024x1024 pixels (DALL-E 3 minimum; provides good quality for email and web display)
 - Stored in `public/images/facts/` as `{fact_id}.png`
 
 ## Storage
@@ -65,11 +65,9 @@ See `data-model.md` for the full table definition.
 
 The fact page (`GET /facts/:id`) displays the generated image above the fact text. If no image exists for the fact, the page renders without an image (graceful degradation). See `web-pages.md`.
 
-## SMS (MMS)
+## Email
 
-The daily fact message is sent as an **MMS** (Multimedia Messaging Service) instead of plain SMS, with the image attached. This allows the illustration to appear inline in the subscriber's messaging app. See `sms-integration.md` for details on the MMS format and cost implications.
-
-If a fact does not have an image (e.g., image generation failed), the message falls back to plain SMS.
+The daily fact email includes the illustration as an inline `<img>` tag. If a fact does not have an image (e.g., image generation failed), the email renders without it — no broken image, no placeholder. See `email-integration.md` for template details.
 
 ## Configuration
 
@@ -81,10 +79,10 @@ If a fact does not have an image (e.g., image generation failed), the message fa
 
 - The sync script logs a single warning at the start (e.g., "OPENAI_API_KEY not configured — skipping image generation") and skips all image generation. It does **not** log an error per fact.
 - Facts are synced normally without images (`image_path` remains NULL).
-- The application operates in text-only mode: fact pages render without images, daily messages are sent as plain SMS.
+- The application operates in text-only mode: fact pages render without images, daily emails are sent without illustrations.
 
 If the key is set but invalid (e.g., expired or malformed), the sync script should detect the failure on the first image generation attempt, log a single warning, and skip image generation for the remaining facts in that sync run — rather than repeating the same API error for every fact.
 
 ## Cost
 
-AI image generation costs apply per fact (one-time, not per subscriber). See `cost-estimate.md` for updated estimates including MMS pricing and image generation costs.
+AI image generation costs apply per fact (one-time, not per subscriber). See `cost-estimate.md` for cost estimates.

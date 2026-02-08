@@ -1,6 +1,6 @@
 # Email Integration
 
-How the application sends emails to subscribers.
+How the application sends emails to subscribers. Email is the sole delivery channel for Daily Platypus Facts.
 
 ## Provider Abstraction
 
@@ -50,7 +50,7 @@ HTML body includes:
 Subject: `Confirm your Daily Platypus Facts subscription`
 
 HTML body includes:
-- Welcome message (same tone as the SMS welcome)
+- Welcome message
 - Confirmation button/link: `{base_url}/confirm/{token}`
 - "Daily Platypus Facts" branding
 
@@ -67,5 +67,5 @@ All emails include a `List-Unsubscribe` header pointing to `{base_url}/unsubscri
 ## Cost Considerations
 
 - Postmark pricing: ~$1.25 per 1,000 emails.
-- Much cheaper per message than SMS/MMS.
+- Very affordable for transactional email volumes.
 - See `cost-estimate.md` for full projections.

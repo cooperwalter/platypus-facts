@@ -13,7 +13,7 @@ bun run daily-send --force      # Send even if already sent today (development o
 
 ### Default Behavior
 
-Runs the same logic as the cron-triggered daily send: selects today's fact, sends to all active subscribers via their configured channels (SMS/MMS and/or email), and records the send. Idempotent — if a fact has already been sent today, exits without re-sending.
+Runs the same logic as the cron-triggered daily send: selects today's fact, sends to all active subscribers via email, and records the send. Idempotent — if a fact has already been sent today, exits without re-sending.
 
 ### `--force` Flag
 

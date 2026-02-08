@@ -72,20 +72,17 @@ The daily send job is scheduled via system `crontab` on the Pi. The cron entry e
 | `BASE_URL`             | Public URL of the application            | `https://platypus-facts.cooperwalter.dev` | Yes |
 | `DATABASE_PATH`        | Path to SQLite database file             | `./data/platypus-facts.db`     | No (default: `./data/platypus-facts.db`) |
 | `NODE_ENV`             | Environment mode (`development` or `production`) | `production`            | No (default: `development`) |
-| `TWILIO_ACCOUNT_SID`   | Twilio account SID                       | `AC...`                        | Production only |
-| `TWILIO_AUTH_TOKEN`     | Twilio auth token                        | `...`                          | Production only |
-| `TWILIO_PHONE_NUMBER`  | Twilio sending phone number (E.164)      | `+15551234567`                 | Production only |
 | `POSTMARK_API_TOKEN`   | Postmark API token for sending email     | `...`                          | Production only |
 | `EMAIL_FROM`           | Sender email address for outbound emails | `facts@platypus-facts.cooperwalter.dev` | Production only |
 | `DAILY_SEND_TIME_UTC`  | Time to send daily facts (HH:MM UTC)     | `14:00`                        | No (default: 14:00) |
 | `MAX_SUBSCRIBERS`      | Maximum number of active Platypus Fans   | `1000`                         | No (default: 1000) |
 | `OPENAI_API_KEY`       | API key for AI image generation          | `sk-...`                       | No (images skipped if unset) |
 
-In development (`NODE_ENV` unset or `development`), provider API keys (Twilio, Postmark, OpenAI) are optional. When not configured, dev providers are used that log to the console and store messages in SQLite for the dev message viewer. In production (`NODE_ENV=production`), Twilio and Postmark variables are required and the server refuses to start without them.
+In development (`NODE_ENV` unset or `development`), provider API keys (Postmark, OpenAI) are optional. When `POSTMARK_API_TOKEN` is not configured, a dev email provider is used that logs to the console and stores emails in SQLite for the dev message viewer. In production (`NODE_ENV=production`), `POSTMARK_API_TOKEN` and `EMAIL_FROM` are required and the server refuses to start without them.
 
 ### `.env.development`
 
-A `.env.development` file is checked into the repository with working defaults for local development. The application loads this file when no `.env` file is present (or `.env` can override it). This ensures that links in dev emails/SMS (confirmation, unsubscribe, fact pages) point to the correct local address.
+A `.env.development` file is checked into the repository with working defaults for local development. The application loads this file when no `.env` file is present (or `.env` can override it). This ensures that links in dev emails (confirmation, unsubscribe, fact pages) point to the correct local address.
 
 ```
 NODE_ENV=development
@@ -106,5 +103,4 @@ SQLite database should be backed up regularly. Options:
 
 - Domain: `platypus-facts.cooperwalter.dev`
 - TLS is handled entirely by Cloudflare via Cloudflare Tunnel. No certificates are managed on the Pi.
-- The Twilio webhook URL must be set to `https://platypus-facts.cooperwalter.dev/api/webhooks/twilio/incoming` in the Twilio console.
-- Twilio signature validation uses `BASE_URL` to reconstruct the request URL, so `BASE_URL` must match the public domain exactly.
+- `BASE_URL` must match the public domain exactly (`https://platypus-facts.cooperwalter.dev`).

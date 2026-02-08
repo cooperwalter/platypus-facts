@@ -29,8 +29,7 @@ Every fact MUST have at least one associated source.
 | Column           | Type    | Constraints                         | Description                                  |
 | ---------------- | ------- | ----------------------------------- | -------------------------------------------- |
 | `id`             | INTEGER | PRIMARY KEY AUTOINCREMENT           | Unique subscriber identifier                 |
-| `phone_number`   | TEXT    | UNIQUE (nullable)                   | E.164 formatted phone number, or NULL if email-only. **No NOT NULL constraint** — the application enforces that at least one of phone/email is present. |
-| `email`          | TEXT    | UNIQUE (nullable)                   | Email address, or NULL if phone-only. **No NOT NULL constraint** — the application enforces that at least one of phone/email is present. |
+| `email`          | TEXT    | NOT NULL, UNIQUE                    | Email address                                |
 | `token`          | TEXT    | NOT NULL, UNIQUE                    | Random token for email confirmation and unsubscribe links |
 | `status`         | TEXT    | NOT NULL DEFAULT 'pending'          | One of: `pending`, `active`, `unsubscribed`  |
 | `created_at`     | TEXT    | NOT NULL DEFAULT (datetime('now'))  | When the subscriber signed up                |
@@ -50,23 +49,20 @@ Tracks which facts have been sent globally (one entry per day a fact is sent).
 
 ### `dev_messages` (Development Only)
 
-Stores messages sent by dev providers (SMS and email) so they are visible across processes (e.g., messages sent by the daily-send CLI are viewable in the web server's dev message viewer). This table is only created when dev providers are active — it does not exist in production.
+Stores emails sent by the dev email provider so they are visible across processes (e.g., emails sent by the daily-send CLI are viewable in the web server's dev message viewer). This table is only created when dev providers are active — it does not exist in production.
 
 | Column       | Type    | Constraints                        | Description                       |
 | ------------ | ------- | ---------------------------------- | --------------------------------- |
 | `id`         | INTEGER | PRIMARY KEY AUTOINCREMENT          | Unique message identifier         |
-| `type`       | TEXT    | NOT NULL                           | `sms` or `email`                  |
-| `recipient`  | TEXT    | NOT NULL                           | Phone number or email address     |
-| `subject`    | TEXT    |                                    | Email subject (NULL for SMS)      |
-| `body`       | TEXT    | NOT NULL                           | Message body (plain text for SMS, HTML for email) |
-| `created_at` | TEXT    | NOT NULL DEFAULT (datetime('now')) | When the message was sent         |
+| `type`       | TEXT    | NOT NULL                           | `email`                           |
+| `recipient`  | TEXT    | NOT NULL                           | Email address                     |
+| `subject`    | TEXT    |                                    | Email subject                     |
+| `body`       | TEXT    | NOT NULL                           | Email HTML body                   |
+| `created_at` | TEXT    | NOT NULL DEFAULT (datetime('now')) | When the email was sent           |
 
 ## Constraints
 
 - `facts` must always have at least one row in `fact_sources`. Enforce at the application level on insert/update.
-- `subscribers.phone_number` must be stored in E.164 format (e.g., `+15551234567`) when present.
-- `subscribers.email` must be a valid email address when present.
-- At least one of `phone_number` or `email` must be non-NULL. Enforce at the application level.
+- `subscribers.email` must be a valid email address.
 - `subscribers.token` is a cryptographically random string (e.g., 32-byte hex or UUID v4), generated when the subscriber record is created.
 - `sent_facts.sent_date` is unique — only one fact per day.
-- SQLite allows multiple NULLs in UNIQUE columns, so the nullable UNIQUE constraints on `phone_number` and `email` work correctly.

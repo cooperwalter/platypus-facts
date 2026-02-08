@@ -14,21 +14,17 @@ When all facts have been sent and a new cycle begins, the order is randomized ag
 
 Any fact that has never been sent globally is sent before continuing the current cycle. This ensures new content reaches Platypus Fans as soon as possible.
 
-## Sources: Linked web page (not inline in SMS)
+## Sources: Linked web page (not inline in email)
 
-Each daily SMS includes a short link to a web page that displays the fact with its full sources. This keeps SMS length (and cost) down while still making sources accessible and verifiable.
+Each daily email includes a link to a web page that displays the fact with its full sources. This keeps the email clean while still making sources accessible and verifiable.
 
 ## Fact management: Seed file in repo
 
 Facts are maintained in a `data/facts.json` file rather than through an admin UI. This keeps the project simple, provides version history via git, and avoids building authentication for an admin interface.
 
-## Multi-channel delivery: SMS and/or email
+## Email-only delivery
 
-Subscribers choose their delivery channel(s) at signup: phone number, email, or both. Each subscriber has a single status (`pending`/`active`/`unsubscribed`) that applies across all their channels. This avoids the complexity of per-channel status tracking while still allowing flexible delivery.
-
-## SMS provider: Twilio behind an abstraction
-
-Twilio is the initial provider, but the SMS functionality is accessed through an interface so the provider can be swapped if a cheaper or better option becomes available.
+The service delivers facts exclusively via email. This keeps costs minimal (no SMS/MMS charges), simplifies the subscription flow (no phone number handling, no Twilio webhooks), and still provides a rich experience with inline illustrations.
 
 ## Email provider: Postmark behind an abstraction
 
@@ -36,19 +32,15 @@ Postmark is the initial email provider, accessed through an interface so it can 
 
 ## Dev providers: No API keys required for development
 
-In development, when provider API keys (Twilio, Postmark) are not configured, dev providers are used that log messages to the console and store them in memory. A dev-only web route (`/dev/messages`) lets developers view all sent SMS and email messages in the browser. This means a developer can run the full application locally with just `BASE_URL` set — no Twilio account, no Postmark account, no OpenAI key needed.
+In development, when `POSTMARK_API_TOKEN` is not configured, a dev email provider is used that logs emails to the console and stores them in SQLite. A dev-only web route (`/dev/messages`) lets developers view all sent emails in the browser. This means a developer can run the full application locally with just `BASE_URL` set — no Postmark account, no OpenAI key needed.
 
-## Double opt-in: Confirm via either channel
+## Double opt-in: Confirm via email link
 
-Confirmation accepts SMS reply (`1` or `PERRY`) or clicking an email confirmation link. Confirming via **either** channel activates the subscription for **all** provided channels. This avoids forcing users who provide both to confirm twice.
-
-## Unsubscribe: All-or-nothing
-
-Unsubscribing via any channel (STOP via SMS or email unsubscribe link) unsubscribes from all channels. This keeps the model simple: one subscriber record, one status. Per-channel unsubscribe (e.g., keep email but stop SMS) could be added later if needed.
+Subscribers confirm by clicking a confirmation link in their email. This is the standard double opt-in pattern for email services.
 
 ## Re-subscribe: Website only
 
-After unsubscribing, users can only re-subscribe by visiting the website and entering their contact info again. Texting keywords (including `1`, `PERRY`, or Twilio's `START`) does NOT re-activate a subscription. This prevents accidental re-subscribes and ensures a deliberate opt-in via the full double opt-in flow.
+After unsubscribing, users can only re-subscribe by visiting the website and entering their email again. This prevents accidental re-subscribes and ensures a deliberate opt-in via the full double opt-in flow.
 
 ## Database: SQLite
 
@@ -76,11 +68,11 @@ The daily send can be triggered manually via `bun run daily-send`. A `--force` f
 
 ## Fact illustrations: AI-generated at sync time
 
-Each fact gets one AI-generated illustration in a consistent minimalist line-drawing style (platypus character, hand-drawn aesthetic, rosy pink accents). Images are generated during the fact sync process — not on-demand or on a schedule — so each fact is illustrated exactly once. This keeps generation costs proportional to the fact library (not the subscriber count) and ensures images are ready before any fact is sent. If generation fails for a fact, the system gracefully degrades to text-only (SMS instead of MMS, no image on the web page).
+Each fact gets one AI-generated illustration in a consistent minimalist line-drawing style (platypus character, hand-drawn aesthetic, rosy pink accents). Images are generated during the fact sync process — not on-demand or on a schedule — so each fact is illustrated exactly once. This keeps generation costs proportional to the fact library (not the subscriber count) and ensures images are ready before any fact is sent. If generation fails for a fact, the system gracefully degrades to text-only (no image on the web page or in the email).
 
-## Daily messages: MMS with image
+## Daily emails: Inline illustration
 
-Daily fact messages are sent as MMS when an image is available, attaching the platypus illustration inline. This costs ~2.5x more per message than a single SMS segment (~$0.02 vs ~$0.008), but the visual experience is a core part of the service's charm. Falls back to plain SMS when no image exists.
+Daily fact emails include the platypus illustration as an inline image when available. If no image exists for the fact, the email renders without it — the layout looks complete either way.
 
 ## Image storage: Local filesystem
 
@@ -92,4 +84,4 @@ All Platypus Fans receive their fact at the same configured UTC time. No per-fan
 
 ## Terminology: "Platypus Fans"
 
-Users who subscribe to the service are referred to as "Platypus Fans" in all user-facing text (web pages, SMS messages). Internal/technical identifiers (database table `subscribers`, env var `MAX_SUBSCRIBERS`, status values) retain standard naming.
+Users who subscribe to the service are referred to as "Platypus Fans" in all user-facing text (web pages, emails). Internal/technical identifiers (database table `subscribers`, env var `MAX_SUBSCRIBERS`, status values) retain standard naming.
