@@ -1,7 +1,9 @@
-import type { Database } from "bun:sqlite";
+import { count, eq, isNull } from "drizzle-orm";
 import * as path from "node:path";
 import { createDatabase } from "../lib/db";
+import type { DrizzleDatabase } from "../lib/db";
 import { ImageAuthError, generateFactImage } from "../lib/image-generation";
+import { factSources, facts } from "../lib/schema";
 
 interface SeedSource {
 	url: string;
@@ -13,13 +15,13 @@ interface SeedFact {
 	sources: SeedSource[];
 }
 
-function validateSeedData(facts: unknown): asserts facts is SeedFact[] {
-	if (!Array.isArray(facts)) {
+function validateSeedData(factsData: unknown): asserts factsData is SeedFact[] {
+	if (!Array.isArray(factsData)) {
 		throw new Error("Seed data must be an array");
 	}
 
-	for (let i = 0; i < facts.length; i++) {
-		const fact = facts[i];
+	for (let i = 0; i < factsData.length; i++) {
+		const fact = factsData[i];
 
 		if (typeof fact !== "object" || fact === null) {
 			throw new Error(`Fact at index ${i} must be an object`);
@@ -57,8 +59,8 @@ function validateSeedData(facts: unknown): asserts facts is SeedFact[] {
 	}
 
 	const seenTexts = new Map<string, number>();
-	for (let i = 0; i < facts.length; i++) {
-		const text = (facts[i] as SeedFact).text;
+	for (let i = 0; i < factsData.length; i++) {
+		const text = (factsData[i] as SeedFact).text;
 		if (seenTexts.has(text)) {
 			throw new Error(
 				`Duplicate fact text at index ${i} (first seen at index ${seenTexts.get(text)}): "${text}"`,
@@ -77,7 +79,7 @@ interface SyncResult {
 }
 
 export async function syncFacts(
-	db: Database,
+	db: DrizzleDatabase,
 	factsFilePath?: string,
 	openaiApiKey?: string | null,
 ): Promise<SyncResult> {
@@ -96,80 +98,83 @@ export async function syncFacts(
 		imagesFailed: 0,
 	};
 
-	db.run("BEGIN TRANSACTION");
-
-	try {
-		const getFactByText = db.query<{ id: number }, [string]>("SELECT id FROM facts WHERE text = ?");
-
-		const insertFact = db.query<{ id: number }, [string]>(
-			"INSERT INTO facts (text) VALUES (?) RETURNING id",
-		);
-
-		const getSourcesForFact = db.query<{ url: string; title: string | null }, [number]>(
-			"SELECT url, title FROM fact_sources WHERE fact_id = ?",
-		);
-
-		const deleteSourcesForFact = db.query<unknown, [number]>(
-			"DELETE FROM fact_sources WHERE fact_id = ?",
-		);
-
-		const insertSource = db.query<unknown, [number, string, string | null]>(
-			"INSERT INTO fact_sources (fact_id, url, title) VALUES (?, ?, ?)",
-		);
-
+	db.transaction((tx) => {
 		for (const seedFact of parsedData) {
-			const existingFact = getFactByText.get(seedFact.text);
+			const existingFact = tx
+				.select({ id: facts.id })
+				.from(facts)
+				.where(eq(facts.text, seedFact.text))
+				.get();
 
 			if (existingFact) {
-				const existingSources = getSourcesForFact.all(existingFact.id);
+				const existingSources = tx
+					.select({ url: factSources.url, title: factSources.title })
+					.from(factSources)
+					.where(eq(factSources.fact_id, existingFact.id))
+					.all();
 
 				const normalizeSource = (s: { url: string; title: string | null }) =>
 					`${s.url}|${s.title ?? ""}`;
 				const existingSet = new Set(existingSources.map(normalizeSource));
 				const seedSet = new Set(
-					seedFact.sources.map((s) => normalizeSource({ url: s.url, title: s.title ?? null })),
+					seedFact.sources.map((s: SeedSource) =>
+						normalizeSource({ url: s.url, title: s.title ?? null }),
+					),
 				);
 				const sourcesChanged =
 					existingSet.size !== seedSet.size || [...seedSet].some((s) => !existingSet.has(s));
 
 				if (sourcesChanged) {
-					deleteSourcesForFact.run(existingFact.id);
+					tx.delete(factSources).where(eq(factSources.fact_id, existingFact.id)).run();
 					for (const source of seedFact.sources) {
-						insertSource.run(existingFact.id, source.url, source.title || null);
+						tx.insert(factSources)
+							.values({
+								fact_id: existingFact.id,
+								url: source.url,
+								title: source.title || null,
+							})
+							.run();
 					}
 					results.updated++;
 				} else {
 					results.unchanged++;
 				}
 			} else {
-				const result = insertFact.get(seedFact.text);
-				if (!result) {
-					throw new Error("Failed to insert fact");
-				}
+				const inserted = tx
+					.insert(facts)
+					.values({ text: seedFact.text })
+					.returning({ id: facts.id })
+					.get();
 
 				for (const source of seedFact.sources) {
-					insertSource.run(result.id, source.url, source.title || null);
+					tx.insert(factSources)
+						.values({
+							fact_id: inserted.id,
+							url: source.url,
+							title: source.title || null,
+						})
+						.run();
 				}
 				results.added++;
 			}
 		}
-
-		db.run("COMMIT");
-	} catch (error) {
-		db.run("ROLLBACK");
-		throw error;
-	}
+	});
 
 	if (openaiApiKey) {
 		const factsWithoutImages = db
-			.query<{ id: number }, []>("SELECT id FROM facts WHERE image_path IS NULL")
+			.select({ id: facts.id })
+			.from(facts)
+			.where(isNull(facts.image_path))
 			.all();
 
 		for (const fact of factsWithoutImages) {
 			try {
 				const imagePath = await generateFactImage(fact.id, openaiApiKey);
 				if (imagePath) {
-					db.prepare("UPDATE facts SET image_path = ? WHERE id = ?").run(imagePath, fact.id);
+					db.update(facts)
+						.set({ image_path: imagePath })
+						.where(eq(facts.id, fact.id))
+						.run();
 					results.imagesGenerated++;
 				} else {
 					results.imagesFailed++;
@@ -189,13 +194,12 @@ export async function syncFacts(
 			}
 		}
 	} else if (openaiApiKey === undefined || openaiApiKey === null) {
-		const missingCount = (
-			db
-				.query<{ count: number }, []>(
-					"SELECT COUNT(*) as count FROM facts WHERE image_path IS NULL",
-				)
-				.get() ?? { count: 0 }
-		).count;
+		const row = db
+			.select({ count: count() })
+			.from(facts)
+			.where(isNull(facts.image_path))
+			.get();
+		const missingCount = row?.count ?? 0;
 		if (missingCount > 0) {
 			console.warn(
 				`Skipping image generation: no OPENAI_API_KEY provided (${missingCount} facts without images)`,
@@ -209,7 +213,7 @@ export async function syncFacts(
 if (import.meta.main) {
 	const databasePath = process.env.DATABASE_PATH || "./data/platypus-facts.db";
 	const openaiApiKey = process.env.OPENAI_API_KEY ?? null;
-	const { sqlite: db } = createDatabase(databasePath);
+	const { db, sqlite } = createDatabase(databasePath);
 
 	const results = await syncFacts(db, undefined, openaiApiKey);
 
@@ -220,5 +224,5 @@ if (import.meta.main) {
 	console.log(`  Images generated: ${results.imagesGenerated}`);
 	console.log(`  Images failed: ${results.imagesFailed}`);
 
-	db.close();
+	sqlite.close();
 }

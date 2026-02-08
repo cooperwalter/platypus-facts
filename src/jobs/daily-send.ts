@@ -1,6 +1,6 @@
-import type { Database } from "bun:sqlite";
 import { loadConfig } from "../lib/config";
 import { createDatabase } from "../lib/db";
+import type { DrizzleDatabase } from "../lib/db";
 import {
 	dailyFactEmailHtml,
 	dailyFactEmailPlain,
@@ -26,7 +26,7 @@ function getUtcToday(): string {
 }
 
 async function runDailySend(
-	db: Database,
+	db: DrizzleDatabase,
 	emailProvider: EmailProvider,
 	baseUrl: string,
 	todayOverride?: string,
@@ -163,7 +163,7 @@ if (import.meta.main) {
 		process.exit(1);
 	}
 
-	const { sqlite: db } = createDatabase(config.databasePath);
+	const { db, sqlite } = createDatabase(config.databasePath);
 	const ep = createEmailProvider(config, db);
 
 	try {
@@ -173,7 +173,7 @@ if (import.meta.main) {
 		);
 	} catch (error) {
 		console.error("Fact sync failed:", error);
-		db.close();
+		sqlite.close();
 		process.exit(1);
 	}
 
@@ -181,9 +181,9 @@ if (import.meta.main) {
 		await runDailySend(db, ep, config.baseUrl, undefined, force);
 	} catch (error) {
 		console.error("Daily send failed:", error);
-		db.close();
+		sqlite.close();
 		process.exit(1);
 	}
 
-	db.close();
+	sqlite.close();
 }

@@ -1,4 +1,3 @@
-import type { Database } from "bun:sqlite";
 import {
 	alreadySubscribedEmailHtml,
 	alreadySubscribedEmailPlain,
@@ -8,6 +7,7 @@ import {
 } from "./email-templates";
 import { validateEmail } from "./email-validation";
 import type { EmailProvider } from "./email/types";
+import type { DrizzleDatabase } from "./db";
 import { createSubscriber, findByEmail, getActiveCount, updateStatus } from "./subscribers";
 
 interface SignupResult {
@@ -49,7 +49,7 @@ async function sendAlreadySubscribed(
 }
 
 async function signup(
-	db: Database,
+	db: DrizzleDatabase,
 	emailProvider: EmailProvider,
 	email: string | undefined,
 	maxSubscribers: number,

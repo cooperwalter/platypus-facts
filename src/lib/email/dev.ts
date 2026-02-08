@@ -1,4 +1,6 @@
-import type { Database } from "bun:sqlite";
+import { and, desc, eq } from "drizzle-orm";
+import type { DrizzleDatabase } from "../db";
+import { devMessages } from "../schema";
 import type { EmailProvider } from "./types";
 
 interface StoredEmail {
@@ -11,18 +13,10 @@ interface StoredEmail {
 	timestamp: string;
 }
 
-interface DevMessageRow {
-	id: number;
-	recipient: string;
-	subject: string | null;
-	body: string;
-	created_at: string;
-}
-
 class DevEmailProvider implements EmailProvider {
-	private db: Database;
+	private db: DrizzleDatabase;
 
-	constructor(db: Database) {
+	constructor(db: DrizzleDatabase) {
 		this.db = db;
 	}
 
@@ -34,17 +28,19 @@ class DevEmailProvider implements EmailProvider {
 		_headers?: Record<string, string>,
 	): Promise<void> {
 		this.db
-			.prepare("INSERT INTO dev_messages (type, recipient, subject, body) VALUES (?, ?, ?, ?)")
-			.run("email", to, subject, htmlBody);
+			.insert(devMessages)
+			.values({ type: "email", recipient: to, subject, body: htmlBody })
+			.run();
 		console.log(`[DEV EMAIL] To: ${to} | Subject: ${subject}`);
 	}
 
 	getStoredEmails(): StoredEmail[] {
 		const rows = this.db
-			.query<DevMessageRow, [string]>(
-				"SELECT id, recipient, subject, body, created_at FROM dev_messages WHERE type = ? ORDER BY id DESC",
-			)
-			.all("email");
+			.select()
+			.from(devMessages)
+			.where(eq(devMessages.type, "email"))
+			.orderBy(desc(devMessages.id))
+			.all();
 		return rows.map((row) => ({
 			id: row.id,
 			recipient: row.recipient,
@@ -58,10 +54,10 @@ class DevEmailProvider implements EmailProvider {
 
 	getStoredEmailById(id: number): StoredEmail | undefined {
 		const row = this.db
-			.query<DevMessageRow, [string, number]>(
-				"SELECT id, recipient, subject, body, created_at FROM dev_messages WHERE type = ? AND id = ?",
-			)
-			.get("email", id);
+			.select()
+			.from(devMessages)
+			.where(and(eq(devMessages.type, "email"), eq(devMessages.id, id)))
+			.get();
 		if (!row) return undefined;
 		return {
 			id: row.id,

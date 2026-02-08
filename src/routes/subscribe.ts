@@ -1,4 +1,4 @@
-import type { Database } from "bun:sqlite";
+import type { DrizzleDatabase } from "../lib/db";
 import type { EmailProvider } from "../lib/email/types";
 import type { RateLimiter } from "../lib/rate-limiter";
 import { signup } from "../lib/subscription-flow";
@@ -13,7 +13,7 @@ function getClientIp(request: Request): string {
 
 async function handleSubscribe(
 	request: Request,
-	db: Database,
+	db: DrizzleDatabase,
 	emailProvider: EmailProvider,
 	rateLimiter: RateLimiter,
 	maxSubscribers: number,

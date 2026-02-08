@@ -3,7 +3,8 @@ import { makeTestDatabase } from "./test-utils";
 
 describe("database setup", () => {
 	test("creates the facts table on initialization", () => {
-		const db = makeTestDatabase();
+		const drizzleDb = makeTestDatabase();
+		const db = drizzleDb.$client;
 		const tables = db
 			.query("SELECT name FROM sqlite_master WHERE type='table' AND name='facts'")
 			.all();
@@ -11,7 +12,8 @@ describe("database setup", () => {
 	});
 
 	test("creates the fact_sources table on initialization", () => {
-		const db = makeTestDatabase();
+		const drizzleDb = makeTestDatabase();
+		const db = drizzleDb.$client;
 		const tables = db
 			.query("SELECT name FROM sqlite_master WHERE type='table' AND name='fact_sources'")
 			.all();
@@ -19,7 +21,8 @@ describe("database setup", () => {
 	});
 
 	test("creates the subscribers table on initialization", () => {
-		const db = makeTestDatabase();
+		const drizzleDb = makeTestDatabase();
+		const db = drizzleDb.$client;
 		const tables = db
 			.query("SELECT name FROM sqlite_master WHERE type='table' AND name='subscribers'")
 			.all();
@@ -27,7 +30,8 @@ describe("database setup", () => {
 	});
 
 	test("creates the sent_facts table on initialization", () => {
-		const db = makeTestDatabase();
+		const drizzleDb = makeTestDatabase();
+		const db = drizzleDb.$client;
 		const tables = db
 			.query("SELECT name FROM sqlite_master WHERE type='table' AND name='sent_facts'")
 			.all();
@@ -35,7 +39,8 @@ describe("database setup", () => {
 	});
 
 	test("enforces fact_sources.fact_id foreign key by rejecting references to nonexistent facts", () => {
-		const db = makeTestDatabase();
+		const drizzleDb = makeTestDatabase();
+		const db = drizzleDb.$client;
 		expect(() => {
 			db.prepare(
 				"INSERT INTO fact_sources (fact_id, url) VALUES (999, 'https://example.com')",
@@ -44,7 +49,8 @@ describe("database setup", () => {
 	});
 
 	test("cascades deletes from facts to fact_sources when a fact is deleted", () => {
-		const db = makeTestDatabase();
+		const drizzleDb = makeTestDatabase();
+		const db = drizzleDb.$client;
 		db.prepare("INSERT INTO facts (text) VALUES ('test fact')").run();
 		const factId = Number(
 			(db.query("SELECT last_insert_rowid() as id").get() as { id: number }).id,
@@ -63,7 +69,8 @@ describe("database setup", () => {
 	});
 
 	test("enforces sent_facts.fact_id foreign key by rejecting references to nonexistent facts", () => {
-		const db = makeTestDatabase();
+		const drizzleDb = makeTestDatabase();
+		const db = drizzleDb.$client;
 		expect(() => {
 			db.prepare(
 				"INSERT INTO sent_facts (fact_id, sent_date, cycle) VALUES (999, '2025-01-01', 1)",
@@ -72,7 +79,8 @@ describe("database setup", () => {
 	});
 
 	test("blocks deleting a fact that is referenced by sent_facts (NO ACTION, not CASCADE)", () => {
-		const db = makeTestDatabase();
+		const drizzleDb = makeTestDatabase();
+		const db = drizzleDb.$client;
 		db.prepare("INSERT INTO facts (text) VALUES ('test fact')").run();
 		const factId = Number(
 			(db.query("SELECT last_insert_rowid() as id").get() as { id: number }).id,
@@ -90,7 +98,8 @@ describe("database setup", () => {
 	});
 
 	test("enforces subscribers.email NOT NULL by rejecting inserts without email", () => {
-		const db = makeTestDatabase();
+		const drizzleDb = makeTestDatabase();
+		const db = drizzleDb.$client;
 		expect(() => {
 			db.prepare(
 				"INSERT INTO subscribers (email, token, status) VALUES (NULL, 'tok-null', 'pending')",
@@ -99,7 +108,8 @@ describe("database setup", () => {
 	});
 
 	test("enforces subscribers.token uniqueness by rejecting duplicate tokens", () => {
-		const db = makeTestDatabase();
+		const drizzleDb = makeTestDatabase();
+		const db = drizzleDb.$client;
 		db.prepare(
 			"INSERT INTO subscribers (email, token, status) VALUES ('a@example.com', 'tok-dup', 'pending')",
 		).run();
@@ -111,7 +121,8 @@ describe("database setup", () => {
 	});
 
 	test("enforces subscribers.email uniqueness by rejecting duplicate emails", () => {
-		const db = makeTestDatabase();
+		const drizzleDb = makeTestDatabase();
+		const db = drizzleDb.$client;
 		db.prepare(
 			"INSERT INTO subscribers (email, token, status) VALUES ('a@example.com', 'tok-e1', 'pending')",
 		).run();
@@ -123,7 +134,8 @@ describe("database setup", () => {
 	});
 
 	test("enforces sent_facts.sent_date uniqueness by rejecting duplicate dates", () => {
-		const db = makeTestDatabase();
+		const drizzleDb = makeTestDatabase();
+		const db = drizzleDb.$client;
 		db.prepare("INSERT INTO facts (text) VALUES ('test fact')").run();
 		const factId = Number(
 			(db.query("SELECT last_insert_rowid() as id").get() as { id: number }).id,
@@ -139,20 +151,23 @@ describe("database setup", () => {
 	});
 
 	test("enables foreign keys pragma (PRAGMA foreign_keys returns 1)", () => {
-		const db = makeTestDatabase();
+		const drizzleDb = makeTestDatabase();
+		const db = drizzleDb.$client;
 		const result = db.query("PRAGMA foreign_keys").get() as { foreign_keys: number };
 		expect(result.foreign_keys).toBe(1);
 	});
 
 	test("facts table includes image_path column that accepts NULL values", () => {
-		const db = makeTestDatabase();
+		const drizzleDb = makeTestDatabase();
+		const db = drizzleDb.$client;
 		db.prepare("INSERT INTO facts (text) VALUES ('test fact')").run();
 		const row = db.query("SELECT image_path FROM facts").get() as { image_path: string | null };
 		expect(row.image_path).toBeNull();
 	});
 
 	test("facts table image_path column accepts text values", () => {
-		const db = makeTestDatabase();
+		const drizzleDb = makeTestDatabase();
+		const db = drizzleDb.$client;
 		db.prepare(
 			"INSERT INTO facts (text, image_path) VALUES ('test fact', 'images/facts/1.png')",
 		).run();
@@ -163,7 +178,8 @@ describe("database setup", () => {
 
 describe("database indexes", () => {
 	test("creates index on fact_sources.fact_id for cascade delete performance", () => {
-		const db = makeTestDatabase();
+		const drizzleDb = makeTestDatabase();
+		const db = drizzleDb.$client;
 		const indexes = db
 			.query(
 				"SELECT name FROM sqlite_master WHERE type='index' AND name='idx_fact_sources_fact_id'",
@@ -173,7 +189,8 @@ describe("database indexes", () => {
 	});
 
 	test("creates index on sent_facts.fact_id for join performance", () => {
-		const db = makeTestDatabase();
+		const drizzleDb = makeTestDatabase();
+		const db = drizzleDb.$client;
 		const indexes = db
 			.query("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_sent_facts_fact_id'")
 			.all();
@@ -183,7 +200,8 @@ describe("database indexes", () => {
 
 describe("database pragmas", () => {
 	test("enables busy_timeout pragma for write contention between processes", () => {
-		const db = makeTestDatabase();
+		const drizzleDb = makeTestDatabase();
+		const db = drizzleDb.$client;
 		const result = db.query("PRAGMA busy_timeout").get() as { timeout: number };
 		expect(result.timeout).toBe(5000);
 	});

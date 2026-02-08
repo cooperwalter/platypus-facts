@@ -1,5 +1,5 @@
-import type { Database } from "bun:sqlite";
 import * as path from "node:path";
+import type { DrizzleDatabase } from "./lib/db";
 import type { DevEmailProvider } from "./lib/email/dev";
 import type { EmailProvider } from "./lib/email/types";
 import type { RateLimiter } from "./lib/rate-limiter";
@@ -17,7 +17,7 @@ import {
 import { handleSubscribe } from "./routes/subscribe";
 
 interface RequestHandlerDeps {
-	db: Database;
+	db: DrizzleDatabase;
 	emailProvider: EmailProvider;
 	rateLimiter: RateLimiter;
 	maxSubscribers: number;

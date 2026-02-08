@@ -1,6 +1,8 @@
 import { describe, expect, mock, test } from "bun:test";
+import { asc, count, eq, isNull } from "drizzle-orm";
 import * as os from "node:os";
 import * as path from "node:path";
+import { facts, factSources } from "../lib/schema";
 import { makeTestDatabase } from "../lib/test-utils";
 import { syncFacts } from "./sync-facts";
 
@@ -39,30 +41,33 @@ describe("syncFacts", () => {
 		expect(results.updated).toBe(0);
 		expect(results.unchanged).toBe(0);
 
-		const facts = db.query("SELECT id, text FROM facts ORDER BY id").all() as {
-			id: number;
-			text: string;
-		}[];
-		expect(facts).toHaveLength(2);
-		expect(facts[0].text).toBe("Fact 1");
-		expect(facts[1].text).toBe("Fact 2");
+		const factsResult = db
+			.select({ id: facts.id, text: facts.text })
+			.from(facts)
+			.orderBy(asc(facts.id))
+			.all();
+		expect(factsResult).toHaveLength(2);
+		expect(factsResult[0].text).toBe("Fact 1");
+		expect(factsResult[1].text).toBe("Fact 2");
 
 		const sources = db
-			.query("SELECT fact_id, url, title FROM fact_sources ORDER BY fact_id, url")
-			.all() as { fact_id: number; url: string; title: string | null }[];
+			.select({ fact_id: factSources.fact_id, url: factSources.url, title: factSources.title })
+			.from(factSources)
+			.orderBy(asc(factSources.fact_id), asc(factSources.url))
+			.all();
 		expect(sources).toHaveLength(3);
 		expect(sources[0]).toEqual({
-			fact_id: facts[0].id,
+			fact_id: factsResult[0].id,
 			url: "https://example.com/1",
 			title: "Source 1",
 		});
 		expect(sources[1]).toEqual({
-			fact_id: facts[1].id,
+			fact_id: factsResult[1].id,
 			url: "https://example.com/2a",
 			title: "Source 2a",
 		});
 		expect(sources[2]).toEqual({
-			fact_id: facts[1].id,
+			fact_id: factsResult[1].id,
 			url: "https://example.com/2b",
 			title: null,
 		});
@@ -98,10 +103,11 @@ describe("syncFacts", () => {
 		expect(results.updated).toBe(1);
 		expect(results.unchanged).toBe(0);
 
-		const sources = db.query("SELECT url, title FROM fact_sources ORDER BY url").all() as {
-			url: string;
-			title: string | null;
-		}[];
+		const sources = db
+			.select({ url: factSources.url, title: factSources.title })
+			.from(factSources)
+			.orderBy(asc(factSources.url))
+			.all();
 		expect(sources).toHaveLength(2);
 		expect(sources[0]).toEqual({
 			url: "https://example.com/new1",
@@ -160,12 +166,10 @@ describe("syncFacts", () => {
 		const tmpFile2 = await makeTempFactsFile(reducedData);
 		await syncFacts(db, tmpFile2);
 
-		const facts = db.query("SELECT text FROM facts ORDER BY text").all() as {
-			text: string;
-		}[];
-		expect(facts).toHaveLength(2);
-		expect(facts[0].text).toBe("Fact 1");
-		expect(facts[1].text).toBe("Fact 2");
+		const factsResult = db.select({ text: facts.text }).from(facts).orderBy(asc(facts.text)).all();
+		expect(factsResult).toHaveLength(2);
+		expect(factsResult[0].text).toBe("Fact 1");
+		expect(factsResult[1].text).toBe("Fact 2");
 	});
 
 	test("sync rejects a fact with empty text and throws a validation error", async () => {
@@ -241,8 +245,8 @@ describe("syncFacts", () => {
 		expect(results.imagesGenerated).toBe(0);
 		expect(results.imagesFailed).toBe(0);
 
-		const fact = db.query("SELECT image_path FROM facts").get() as { image_path: string | null };
-		expect(fact.image_path).toBeNull();
+		const fact = db.select({ image_path: facts.image_path }).from(facts).get();
+		expect(fact?.image_path).toBeNull();
 	});
 
 	test("skips facts that already have image_path during image generation", async () => {
@@ -251,7 +255,7 @@ describe("syncFacts", () => {
 		const tmpFile = await makeTempFactsFile(seedData);
 
 		await syncFacts(db, tmpFile);
-		db.prepare("UPDATE facts SET image_path = 'images/facts/1.png' WHERE text = 'Fact 1'").run();
+		db.update(facts).set({ image_path: "images/facts/1.png" }).where(eq(facts.text, "Fact 1")).run();
 
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = mock(async () => {
@@ -284,8 +288,8 @@ describe("syncFacts", () => {
 			expect(results.imagesGenerated).toBe(1);
 			expect(results.imagesFailed).toBe(0);
 
-			const fact = db.query("SELECT image_path FROM facts").get() as { image_path: string | null };
-			expect(fact.image_path).toMatch(/^images\/facts\/\d+\.png$/);
+			const fact = db.select({ image_path: facts.image_path }).from(facts).get();
+			expect(fact?.image_path).toMatch(/^images\/facts\/\d+\.png$/);
 		} finally {
 			globalThis.fetch = originalFetch;
 			Bun.write = originalBunWrite;
@@ -447,14 +451,10 @@ describe("syncFacts", () => {
 
 		await expect(syncFacts(db, tmpFile)).rejects.toThrow();
 
-		const facts = db.query("SELECT COUNT(*) as count FROM facts").get() as {
-			count: number;
-		};
-		expect(facts.count).toBe(0);
+		const factsCount = db.select({ count: count() }).from(facts).get();
+		expect(factsCount?.count).toBe(0);
 
-		const sources = db.query("SELECT COUNT(*) as count FROM fact_sources").get() as {
-			count: number;
-		};
-		expect(sources.count).toBe(0);
+		const sourcesCount = db.select({ count: count() }).from(factSources).get();
+		expect(sourcesCount?.count).toBe(0);
 	});
 });

@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { desc } from "drizzle-orm";
 import { DevEmailProvider } from "./lib/email/dev";
 import { createRateLimiter } from "./lib/rate-limiter";
+import { devMessages } from "./lib/schema";
 import {
 	makeFactRow,
 	makeMockEmailProvider,
@@ -217,12 +219,15 @@ describe("createRequestHandler", () => {
 
 		test("routes dev message detail with email prefix", async () => {
 			const { handler, db } = makeHandler({ devEmail: true });
-			db.run(
-				"INSERT INTO dev_messages (type, recipient, subject, body) VALUES ('email', 'test@example.com', 'Subject', '<p>body</p>')",
-			);
-			const row = db
-				.query<{ id: number }, []>("SELECT id FROM dev_messages ORDER BY id DESC LIMIT 1")
-				.get();
+			db.insert(devMessages)
+				.values({
+					type: "email",
+					recipient: "test@example.com",
+					subject: "Subject",
+					body: "<p>body</p>",
+				})
+				.run();
+			const row = db.select().from(devMessages).orderBy(desc(devMessages.id)).limit(1).get();
 			const response = await handler(get(`/dev/messages/email-${row?.id}`));
 			expect(response.status).toBe(200);
 		});

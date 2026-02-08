@@ -1,10 +1,10 @@
-import type { Database } from "bun:sqlite";
+import type { DrizzleDatabase } from "../lib/db";
 import type { StoredEmail } from "../lib/email/dev";
 import { getFactWithSources } from "../lib/facts";
 import { escapeHtml, isSafeUrl } from "../lib/html-utils";
 import { findByToken, getActiveCount, updateStatus } from "../lib/subscribers";
 
-function renderSignupPage(db: Database, maxSubscribers: number): Response {
+function renderSignupPage(db: DrizzleDatabase, maxSubscribers: number): Response {
 	const activeCount = getActiveCount(db);
 	const atCapacity = activeCount >= maxSubscribers;
 	const formattedCount = activeCount.toLocaleString();
@@ -126,7 +126,7 @@ function renderSignupPage(db: Database, maxSubscribers: number): Response {
 	});
 }
 
-function renderFactPage(db: Database, factId: number): Response {
+function renderFactPage(db: DrizzleDatabase, factId: number): Response {
 	const result = getFactWithSources(db, factId);
 
 	if (!result) {
@@ -184,7 +184,7 @@ function renderFactPage(db: Database, factId: number): Response {
 	});
 }
 
-function renderConfirmationPage(db: Database, token: string, maxSubscribers: number): Response {
+function renderConfirmationPage(db: DrizzleDatabase, token: string, maxSubscribers: number): Response {
 	const subscriber = findByToken(db, token);
 
 	if (!subscriber) {
@@ -257,7 +257,7 @@ function renderMessagePage(heading: string, body: string, status = 200): Respons
 	});
 }
 
-function renderUnsubscribePage(db: Database, token: string): Response {
+function renderUnsubscribePage(db: DrizzleDatabase, token: string): Response {
 	const subscriber = findByToken(db, token);
 
 	if (!subscriber) {
@@ -309,7 +309,7 @@ function renderUnsubscribePage(db: Database, token: string): Response {
 	});
 }
 
-function handleUnsubscribe(db: Database, token: string): Response {
+function handleUnsubscribe(db: DrizzleDatabase, token: string): Response {
 	const subscriber = findByToken(db, token);
 
 	if (!subscriber) {

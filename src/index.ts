@@ -7,7 +7,7 @@ import { syncFacts } from "./scripts/sync-facts";
 import { createRequestHandler } from "./server";
 
 const config = loadConfig();
-const { sqlite: db } = createDatabase(config.databasePath);
+const { db, sqlite } = createDatabase(config.databasePath);
 const emailProvider = createEmailProvider(config, db);
 const rateLimiter = createRateLimiter(5, 60 * 60 * 1000);
 
@@ -54,7 +54,7 @@ async function shutdown(): Promise<void> {
 	console.log("Shutting down...");
 	clearInterval(cleanupInterval);
 	await server.stop();
-	db.close();
+	sqlite.close();
 	process.exit(0);
 }
 

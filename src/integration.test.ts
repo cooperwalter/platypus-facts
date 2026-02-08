@@ -1,9 +1,11 @@
 import { describe, expect, test } from "bun:test";
+import { count } from "drizzle-orm";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { runDailySend } from "./jobs/daily-send";
 import { getFactWithSources, getSentFactByDate } from "./lib/facts";
+import { facts } from "./lib/schema";
 import { findByEmail, getActiveCount } from "./lib/subscribers";
 import { signup } from "./lib/subscription-flow";
 import {
@@ -149,9 +151,8 @@ describe("integration: fact sync", () => {
 				expect(thirdSync.updated).toBe(0);
 				expect(thirdSync.unchanged).toBe(2);
 
-				const allFacts = db.prepare("SELECT COUNT(*) as count FROM facts").get() as {
-					count: number;
-				};
+				const allFacts = db.select({ count: count() }).from(facts).get();
+				if (!allFacts) throw new Error("Expected count result");
 				expect(allFacts.count).toBe(3);
 			} finally {
 				fs.unlinkSync(expandedPath);

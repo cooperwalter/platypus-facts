@@ -1,4 +1,4 @@
-import type { Database } from "bun:sqlite";
+import type { DrizzleDatabase } from "./db";
 import {
 	getAllFactIds,
 	getCurrentCycle,
@@ -16,7 +16,7 @@ function pickRandom(ids: number[]): number {
 	return ids[Math.floor(Math.random() * ids.length)];
 }
 
-function selectAndRecordFact(db: Database, sentDate: string): SelectedFact | null {
+function selectAndRecordFact(db: DrizzleDatabase, sentDate: string): SelectedFact | null {
 	const allFactIds = getAllFactIds(db);
 	if (allFactIds.length === 0) {
 		return null;

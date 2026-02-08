@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { count, eq } from "drizzle-orm";
 import {
 	makeFactRow,
 	makeMockEmailProvider,
@@ -6,6 +7,7 @@ import {
 	makeSubscriberRow,
 	makeTestDatabase,
 } from "../lib/test-utils";
+import { sentFacts } from "../lib/schema";
 import { runDailySend } from "./daily-send";
 
 describe("daily-send", () => {
@@ -73,8 +75,10 @@ describe("daily-send", () => {
 		expect(email.sentEmails).toHaveLength(0);
 
 		const sentFact = db
-			.prepare("SELECT fact_id FROM sent_facts WHERE sent_date = ?")
-			.get("2025-06-15") as { fact_id: number } | null;
+			.select({ fact_id: sentFacts.fact_id })
+			.from(sentFacts)
+			.where(eq(sentFacts.sent_date, "2025-06-15"))
+			.get();
 		expect(sentFact).not.toBeNull();
 	});
 
@@ -126,8 +130,10 @@ describe("daily-send", () => {
 		expect(result.emailSuccess).toBe(0);
 
 		const sentFact = db
-			.prepare("SELECT fact_id FROM sent_facts WHERE sent_date = ?")
-			.get("2025-06-15") as { fact_id: number } | null;
+			.select({ fact_id: sentFacts.fact_id })
+			.from(sentFacts)
+			.where(eq(sentFacts.sent_date, "2025-06-15"))
+			.get();
 		expect(sentFact).not.toBeNull();
 	});
 
@@ -170,9 +176,7 @@ describe("daily-send", () => {
 		const factId = makeFactRow(db, { text: "Race condition fact" });
 		makeSubscriberRow(db, { email: "a@example.com", status: "active" });
 
-		db.prepare(
-			"INSERT INTO sent_facts (fact_id, sent_date, cycle) VALUES (?, '2025-06-15', 1)",
-		).run(factId);
+		db.insert(sentFacts).values({ fact_id: factId, sent_date: "2025-06-15", cycle: 1 }).run();
 
 		const result = await runDailySend(db, email, "https://example.com", "2025-06-15");
 
@@ -191,9 +195,7 @@ describe("daily-send", () => {
 
 		await runDailySend(db, email, "https://example.com");
 
-		const sentFact = db.prepare("SELECT sent_date FROM sent_facts").get() as {
-			sent_date: string;
-		} | null;
+		const sentFact = db.select({ sent_date: sentFacts.sent_date }).from(sentFacts).get();
 		expect(sentFact?.sent_date).toBe(expectedDate);
 	});
 
@@ -224,10 +226,12 @@ describe("daily-send", () => {
 
 		await runDailySend(db, email, "https://example.com", "2025-06-15", true);
 
-		const rows = db
-			.prepare("SELECT COUNT(*) as count FROM sent_facts WHERE sent_date = ?")
-			.get("2025-06-15") as { count: number };
-		expect(rows.count).toBe(1);
+		const result = db
+			.select({ count: count() })
+			.from(sentFacts)
+			.where(eq(sentFacts.sent_date, "2025-06-15"))
+			.get();
+		expect(result?.count).toBe(1);
 	});
 
 	test("force mode works normally when no fact has been sent today yet", async () => {
@@ -243,10 +247,12 @@ describe("daily-send", () => {
 		expect(result.factId).toBeGreaterThan(0);
 		expect(result.emailSuccess).toBe(1);
 
-		const rows = db
-			.prepare("SELECT COUNT(*) as count FROM sent_facts WHERE sent_date = ?")
-			.get("2025-06-15") as { count: number };
-		expect(rows.count).toBe(1);
+		const countResult = db
+			.select({ count: count() })
+			.from(sentFacts)
+			.where(eq(sentFacts.sent_date, "2025-06-15"))
+			.get();
+		expect(countResult?.count).toBe(1);
 	});
 
 	test("without force flag, skips when fact already sent today", async () => {
