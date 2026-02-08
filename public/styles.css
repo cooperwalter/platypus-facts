@@ -494,6 +494,12 @@ button[type="submit"]:disabled {
 	padding: 1rem;
 }
 
+@media (min-width: 768px) {
+	body {
+		padding-top: 6rem;
+	}
+}
+
 @media (max-width: 480px) {
 	body {
 		padding: 1rem 0.75rem;
