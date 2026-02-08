@@ -4,6 +4,16 @@ import { getFactWithSources } from "../lib/facts";
 import { escapeHtml, isSafeUrl } from "../lib/html-utils";
 import { findByToken, getActiveCount, updateStatus } from "../lib/subscribers";
 
+function renderFooter(): string {
+	return `<footer class="site-footer">
+		<nav class="footer-nav" aria-label="Footer">
+			<a href="/inspiration">Inspiration</a>
+			<a href="/about">About</a>
+		</nav>
+		<p class="footer-credit">Made with ❤️ by Cooper Walter</p>
+	</footer>`;
+}
+
 function renderSignupPage(db: DrizzleDatabase, maxSubscribers: number): Response {
 	const activeCount = getActiveCount(db);
 	const atCapacity = activeCount >= maxSubscribers;
@@ -116,6 +126,7 @@ function renderSignupPage(db: DrizzleDatabase, maxSubscribers: number): Response
 			${formSection}
 		</section>
 	</main>
+	${renderFooter()}
 	${formScript}
 </body>
 </html>`;
@@ -175,6 +186,7 @@ function renderFactPage(db: DrizzleDatabase, factId: number): Response {
 			<a href="/">Want daily platypus facts? Subscribe here!</a>
 		</nav>
 	</main>
+	${renderFooter()}
 </body>
 </html>`;
 
@@ -252,6 +264,7 @@ function renderMessagePage(heading: string, body: string, status = 200): Respons
 			<a href="/">Back to home</a>
 		</section>
 	</main>
+	${renderFooter()}
 </body>
 </html>`;
 
@@ -304,6 +317,7 @@ function renderUnsubscribePage(db: DrizzleDatabase, token: string): Response {
 			<a href="/">No, take me back</a>
 		</section>
 	</main>
+	${renderFooter()}
 </body>
 </html>`;
 
@@ -362,11 +376,83 @@ function render404Page(): Response {
 			<a href="/">Back to home</a>
 		</section>
 	</main>
+	${renderFooter()}
 </body>
 </html>`;
 
 	return new Response(html, {
 		status: 404,
+		headers: { "Content-Type": "text/html; charset=utf-8" },
+	});
+}
+
+function renderInspirationPage(): Response {
+	const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Inspiration - Daily Platypus Facts</title>
+	<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦆</text></svg>">
+	<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+	<main class="container">
+		<header class="hero">
+			<h1><a href="/">Daily Platypus Facts</a></h1>
+			<p class="tagline">Inspired by <em>Life is Strange: Double Exposure</em></p>
+		</header>
+
+		<article class="content-card">
+			<h2>Inspiration</h2>
+			<p>Daily Platypus Facts is inspired by <a href="https://hardcoregamer.com/life-is-strange-double-exposure-platypus-genius-trophy/" target="_blank" rel="noopener noreferrer"><em>Life is Strange: Double Exposure</em></a>, where Max can subscribe to platypus facts via a blue flyer posted around Caledon University.</p>
+			<p>Throughout the game, Max receives daily platypus facts as text messages &mdash; quirky, educational tidbits about one of nature's most fascinating creatures. We thought it would be fun to bring that experience to real life.</p>
+			<p>This project takes the in-game concept and makes it real: one platypus fact per day, delivered straight to your inbox, complete with AI-generated illustrations and source links so you can learn even more.</p>
+			<a href="/">Subscribe to Daily Platypus Facts</a>
+		</article>
+	</main>
+	${renderFooter()}
+</body>
+</html>`;
+
+	return new Response(html, {
+		status: 200,
+		headers: { "Content-Type": "text/html; charset=utf-8" },
+	});
+}
+
+function renderAboutPage(): Response {
+	const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>About - Daily Platypus Facts</title>
+	<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦆</text></svg>">
+	<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+	<main class="container">
+		<header class="hero">
+			<h1><a href="/">Daily Platypus Facts</a></h1>
+			<p class="tagline">Inspired by <em>Life is Strange: Double Exposure</em></p>
+		</header>
+
+		<article class="content-card">
+			<h2>About</h2>
+			<p>Daily Platypus Facts is a small, handcrafted project that sends one fascinating platypus fact per day to all confirmed Platypus Fans via email.</p>
+			<p>Every fact is sourced from real scientific publications and comes with an AI-generated illustration. Facts cycle through the entire collection before repeating, so you'll always learn something new.</p>
+			<p>The service is built with <a href="https://bun.sh" target="_blank" rel="noopener noreferrer">Bun</a> and TypeScript, uses SQLite for data storage, and runs on a Raspberry Pi 5. Emails are sent via <a href="https://developers.brevo.com/" target="_blank" rel="noopener noreferrer">Brevo</a>.</p>
+			<p>Inspired by the platypus facts in <a href="https://hardcoregamer.com/life-is-strange-double-exposure-platypus-genius-trophy/" target="_blank" rel="noopener noreferrer"><em>Life is Strange: Double Exposure</em></a>.</p>
+			<a href="/">Subscribe to Daily Platypus Facts</a>
+		</article>
+	</main>
+	${renderFooter()}
+</body>
+</html>`;
+
+	return new Response(html, {
+		status: 200,
 		headers: { "Content-Type": "text/html; charset=utf-8" },
 	});
 }
@@ -418,6 +504,7 @@ function renderDevMessageList(emailMessages: StoredEmail[]): Response {
 			</table>
 		</section>
 	</main>
+	${renderFooter()}
 </body>
 </html>`;
 
@@ -459,6 +546,7 @@ function renderDevEmailDetail(email: StoredEmail): Response {
 			<div class="dev-email-preview">${email.htmlBody}</div>
 		</section>
 	</main>
+	${renderFooter()}
 </body>
 </html>`;
 
@@ -475,6 +563,8 @@ export {
 	renderUnsubscribePage,
 	handleUnsubscribe,
 	render404Page,
+	renderInspirationPage,
+	renderAboutPage,
 	renderDevMessageList,
 	renderDevEmailDetail,
 };

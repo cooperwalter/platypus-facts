@@ -12,10 +12,12 @@ import { handleHealthCheck } from "./health";
 import {
 	handleUnsubscribe,
 	render404Page,
+	renderAboutPage,
 	renderConfirmationPage,
 	renderDevEmailDetail,
 	renderDevMessageList,
 	renderFactPage,
+	renderInspirationPage,
 	renderSignupPage,
 	renderUnsubscribePage,
 } from "./pages";
@@ -918,5 +920,88 @@ describe("GET /dev/messages/:id", () => {
 		expect(html).toContain("🦆 Daily Platypus Fact");
 		expect(html).toContain("<p>Platypuses glow under UV light!</p>");
 		expect(html).toContain("2025-06-15T14:00:00Z");
+	});
+});
+
+describe("GET /inspiration", () => {
+	test("renders inspiration page with Life is Strange reference", async () => {
+		const response = renderInspirationPage();
+		const html = await response.text();
+		expect(response.status).toBe(200);
+		expect(html).toContain("Inspiration");
+		expect(html).toContain("Life is Strange: Double Exposure");
+		expect(html).toContain("Caledon University");
+	});
+
+	test("renders footer on inspiration page", async () => {
+		const response = renderInspirationPage();
+		const html = await response.text();
+		expect(html).toContain("site-footer");
+		expect(html).toContain("Made with");
+		expect(html).toContain("Cooper Walter");
+	});
+});
+
+describe("GET /about", () => {
+	test("renders about page with project description", async () => {
+		const response = renderAboutPage();
+		const html = await response.text();
+		expect(response.status).toBe(200);
+		expect(html).toContain("About");
+		expect(html).toContain("one fascinating platypus fact per day");
+	});
+
+	test("renders footer on about page", async () => {
+		const response = renderAboutPage();
+		const html = await response.text();
+		expect(html).toContain("site-footer");
+		expect(html).toContain("Made with");
+		expect(html).toContain("Cooper Walter");
+	});
+});
+
+describe("footer on public pages", () => {
+	test("signup page includes footer with Inspiration and About links", async () => {
+		const db = makeTestDatabase();
+		const response = renderSignupPage(db, 200);
+		const html = await response.text();
+		expect(html).toContain("site-footer");
+		expect(html).toContain('href="/inspiration"');
+		expect(html).toContain('href="/about"');
+		expect(html).toContain("Made with");
+		expect(html).toContain("Cooper Walter");
+	});
+
+	test("fact page includes footer", async () => {
+		const db = makeTestDatabase();
+		const factId = makeFactRow(db, { text: "Test fact" });
+		const response = renderFactPage(db, factId);
+		const html = await response.text();
+		expect(html).toContain("site-footer");
+		expect(html).toContain('href="/inspiration"');
+	});
+
+	test("404 page includes footer", async () => {
+		const response = render404Page();
+		const html = await response.text();
+		expect(html).toContain("site-footer");
+	});
+
+	test("confirmation page includes footer", async () => {
+		const db = makeTestDatabase();
+		const token = crypto.randomUUID();
+		makeSubscriberRow(db, { token, status: "pending" });
+		const response = renderConfirmationPage(db, token, 200);
+		const html = await response.text();
+		expect(html).toContain("site-footer");
+	});
+
+	test("unsubscribe page includes footer", async () => {
+		const db = makeTestDatabase();
+		const token = crypto.randomUUID();
+		makeSubscriberRow(db, { token, status: "active" });
+		const response = renderUnsubscribePage(db, token);
+		const html = await response.text();
+		expect(html).toContain("site-footer");
 	});
 });

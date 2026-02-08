@@ -66,6 +66,22 @@ describe("createRequestHandler", () => {
 			expect(body).toEqual({ status: "ok" });
 		});
 
+		test("routes GET /inspiration to inspiration page", async () => {
+			const { handler } = makeHandler();
+			const response = await handler(get("/inspiration"));
+			expect(response.status).toBe(200);
+			const html = await response.text();
+			expect(html).toContain("Life is Strange: Double Exposure");
+		});
+
+		test("routes GET /about to about page", async () => {
+			const { handler } = makeHandler();
+			const response = await handler(get("/about"));
+			expect(response.status).toBe(200);
+			const html = await response.text();
+			expect(html).toContain("Daily Platypus Facts");
+		});
+
 		test("routes POST /api/subscribe to subscribe handler", async () => {
 			const { handler } = makeHandler();
 			const response = await handler(

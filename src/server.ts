@@ -7,10 +7,12 @@ import { handleHealthCheck } from "./routes/health";
 import {
 	handleUnsubscribe,
 	render404Page,
+	renderAboutPage,
 	renderConfirmationPage,
 	renderDevEmailDetail,
 	renderDevMessageList,
 	renderFactPage,
+	renderInspirationPage,
 	renderSignupPage,
 	renderUnsubscribePage,
 } from "./routes/pages";
@@ -45,6 +47,14 @@ function createRequestHandler(deps: RequestHandlerDeps): (request: Request) => P
 
 		if (method === "GET" && pathname === "/") {
 			return renderSignupPage(db, maxSubscribers);
+		}
+
+		if (method === "GET" && pathname === "/inspiration") {
+			return renderInspirationPage();
+		}
+
+		if (method === "GET" && pathname === "/about") {
+			return renderAboutPage();
 		}
 
 		if (method === "POST" && pathname === "/api/subscribe") {

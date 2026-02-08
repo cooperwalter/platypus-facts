@@ -2,45 +2,16 @@
 
 ## Status Summary
 
-**P81 complete. 4 spec gaps remain (P77-P80).** Brevo is the production email provider. MAX_SUBSCRIBERS defaults to 200.
+**P77+P78 complete. 2 spec gaps remain (P79-P80).** Brevo is the production email provider. MAX_SUBSCRIBERS defaults to 200.
 
-- **319 tests passing** across 19 test files with **686 expect() calls**
+- **330 tests passing** across 19 test files with **713 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations (31 images in `public/images/facts/`)
-- **Latest tag**: 0.0.49
+- **Latest tag**: 0.0.52
 
 ---
 
 ## Remaining Priorities
-
-### P77 — Add footer to all public pages ⬜ TODO
-
-**Priority: HIGH** — The spec (`specs/web-pages.md` lines 74-80) requires a shared footer on all public pages with:
-- **"Inspiration" link** → `/inspiration` page explaining the *Life is Strange: Double Exposure* origin
-- **"About" link** → `/about` page with information about the project
-- **"Made with ❤️ by Cooper Walter"**
-
-**Current state:** No pages have a footer. All pages close with `</main></body></html>` with no footer content.
-
-**What needs to change:**
-
-- **`src/routes/pages.ts`**: Create a shared `renderFooter()` helper that returns the footer HTML. Insert it before `</body>` in every page renderer: `renderSignupPage`, `renderFactPage`, `renderConfirmationPage` (via `renderMessagePage`), `renderUnsubscribePage`, `render404Page`, `renderDevMessageList`, `renderDevEmailDetail`.
-- **`public/styles.css`**: Add footer styling consistent with the existing warm/indie design.
-- **`src/routes/routes.test.ts`**: Add tests verifying the footer content appears on rendered pages.
-
----
-
-### P78 — Add /inspiration and /about pages ⬜ TODO
-
-**Priority: HIGH** — The spec (`specs/web-pages.md` lines 78-79) requires these two pages. Neither exists. These are linked from the footer (P77).
-
-**What needs to change:**
-
-- **`src/routes/pages.ts`**: Add `renderInspirationPage()` and `renderAboutPage()` functions. The inspiration page should explain the *Life is Strange: Double Exposure* origin. The about page should describe the project.
-- **`src/server.ts`**: Register `GET /inspiration` and `GET /about` routes.
-- **`src/server.test.ts`** and/or **`src/routes/routes.test.ts`**: Add tests for the new routes.
-
----
 
 ### P79 — Add platypus emoji (🦫🦆🥚) throughout web pages ⬜ TODO
 
@@ -71,14 +42,10 @@
 
 | # | Description | Impact | Effort |
 |---|-------------|--------|--------|
-| P77 | Add footer to all public pages | High (spec compliance, visible on every page) | Medium (shared helper + CSS) |
-| P78 | Add /inspiration and /about pages | High (spec compliance, footer links need targets) | Low-Medium (2 new page renderers + routes) |
 | P80 | Add warm note about subscriber cap | Low (spec compliance, minor UI element) | Low (one line of HTML) |
 | P79 | Add platypus emoji throughout | Medium (spec compliance, design polish) | Low (string changes across pages) |
 
-**Recommended order:** P77 → P78 → P80 → P79
-
-P77 and P78 together because the footer links need the target pages. P80 and P79 are cosmetic polish.
+**Recommended order:** P80 → P79
 
 ---
 
@@ -86,6 +53,7 @@ P77 and P78 together because the footer links need the target pages. P80 and P79
 
 | Priority | Description | Notes |
 |----------|-------------|-------|
+| P77+P78 | Add footer + /inspiration and /about pages | Shared `renderFooter()` helper on all pages, `renderInspirationPage()` and `renderAboutPage()`, GET routes in server.ts, footer + content-card CSS, 11 new tests. 330 tests, 713 expects. |
 | P81 | Fix MAX_SUBSCRIBERS default to 200 | Changed default from 1000 to 200 in config, tests, .env files, deploy.yml. |
 | P76 | Switch Postmark → Brevo | Renamed `postmarkApiToken` → `brevoApiKey` in Config, wired `BrevoEmailProvider` in factory, added sender name, deleted Postmark files, updated all config/deploy/docs. 319 tests, 686 expects. |
 | P75 | Add fact page link to daily email | Added factPageUrl to DailyFactEmailData, CTA button in HTML, link in plain text. |
@@ -115,9 +83,9 @@ P77 and P78 together because the footer links need the target pages. P80 and P79
 | Drizzle schema | ✅ Complete | All 5 tables match spec exactly |
 | Signup page | ⚠️ Mostly | Missing: emoji (P79), warm note (P80) |
 | Fact page | ✅ Complete | Illustration, sources, branding, signup link |
-| Footer | ❌ Missing | P77 |
-| /inspiration page | ❌ Missing | P78 |
-| /about page | ❌ Missing | P78 |
+| Footer | ✅ Complete | Shared footer on all pages with Inspiration, About links and credit |
+| /inspiration page | ✅ Complete | Life is Strange: Double Exposure origin story |
+| /about page | ✅ Complete | Project description, tech stack, Brevo mention |
 | Platypus emoji | ❌ Missing from pages | P79 |
 | MAX_SUBSCRIBERS default | ✅ Complete | Default 200, matches spec |
 | Confirmation page | ✅ Complete | All states handled, cap check |
