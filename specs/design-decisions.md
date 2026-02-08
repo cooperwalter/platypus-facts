@@ -14,9 +14,9 @@ When all facts have been sent and a new cycle begins, the order is randomized ag
 
 Any fact that has never been sent globally is sent before continuing the current cycle. This ensures new content reaches Platypus Fans as soon as possible.
 
-## Sources: Linked web page (not inline in email)
+## Sources: Inline in email and on fact page
 
-Each daily email includes a link to a web page that displays the fact with its full sources. This keeps the email clean while still making sources accessible and verifiable.
+Each daily email includes clickable source links directly in the email body, plus a link to the fact's web page for a more detailed view with the illustration and full layout. Inline source links keep the email self-contained — a subscriber can verify the fact without leaving their inbox — while the fact page provides a richer browsing experience.
 
 ## Fact management: Seed file in repo
 
