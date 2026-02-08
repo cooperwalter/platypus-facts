@@ -2,12 +2,12 @@
 
 ## Status Summary
 
-**P69 complete (SMS removal).** All 68 original priorities (P1-P68) plus P69 complete. Remaining work: database schema alignment, Drizzle ORM migration, a missing fact-page link in daily emails, and documentation updates.
+**P70 complete (schema cleanup).** All 68 original priorities (P1-P68) plus P69-P70 complete. Remaining work: Drizzle ORM migration, a missing fact-page link in daily emails, and documentation updates.
 
 - **317 tests passing** across 19 test files with **684 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations (31 images in `public/images/facts/`)
-- **Latest tag**: 0.0.44
+- **Latest tag**: 0.0.45
 
 ### What Changed
 
@@ -25,25 +25,9 @@ Removed entire SMS infrastructure: 13 files deleted (sms/ directory, phone valid
 
 ---
 
-### P70 — Remove phone_number from database schema, make email NOT NULL
+### P70 — Remove phone_number from database schema, make email NOT NULL ✅ COMPLETE
 
-The `subscribers` table still has `phone_number TEXT UNIQUE` and `email` is nullable. The spec defines email as `NOT NULL` with no phone_number column.
-
-**Changes:**
-- `src/lib/db.ts` — Update `initializeSchema()`: remove `phone_number TEXT UNIQUE` from subscribers CREATE TABLE; change `email TEXT UNIQUE` to `email TEXT NOT NULL UNIQUE`
-- `src/lib/db.ts` — Update `migrateSchema()`: remove `tryAddColumn(db, "subscribers", "email TEXT")`; remove `migrateSubscribersConstraints()` (which creates phone_number); add a new migration that drops phone_number and makes email NOT NULL for existing databases (using the ALTER TABLE rename pattern)
-- `src/lib/db.ts` — Remove `hasColumn()`, `tryAddColumn()`, `isColumnNullable()`, `migrateSubscribersConstraints()` if no longer needed after Drizzle migration (P71); otherwise simplify
-- `src/lib/subscribers.ts` — Update `Subscriber` interface: remove `phone_number`; change `email` from `string | null` to `string`
-- `src/lib/test-utils.ts` — Update `makeSubscriberRow()`: remove `phone_number` parameter and column from INSERT; require or default `email`
-- `src/lib/db.test.ts` — Remove phone_number uniqueness tests; update schema assertions for email NOT NULL
-- `dev_messages` table — Remove `sms` as a valid `type` value (spec says `type` is always `email`)
-
-**Affected files:**
-- `src/lib/db.ts`
-- `src/lib/db.test.ts`
-- `src/lib/subscribers.ts`
-- `src/lib/test-utils.ts`
-- All test files that call `makeSubscriberRow()` with phone_number overrides
+Removed `phone_number TEXT UNIQUE` from subscribers table schema, changed `email` to `NOT NULL UNIQUE`. Migration detects old schema (has `phone_number` column) and rebuilds subscribers table using ALTER TABLE rename pattern, dropping phone-only rows. Removed unused migration helpers (`tryAddColumn`, `isColumnNullable`, `migrateSubscribersConstraints`). `subscribers.ts` and `test-utils.ts` were already clean from P69. Updated db.test.ts to test email NOT NULL enforcement instead of phone_number uniqueness. 317 tests pass.
 
 ---
 
@@ -197,6 +181,7 @@ All 68 original priorities shipped. See git history for details.
 
 | Priority | Description | Notes |
 |----------|-------------|-------|
+| P70 | Remove phone_number from schema, make email NOT NULL | Cleaned up subscribers schema, migration for existing DBs, removed unused helpers. 317 tests, 684 expects. |
 | P69 | Remove all SMS/phone support (email-only) | Deleted 13 SMS files, modified 22 files, removed twilio dependency. Rewrote integration tests for email-only. 317 tests, 684 expects. |
 | P68 | Extract `createRequestHandler` + 33 server tests | Refactored `handleRequest` out of `index.ts` into testable `server.ts` factory. Tests cover route dispatching, static file serving, path traversal protection, 404 fallback, dev route gating, method restrictions, and URL pattern matching. |
 | P67 | Fix .env.example PORT | Changed PORT from 3090 to 3000 to match production deploy config. |

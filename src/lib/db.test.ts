@@ -89,14 +89,11 @@ describe("database setup", () => {
 		expect(sentAfter).toHaveLength(1);
 	});
 
-	test("enforces subscribers.phone_number uniqueness by rejecting duplicate phone numbers", () => {
+	test("enforces subscribers.email NOT NULL by rejecting inserts without email", () => {
 		const db = makeTestDatabase();
-		db.prepare(
-			"INSERT INTO subscribers (phone_number, token, status) VALUES ('+15551234567', 'tok-1', 'pending')",
-		).run();
 		expect(() => {
 			db.prepare(
-				"INSERT INTO subscribers (phone_number, token, status) VALUES ('+15551234567', 'tok-2', 'pending')",
+				"INSERT INTO subscribers (email, token, status) VALUES (NULL, 'tok-null', 'pending')",
 			).run();
 		}).toThrow();
 	});
@@ -104,11 +101,11 @@ describe("database setup", () => {
 	test("enforces subscribers.token uniqueness by rejecting duplicate tokens", () => {
 		const db = makeTestDatabase();
 		db.prepare(
-			"INSERT INTO subscribers (phone_number, token, status) VALUES ('+15552234567', 'tok-dup', 'pending')",
+			"INSERT INTO subscribers (email, token, status) VALUES ('a@example.com', 'tok-dup', 'pending')",
 		).run();
 		expect(() => {
 			db.prepare(
-				"INSERT INTO subscribers (phone_number, token, status) VALUES ('+15553234567', 'tok-dup', 'pending')",
+				"INSERT INTO subscribers (email, token, status) VALUES ('b@example.com', 'tok-dup', 'pending')",
 			).run();
 		}).toThrow();
 	});
