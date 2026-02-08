@@ -40,7 +40,7 @@ body { margin: 0; padding: 0; background: #fdf6ec; font-family: Georgia, 'Times 
 <body>
 <div class="container">
 <div class="header">
-<h1>Daily Platypus Facts</h1>
+<h1>🦫🦆🥚 Daily Platypus Facts</h1>
 <p class="tagline">Inspired by <em>Life is Strange: Double Exposure</em></p>
 </div>
 ${bodyContent}
@@ -108,7 +108,7 @@ Unsubscribe: ${data.unsubscribeUrl}`;
 }
 
 function confirmationEmailHtml(data: ConfirmationEmailData): string {
-	const body = `<p class="fact-text">Welcome to Daily Platypus Facts! Inspired by Life is Strange: Double Exposure. 🦆</p>
+	const body = `<p class="fact-text">🦫🦆🥚 Welcome to Daily Platypus Facts! Inspired by Life is Strange: Double Exposure.</p>
 <p>Click the button below to confirm your subscription and start receiving a platypus fact every day.</p>
 <p style="text-align: center;">
 <a href="${escapeHtml(data.confirmUrl)}" class="cta-button">Confirm Subscription</a>
@@ -129,7 +129,7 @@ Daily Platypus Facts — Inspired by Life is Strange: Double Exposure`;
 }
 
 function alreadySubscribedEmailHtml(): string {
-	const body = `<p class="fact-text">You're already a Platypus Fan! 🦆</p>
+	const body = `<p class="fact-text">🦫🦆🥚 You're already a Platypus Fan!</p>
 <p>You're already subscribed to Daily Platypus Facts and receiving your daily dose of platypus knowledge.</p>`;
 
 	return emailWrapper("You're already a Platypus Fan!", body);

@@ -2,35 +2,12 @@
 
 ## Status Summary
 
-**P80 complete. 1 spec gap remains (P79).** Brevo is the production email provider. MAX_SUBSCRIBERS defaults to 200.
+**All spec priorities complete (P76-P81).** No remaining spec gaps. Brevo is the production email provider. MAX_SUBSCRIBERS defaults to 200.
 
-- **332 tests passing** across 19 test files with **716 expect() calls**
+- **337 tests passing** across 19 test files with **726 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations (31 images in `public/images/facts/`)
-- **Latest tag**: 0.0.53
-
----
-
-## Remaining Priorities
-
-### P79 — Add platypus emoji (🦫🦆🥚) throughout web pages ⬜ TODO
-
-**Priority: MEDIUM** — The spec (`specs/web-pages.md` line 23) says to "Use the platypus emoji combination (🦫🦆🥚) liberally throughout the page to add character — in the title, tagline, fan count, form labels, success/error messages, and footer."
-
-**Current state:** No instances of 🦫🦆🥚 appear anywhere in `src/`. Pages use the duck emoji (🦆) only in the favicon.
-
-**What needs to change:**
-
-- **`src/routes/pages.ts`**: Add 🦫🦆🥚 to page titles/headings, taglines, fan count section, form labels, success messages, error messages, and footer.
-- **`src/lib/email-templates.ts`**: Consider adding the emoji to email branding (if appropriate — spec says "wherever emoji are appropriate").
-
----
-
-## Priority Order
-
-| # | Description | Impact | Effort |
-|---|-------------|--------|--------|
-| P79 | Add platypus emoji throughout | Medium (spec compliance, design polish) | Low (string changes across pages) |
+- **Latest tag**: 0.0.54
 
 ---
 
@@ -38,6 +15,7 @@
 
 | Priority | Description | Notes |
 |----------|-------------|-------|
+| P79 | Add platypus emoji (🦫🦆🥚) throughout | Added emoji to all page headings, fan count, description, subscribe button, capacity notice, 404, confirmation, footer, CTA, and email templates. 5 new tests. 337 tests, 726 expects. |
 | P80 | Add warm note explaining subscriber cap | Added `.cap-note` paragraph below fan count with dynamic max, CSS styling, 2 new tests. 332 tests, 716 expects. |
 | P77+P78 | Add footer + /inspiration and /about pages | Shared `renderFooter()` helper on all pages, `renderInspirationPage()` and `renderAboutPage()`, GET routes in server.ts, footer + content-card CSS, 11 new tests. 330 tests, 713 expects. |
 | P81 | Fix MAX_SUBSCRIBERS default to 200 | Changed default from 1000 to 200 in config, tests, .env files, deploy.yml. |
@@ -67,12 +45,12 @@
 | Daily send | ✅ Complete | Idempotent, --force dev-only, graceful failure handling |
 | Sync + images | ✅ Complete | Upsert by text, image generation, auth failure handling |
 | Drizzle schema | ✅ Complete | All 5 tables match spec exactly |
-| Signup page | ⚠️ Mostly | Missing: emoji (P79); warm note complete |
+| Signup page | ✅ Complete | Emoji, warm note, fan count, form, all present |
 | Fact page | ✅ Complete | Illustration, sources, branding, signup link |
 | Footer | ✅ Complete | Shared footer on all pages with Inspiration, About links and credit |
 | /inspiration page | ✅ Complete | Life is Strange: Double Exposure origin story |
 | /about page | ✅ Complete | Project description, tech stack, Brevo mention |
-| Platypus emoji | ❌ Missing from pages | P79 |
+| Platypus emoji | ✅ Complete | 🦫🦆🥚 throughout all pages and email templates |
 | MAX_SUBSCRIBERS default | ✅ Complete | Default 200, matches spec |
 | Confirmation page | ✅ Complete | All states handled, cap check |
 | Unsubscribe pages | ✅ Complete | GET confirmation + POST processing |

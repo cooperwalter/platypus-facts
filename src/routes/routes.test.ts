@@ -979,6 +979,56 @@ describe("GET /about", () => {
 	});
 });
 
+describe("platypus emoji (🦫🦆🥚) on pages", () => {
+	test("signup page includes platypus emoji in heading, fan count, description, button, and footer", async () => {
+		const db = makeTestDatabase();
+		const response = renderSignupPage(db, 200);
+		const html = await response.text();
+
+		expect(html).toContain("🦫🦆🥚 Daily Platypus Facts");
+		expect(html).toContain("Platypus Fans 🦫🦆🥚");
+		expect(html).toContain("via email. 🦫🦆🥚");
+		expect(html).toContain("🦫🦆🥚 Subscribe");
+		expect(html).toContain("🦫🦆🥚 and ❤️");
+	});
+
+	test("signup page at capacity includes platypus emoji in capacity notice", async () => {
+		const db = makeTestDatabase();
+		makeSubscriberRow(db, { email: "a@example.com", status: "active" });
+		const response = renderSignupPage(db, 1);
+		const html = await response.text();
+
+		expect(html).toContain("🦫🦆🥚 We're currently at capacity");
+	});
+
+	test("fact page includes platypus emoji in heading and CTA", async () => {
+		const db = makeTestDatabase();
+		const factId = makeFactRow(db, { text: "Platypus fact" });
+		const response = renderFactPage(db, factId);
+		const html = await response.text();
+
+		expect(html).toContain("🦫🦆🥚 Daily Platypus Facts");
+		expect(html).toContain("🦫🦆🥚 Want daily platypus facts");
+	});
+
+	test("404 page includes platypus emoji", async () => {
+		const response = render404Page();
+		const html = await response.text();
+
+		expect(html).toContain("swam away? 🦫🦆🥚");
+	});
+
+	test("confirmation success page includes platypus emoji in heading", async () => {
+		const db = makeTestDatabase();
+		const token = crypto.randomUUID();
+		makeSubscriberRow(db, { token, status: "pending" });
+		const response = renderConfirmationPage(db, token, 200);
+		const html = await response.text();
+
+		expect(html).toContain("🦫🦆🥚 Welcome, Platypus Fan!");
+	});
+});
+
 describe("footer on public pages", () => {
 	test("signup page includes footer with Inspiration and About links", async () => {
 		const db = makeTestDatabase();
