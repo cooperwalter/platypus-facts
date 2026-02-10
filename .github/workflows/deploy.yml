@@ -60,18 +60,8 @@ jobs:
           TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.CF_SERVICE_TOKEN_ID }}
           TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.CF_SERVICE_TOKEN_SECRET }}
 
-      - name: Debug SSH config
-        run: |
-          echo "--- SSH config ---"
-          cat ~/.ssh/config | sed 's/--secret .*/--secret [REDACTED]/'
-          echo "--- Token ID length: ${#CF_SERVICE_TOKEN_ID} ---"
-          echo "--- Token Secret length: ${#CF_SERVICE_TOKEN_SECRET} ---"
-        env:
-          CF_SERVICE_TOKEN_ID: ${{ secrets.CF_SERVICE_TOKEN_ID }}
-          CF_SERVICE_TOKEN_SECRET: ${{ secrets.CF_SERVICE_TOKEN_SECRET }}
-
       - name: Verify SSH
-        run: ssh -v -o ConnectTimeout=10 cooper@ssh.cooperwalter.dev "echo ok"
+        run: ssh -o ConnectTimeout=10 cooper@ssh.cooperwalter.dev "echo ok"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

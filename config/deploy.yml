@@ -6,8 +6,6 @@ servers:
   web:
     hosts:
       - ssh.cooperwalter.dev
-    options:
-      network: kamal
 
 ssh:
   user: cooper
