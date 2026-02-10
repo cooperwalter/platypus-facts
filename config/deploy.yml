@@ -24,7 +24,7 @@ registry:
 env:
   clear:
     PORT: 3000
-    DATABASE_PATH: /app/data/platypus-facts.db
+    DATABASE_PATH: /app/db/platypus-facts.db
     DAILY_SEND_TIME_UTC: "14:00"
     MAX_SUBSCRIBERS: 200
     NODE_ENV: production
@@ -35,7 +35,7 @@ env:
     - EMAIL_FROM
 
 volumes:
-  - /opt/platypus-facts/data/platypus-facts.db:/app/data/platypus-facts.db
+  - /opt/platypus-facts/db:/app/db
   - /opt/platypus-facts/images:/app/public/images/facts
 
 proxy:
