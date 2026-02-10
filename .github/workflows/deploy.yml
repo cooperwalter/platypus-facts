@@ -34,8 +34,8 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     env:
-      SSH_USER: cooper
-      SSH_HOST: ssh.cooperwalter.dev
+      SSH_USER: ${{ vars.SSH_USER }}
+      SSH_HOST: ${{ vars.SSH_HOST }}
     steps:
       - uses: actions/checkout@v4
 
