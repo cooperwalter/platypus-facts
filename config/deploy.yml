@@ -13,6 +13,9 @@ ssh:
   user: cooper
   config: true
 
+builder:
+  arch: arm64
+
 registry:
   server: ghcr.io
   username:
