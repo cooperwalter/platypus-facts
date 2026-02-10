@@ -18,15 +18,6 @@ const cleanupInterval = setInterval(
 	10 * 60 * 1000,
 );
 
-try {
-	const syncResult = await syncFacts(db, undefined, config.openaiApiKey);
-	console.log(
-		`Fact sync complete: ${syncResult.added} added, ${syncResult.updated} updated, ${syncResult.unchanged} unchanged`,
-	);
-} catch (error) {
-	console.error("Fact sync failed on startup:", error);
-}
-
 const devEmailProvider = emailProvider instanceof DevEmailProvider ? emailProvider : null;
 
 const handleRequest = createRequestHandler({
@@ -49,6 +40,15 @@ const server = Bun.serve({
 });
 
 console.log(`Daily Platypus Facts server running on port ${server.port}`);
+
+try {
+	const syncResult = await syncFacts(db, undefined, config.openaiApiKey);
+	console.log(
+		`Fact sync complete: ${syncResult.added} added, ${syncResult.updated} updated, ${syncResult.unchanged} unchanged`,
+	);
+} catch (error) {
+	console.error("Fact sync failed on startup:", error);
+}
 
 async function shutdown(): Promise<void> {
 	console.log("Shutting down...");
