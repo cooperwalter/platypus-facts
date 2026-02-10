@@ -35,7 +35,7 @@ env:
     - EMAIL_FROM
 
 volumes:
-  - /opt/platypus-facts/data:/app/data
+  - /opt/platypus-facts/data/platypus-facts.db:/app/data/platypus-facts.db
   - /opt/platypus-facts/images:/app/public/images/facts
 
 proxy:
