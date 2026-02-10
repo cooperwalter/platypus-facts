@@ -1,45 +1,43 @@
 # Cron Setup for Daily Platypus Facts
 
-The daily send job runs as a cron task on the VPS host, executing inside the Docker container.
+The daily send job runs as a cron task on the Raspberry Pi host, executing inside the running Docker container.
 
-## VPS Setup (First Deploy)
+## Pi Setup (First Deploy)
 
 Create the host directories Kamal will mount as volumes before the first deploy:
 
 ```bash
-sudo mkdir -p /opt/platypus-facts/data /opt/platypus-facts/images
+sudo mkdir -p /opt/platypus-facts/db /opt/platypus-facts/images
+sudo chown -R $USER:$USER /opt/platypus-facts
 ```
 
 These persist the SQLite database and AI-generated fact images across container replacements.
 
-## Installing the Crontab
+## Installing the Cron Job
 
-SSH into the VPS and edit the crontab:
+The cron config is automatically installed by the GitHub Actions deploy workflow. On each deploy, the workflow SCPs `config/platypus-facts-cron` to the Pi and installs it at `/etc/cron.d/platypus-facts`. No manual setup is needed.
+
+To install manually (e.g., first-time setup without a deploy):
 
 ```bash
-crontab -e
+scp config/platypus-facts-cron cooper@ssh.cooperwalter.dev:/tmp/
+ssh cooper@ssh.cooperwalter.dev "sudo mv /tmp/platypus-facts-cron /etc/cron.d/platypus-facts && sudo chown root:root /etc/cron.d/platypus-facts && sudo chmod 644 /etc/cron.d/platypus-facts"
 ```
 
-Add the following entry (sends at 14:00 UTC daily):
-
-```
-0 14 * * * docker exec platypus-facts-web bun run src/jobs/daily-send.ts >> /var/log/platypus-facts-cron.log 2>&1
-```
-
-The container name `platypus-facts-web` matches the Kamal service name with the `-web` suffix.
+The cron config runs the daily send at 14:00 UTC. The container name includes a commit SHA on each deploy, so `docker ps -q --filter name=platypus-facts-web` is used to find the running container dynamically.
 
 ## Verifying the Cron Job
 
-Check that the crontab is installed:
+Check that the cron file is installed:
 
 ```bash
-crontab -l
+cat /etc/cron.d/platypus-facts
 ```
 
 Test the job manually:
 
 ```bash
-docker exec platypus-facts-web bun run src/jobs/daily-send.ts
+docker exec $(docker ps -q --filter name=platypus-facts-web) bun run src/jobs/daily-send.ts
 ```
 
 Check recent logs:
@@ -68,4 +66,3 @@ EOF
 
 - `docker exec` requires the container to be running. If the container is stopped during a deploy, the cron job will fail silently for that run. The job is idempotent so this is safe -- it will succeed on the next run.
 - The `DAILY_SEND_TIME_UTC` env var configures the intended send time. The crontab schedule must match this value.
-- For a more robust approach, consider in-container scheduling (e.g., supercronic) as a post-launch improvement.

@@ -33,6 +33,9 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
+    env:
+      SSH_USER: cooper
+      SSH_HOST: ssh.cooperwalter.dev
     steps:
       - uses: actions/checkout@v4
 
@@ -48,7 +51,7 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           cat > ~/.ssh/config <<SSHEOF
-          Host ssh.cooperwalter.dev
+          Host ${SSH_HOST}
             ProxyCommand cloudflared access ssh --hostname %h --id ${TUNNEL_SERVICE_TOKEN_ID} --secret ${TUNNEL_SERVICE_TOKEN_SECRET}
             IdentityFile ~/.ssh/deploy_key
             StrictHostKeyChecking no
@@ -61,7 +64,7 @@ jobs:
           TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.CF_SERVICE_TOKEN_SECRET }}
 
       - name: Verify SSH
-        run: ssh -o ConnectTimeout=10 cooper@ssh.cooperwalter.dev "echo ok"
+        run: ssh -o ConnectTimeout=10 $SSH_USER@$SSH_HOST "echo ok"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -104,3 +107,8 @@ jobs:
           EMAIL_FROM: ${{ vars.EMAIL_FROM }}
           TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.CF_SERVICE_TOKEN_ID }}
           TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.CF_SERVICE_TOKEN_SECRET }}
+
+      - name: Install cron job
+        run: |
+          scp config/platypus-facts-cron $SSH_USER@$SSH_HOST:/tmp/platypus-facts-cron
+          ssh $SSH_USER@$SSH_HOST "sudo mv /tmp/platypus-facts-cron /etc/cron.d/platypus-facts && sudo chown root:root /etc/cron.d/platypus-facts && sudo chmod 644 /etc/cron.d/platypus-facts"

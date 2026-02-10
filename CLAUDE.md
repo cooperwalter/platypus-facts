@@ -34,6 +34,10 @@ Bun HTTP server (`Bun.serve()`) that sends daily platypus facts via email (Brevo
 - **`data/facts.json`** — Seed data (array of `{text, sources: [{url, title}]}`)
 - **`public/`** — Static assets (CSS, fact images)
 
+### Deployment
+
+Docker container deployed to a Raspberry Pi 5 via Kamal, with SSH tunneled through Cloudflare. GitHub Actions runs CI (test, typecheck, lint), builds an arm64 Docker image, pushes to GHCR, and deploys via Kamal. The server starts before fact sync so the health check passes immediately. Database persists via volume mount at `/app/db` (separate from `/app/data` which contains `facts.json` from the image). The daily send job runs via a `/etc/cron.d/platypus-facts` cron config on the Pi host — see `CRON_SETUP.md`.
+
 ### Key Design Decisions
 
 - **Email provider is interface-based** (`EmailProvider` in `src/lib/email/types.ts`) — Brevo implementation for production, `DevEmailProvider` for development, `makeMockEmailProvider()` for tests

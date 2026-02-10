@@ -1,0 +1,2 @@
+# Daily Platypus Facts - send daily email at 14:00 UTC
+0 14 * * * root docker exec $(docker ps -q --filter name=platypus-facts-web) bun run src/jobs/daily-send.ts >> /var/log/platypus-facts-cron.log 2>&1
