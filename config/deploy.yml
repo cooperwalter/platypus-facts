@@ -5,10 +5,13 @@ image: ghcr.io/cooperwalter/platypus-facts
 servers:
   web:
     hosts:
-      # Replace with your VPS IP address
-      - <your-server-ip>
+      - ssh.cooperwalter.dev
     options:
       network: kamal
+
+ssh:
+  user: cooper
+  config: true
 
 registry:
   server: ghcr.io
