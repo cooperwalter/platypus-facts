@@ -1,6 +1,6 @@
 service: platypus-facts
 
-image: ghcr.io/cooperwalter/platypus-facts
+image: cooperwalter/platypus-facts
 
 servers:
   web:

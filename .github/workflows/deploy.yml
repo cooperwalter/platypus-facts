@@ -47,17 +47,24 @@ jobs:
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          cat >> ~/.ssh/config << EOF
+          cat > ~/.ssh/config << 'SSHEOF'
           Host ssh.cooperwalter.dev
-            ProxyCommand cloudflared access ssh --hostname %h --id $CF_SERVICE_TOKEN_ID --secret $CF_SERVICE_TOKEN_SECRET
+            ProxyCommand cloudflared access ssh --hostname %h
             IdentityFile ~/.ssh/deploy_key
             StrictHostKeyChecking no
-          EOF
+          SSHEOF
+          sed -i 's/^          //' ~/.ssh/config
           chmod 600 ~/.ssh/config
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          CF_SERVICE_TOKEN_ID: ${{ secrets.CF_SERVICE_TOKEN_ID }}
-          CF_SERVICE_TOKEN_SECRET: ${{ secrets.CF_SERVICE_TOKEN_SECRET }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_SERVICE_TOKEN_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_SERVICE_TOKEN_SECRET }}
+
+      - name: Verify SSH
+        run: ssh -o ConnectTimeout=10 cooper@ssh.cooperwalter.dev "echo ok"
+        env:
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_SERVICE_TOKEN_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_SERVICE_TOKEN_SECRET }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -94,8 +101,9 @@ jobs:
         env:
           KAMAL_REGISTRY_USERNAME: ${{ github.actor }}
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           BASE_URL: ${{ secrets.BASE_URL }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_SERVICE_TOKEN_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_SERVICE_TOKEN_SECRET }}
