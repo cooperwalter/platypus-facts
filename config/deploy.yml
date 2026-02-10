@@ -41,8 +41,6 @@ proxy:
   ssl: false
   host: platypus-facts.cooperwalter.dev
   app_port: 3000
-
-healthcheck:
-  path: /health
-  port: 3000
-  interval: 10
+  healthcheck:
+    path: /health
+    interval: 10
