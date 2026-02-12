@@ -49,7 +49,7 @@ function loadConfig(): Config {
 		emailFrom = process.env.EMAIL_FROM ?? null;
 	}
 
-	const dailySendTimeUtc = process.env.DAILY_SEND_TIME_UTC ?? "14:00";
+	const dailySendTimeUtc = process.env.DAILY_SEND_TIME_UTC ?? "13:00";
 	if (!validateTimeFormat(dailySendTimeUtc)) {
 		throw new Error(
 			`DAILY_SEND_TIME_UTC must be in HH:MM 24-hour format, got: ${dailySendTimeUtc}`,

@@ -25,7 +25,7 @@ env:
   clear:
     PORT: 3000
     DATABASE_PATH: /app/db/platypus-facts.db
-    DAILY_SEND_TIME_UTC: "14:00"
+    DAILY_SEND_TIME_UTC: "13:00"
     MAX_SUBSCRIBERS: 200
     NODE_ENV: production
   secret:

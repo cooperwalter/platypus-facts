@@ -99,6 +99,19 @@ describe("signup - email", () => {
 		expect(emailProv.sentEmails).toHaveLength(0);
 	});
 
+	test("allows pending re-signup at capacity since subscriber already exists in system", async () => {
+		const db = makeTestDatabase();
+		const emailProv = makeMockEmailProvider();
+		makeSubscriberRow(db, { email: "existing@example.com", status: "active" });
+		makeSubscriberRow(db, { email: "test@example.com", status: "pending" });
+
+		const result = await signup(db, emailProv, "test@example.com", 1, BASE_URL);
+		expect(result.success).toBe(true);
+		expect(result.message).toContain("resent");
+		expect(emailProv.sentEmails).toHaveLength(1);
+		expect(emailProv.sentEmails[0].subject).toContain("Confirm");
+	});
+
 	test("allows unsubscribed re-signup at capacity since pending does not count against cap", async () => {
 		const db = makeTestDatabase();
 		const emailProv = makeMockEmailProvider();

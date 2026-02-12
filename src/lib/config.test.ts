@@ -145,10 +145,10 @@ describe("loadConfig - BASE_URL validation", () => {
 });
 
 describe("loadConfig - DAILY_SEND_TIME_UTC validation", () => {
-	test("defaults to 14:00 when DAILY_SEND_TIME_UTC is not set", () => {
+	test("defaults to 13:00 when DAILY_SEND_TIME_UTC is not set", () => {
 		withEnv({ ...DEV_REQUIRED_ENV, DAILY_SEND_TIME_UTC: undefined }, () => {
 			const config = loadConfig();
-			expect(config.dailySendTimeUtc).toBe("14:00");
+			expect(config.dailySendTimeUtc).toBe("13:00");
 		});
 	});
 
@@ -324,7 +324,7 @@ describe("loadConfig - development defaults applied correctly", () => {
 				expect(config.brevoApiKey).toBeNull();
 				expect(config.emailFrom).toBeNull();
 				expect(config.port).toBe(3000);
-				expect(config.dailySendTimeUtc).toBe("14:00");
+				expect(config.dailySendTimeUtc).toBe("13:00");
 				expect(config.maxSubscribers).toBe(200);
 				expect(config.databasePath).toBe("./data/platypus-facts.db");
 				expect(config.openaiApiKey).toBeNull();
@@ -351,7 +351,7 @@ describe("loadConfig - production defaults applied correctly", () => {
 				expect(config.brevoApiKey).toBe("xkeysib-test-brevo-key");
 				expect(config.emailFrom).toBe("facts@example.com");
 				expect(config.port).toBe(3000);
-				expect(config.dailySendTimeUtc).toBe("14:00");
+				expect(config.dailySendTimeUtc).toBe("13:00");
 				expect(config.maxSubscribers).toBe(200);
 				expect(config.databasePath).toBe("./data/platypus-facts.db");
 				expect(config.openaiApiKey).toBeNull();

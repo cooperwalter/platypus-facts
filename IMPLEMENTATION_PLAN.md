@@ -4,17 +4,17 @@
 
 **All spec items complete.** Brevo is the production email provider. MAX_SUBSCRIBERS defaults to 200.
 
-- **339 tests passing** across 19 test files with **726 expect() calls**
+- **340 tests passing** across 19 test files with **730 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations (31 images in `public/images/facts/`)
 - **Platypus mascot PNG** generated via DALL-E 3 at `public/platypus.png`
-- **Latest tag**: 0.0.56
+- **Latest tag**: 0.0.57
 
 ---
 
 ## Outstanding Items (Non-Blocking)
 
-- **Drizzle query builder adoption**: Query files still use raw `sqlite` (Database) — deferred, not spec-blocking
+- **Drizzle query builder adoption**: Only `src/lib/db.ts` uses raw `sqlite` (for low-level migration/PRAGMA logic that must run before Drizzle). All query modules already use Drizzle query builder. No further migration needed.
 - **Manual Brevo testing**: Test with real Brevo API before production launch
 - **Database backup strategy**: Post-launch, not spec-required
 - **Mascot image optimization**: `public/platypus.png` is 445 KB (1024x1024 source displayed at 200x200 CSS). Could be resized/compressed to ~50-100 KB for faster loading. Non-critical.
@@ -41,6 +41,7 @@
 | /inspiration page | ✅ Complete | Life is Strange: Double Exposure origin story |
 | /about page | ✅ Complete | Project description, tech stack, Brevo mention |
 | MAX_SUBSCRIBERS default | ✅ Complete | Default 200, matches spec |
+| DAILY_SEND_TIME_UTC default | ✅ Complete | Default 13:00, matches spec |
 | Confirmation page | ✅ Complete | All states handled, cap check |
 | Unsubscribe pages | ✅ Complete | GET confirmation + POST processing |
 | Health endpoint | ✅ Complete | GET /health returns 200 |

@@ -13,7 +13,7 @@ function makeConfig(overrides: Partial<Config> = {}): Config {
 		databasePath: "./data/test.db",
 		brevoApiKey: null,
 		emailFrom: null,
-		dailySendTimeUtc: "14:00",
+		dailySendTimeUtc: "13:00",
 		maxSubscribers: 1000,
 		openaiApiKey: null,
 		...overrides,
