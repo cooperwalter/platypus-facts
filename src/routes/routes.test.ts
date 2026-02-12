@@ -979,53 +979,67 @@ describe("GET /about", () => {
 	});
 });
 
-describe("platypus emoji (🦫🦆🥚) on pages", () => {
-	test("signup page includes platypus emoji in heading, fan count, description, button, and footer", async () => {
+describe("platypus mascot image replaces emoji on web pages", () => {
+	test("home page displays mascot image above heading", async () => {
 		const db = makeTestDatabase();
 		const response = renderSignupPage(db, 200);
 		const html = await response.text();
 
-		expect(html).toContain("🦫🦆🥚 Daily Platypus Facts");
-		expect(html).toContain("Platypus Fans 🦫🦆🥚");
-		expect(html).toContain("via email. 🦫🦆🥚");
-		expect(html).toContain("🦫🦆🥚 Subscribe");
-		expect(html).toContain("🦫🦆🥚 and ❤️");
+		expect(html).toContain('<img src="/platypus.png"');
+		expect(html).toContain('class="mascot-image"');
+		expect(html).toContain('alt="Platypus mascot"');
 	});
 
-	test("signup page at capacity includes platypus emoji in capacity notice", async () => {
+	test("home page heading does not contain emoji combo", async () => {
+		const db = makeTestDatabase();
+		const response = renderSignupPage(db, 200);
+		const html = await response.text();
+
+		expect(html).not.toContain("🦫🦆🥚");
+	});
+
+	test("home page at capacity does not contain emoji combo", async () => {
 		const db = makeTestDatabase();
 		makeSubscriberRow(db, { email: "a@example.com", status: "active" });
 		const response = renderSignupPage(db, 1);
 		const html = await response.text();
 
-		expect(html).toContain("🦫🦆🥚 We're currently at capacity");
+		expect(html).not.toContain("🦫🦆🥚");
 	});
 
-	test("fact page includes platypus emoji in heading and CTA", async () => {
+	test("fact page does not contain emoji combo", async () => {
 		const db = makeTestDatabase();
 		const factId = makeFactRow(db, { text: "Platypus fact" });
 		const response = renderFactPage(db, factId);
 		const html = await response.text();
 
-		expect(html).toContain("🦫🦆🥚 Daily Platypus Facts");
-		expect(html).toContain("🦫🦆🥚 Want daily platypus facts");
+		expect(html).not.toContain("🦫🦆🥚");
 	});
 
-	test("404 page includes platypus emoji", async () => {
+	test("404 page does not contain emoji combo", async () => {
 		const response = render404Page();
 		const html = await response.text();
 
-		expect(html).toContain("swam away? 🦫🦆🥚");
+		expect(html).not.toContain("🦫🦆🥚");
 	});
 
-	test("confirmation success page includes platypus emoji in heading", async () => {
+	test("confirmation success page does not contain emoji combo", async () => {
 		const db = makeTestDatabase();
 		const token = crypto.randomUUID();
 		makeSubscriberRow(db, { token, status: "pending" });
 		const response = renderConfirmationPage(db, token, 200);
 		const html = await response.text();
 
-		expect(html).toContain("🦫🦆🥚 Welcome, Platypus Fan!");
+		expect(html).not.toContain("🦫🦆🥚");
+	});
+
+	test("footer uses 'Made with ❤️' without emoji combo", async () => {
+		const db = makeTestDatabase();
+		const response = renderSignupPage(db, 200);
+		const html = await response.text();
+
+		expect(html).toContain("Made with ❤️ by Cooper Walter");
+		expect(html).not.toContain("🦫🦆🥚");
 	});
 });
 

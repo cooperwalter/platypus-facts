@@ -2,35 +2,22 @@
 
 ## Status Summary
 
-**All spec priorities complete (P76-P81).** No remaining spec gaps. Brevo is the production email provider. MAX_SUBSCRIBERS defaults to 200.
+**All spec items complete.** Brevo is the production email provider. MAX_SUBSCRIBERS defaults to 200.
 
-- **337 tests passing** across 19 test files with **726 expect() calls**
+- **339 tests passing** across 19 test files with **726 expect() calls**
 - **Type check clean**, **lint clean**
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations (31 images in `public/images/facts/`)
-- **Latest tag**: 0.0.54
-
----
-
-## Recently Completed
-
-| Priority | Description | Notes |
-|----------|-------------|-------|
-| P79 | Add platypus emoji (🦫🦆🥚) throughout | Added emoji to all page headings, fan count, description, subscribe button, capacity notice, 404, confirmation, footer, CTA, and email templates. 5 new tests. 337 tests, 726 expects. |
-| P80 | Add warm note explaining subscriber cap | Added `.cap-note` paragraph below fan count with dynamic max, CSS styling, 2 new tests. 332 tests, 716 expects. |
-| P77+P78 | Add footer + /inspiration and /about pages | Shared `renderFooter()` helper on all pages, `renderInspirationPage()` and `renderAboutPage()`, GET routes in server.ts, footer + content-card CSS, 11 new tests. 330 tests, 713 expects. |
-| P81 | Fix MAX_SUBSCRIBERS default to 200 | Changed default from 1000 to 200 in config, tests, .env files, deploy.yml. |
-| P76 | Switch Postmark → Brevo | Renamed `postmarkApiToken` → `brevoApiKey` in Config, wired `BrevoEmailProvider` in factory, added sender name, deleted Postmark files, updated all config/deploy/docs. 319 tests, 686 expects. |
-| P75 | Add fact page link to daily email | Added factPageUrl to DailyFactEmailData, CTA button in HTML, link in plain text. |
-| P74 | Ensure all tests pass after changes | 319 tests, 687 expects, typecheck clean, lint clean. |
+- **Platypus mascot PNG** generated via DALL-E 3 at `public/platypus.png`
+- **Latest tag**: 0.0.56
 
 ---
 
 ## Outstanding Items (Non-Blocking)
 
-- **Pi 5 Server IP**: `config/deploy.yml` line 9 still has `<your-server-ip>` placeholder (requires physical setup)
 - **Drizzle query builder adoption**: Query files still use raw `sqlite` (Database) — deferred, not spec-blocking
 - **Manual Brevo testing**: Test with real Brevo API before production launch
 - **Database backup strategy**: Post-launch, not spec-required
+- **Mascot image optimization**: `public/platypus.png` is 445 KB (1024x1024 source displayed at 200x200 CSS). Could be resized/compressed to ~50-100 KB for faster loading. Non-critical.
 
 ---
 
@@ -38,6 +25,10 @@
 
 | Area | Status | Notes |
 |------|--------|-------|
+| Platypus mascot image | ✅ Complete | `public/platypus.png` generated, displayed as hero image on home page |
+| Footer text | ✅ Complete | "Made with ❤️ by Cooper Walter" matches spec |
+| Web page emoji removal | ✅ Complete | All 20 occurrences of 🦫🦆🥚 removed from web pages |
+| Email emoji preserved | ✅ Complete | Email templates still use 🦫🦆🥚 per spec |
 | Email provider (Brevo) | ✅ Complete | Brevo wired in, sender name included, Postmark removed |
 | Subscription flow | ✅ Complete | Cap checked at signup + confirmation, List-Unsubscribe headers on all emails |
 | Email templates | ✅ Complete | All 3 templates, correct subjects, plain-text fallbacks, source links, fact page link |
@@ -45,12 +36,10 @@
 | Daily send | ✅ Complete | Idempotent, --force dev-only, graceful failure handling |
 | Sync + images | ✅ Complete | Upsert by text, image generation, auth failure handling |
 | Drizzle schema | ✅ Complete | All 5 tables match spec exactly |
-| Signup page | ✅ Complete | Emoji, warm note, fan count, form, all present |
+| Signup page | ✅ Complete | Warm note, fan count, form, capacity handling, mascot image |
 | Fact page | ✅ Complete | Illustration, sources, branding, signup link |
-| Footer | ✅ Complete | Shared footer on all pages with Inspiration, About links and credit |
 | /inspiration page | ✅ Complete | Life is Strange: Double Exposure origin story |
 | /about page | ✅ Complete | Project description, tech stack, Brevo mention |
-| Platypus emoji | ✅ Complete | 🦫🦆🥚 throughout all pages and email templates |
 | MAX_SUBSCRIBERS default | ✅ Complete | Default 200, matches spec |
 | Confirmation page | ✅ Complete | All states handled, cap check |
 | Unsubscribe pages | ✅ Complete | GET confirmation + POST processing |
@@ -64,7 +53,7 @@
 | Dockerfile | ✅ Complete | Multi-stage, oven/bun, arm64 handled by CI |
 | Life is Strange attribution | ✅ Complete | README, signup page, welcome email |
 | ARCHITECTURE.md diagram | ✅ Complete | Up-to-date |
-| Fact sources | ✅ Complete | All 27 facts have sources in data/facts.json |
+| Fact sources | ✅ Complete | All 28 facts have sources in data/facts.json |
 | Responsive design | ✅ Complete | Mobile breakpoints implemented |
 | .dockerignore | ✅ Complete | Exists |
 | CI/CD pipeline | ✅ Complete | GitHub Actions workflow |

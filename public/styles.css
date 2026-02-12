@@ -92,6 +92,14 @@ a:focus-visible {
 	margin-bottom: 1.5rem;
 }
 
+.mascot-image {
+	display: block;
+	margin: 0 auto 1rem;
+	max-width: 200px;
+	height: auto;
+	border-radius: var(--radius);
+}
+
 .hero h1 {
 	font-family: var(--font-heading);
 	font-size: 2rem;

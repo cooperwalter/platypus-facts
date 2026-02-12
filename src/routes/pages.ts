@@ -10,7 +10,7 @@ function renderFooter(): string {
 			<a href="/inspiration">Inspiration</a>
 			<a href="/about">About</a>
 		</nav>
-		<p class="footer-credit">Made with 🦫🦆🥚 and ❤️ by Cooper Walter</p>
+		<p class="footer-credit">Made with ❤️ by Cooper Walter</p>
 	</footer>`;
 }
 
@@ -22,7 +22,7 @@ function renderSignupPage(db: DrizzleDatabase, maxSubscribers: number): Response
 
 	const formSection = atCapacity
 		? `<div class="capacity-notice">
-				<p>🦫🦆🥚 We're currently at capacity! Check back later.</p>
+				<p>We're currently at capacity! Check back later.</p>
 			</div>`
 		: `<form id="signup-form" class="signup-form">
 				<label for="email-input" class="sr-only">Email address</label>
@@ -36,7 +36,7 @@ function renderSignupPage(db: DrizzleDatabase, maxSubscribers: number): Response
 					inputmode="email"
 					required
 				/>
-				<button type="submit" id="submit-btn">🦫🦆🥚 Subscribe</button>
+				<button type="submit" id="submit-btn">Subscribe</button>
 			</form>
 			<div id="form-message" class="form-message" role="alert" hidden></div>`;
 
@@ -66,7 +66,7 @@ function renderSignupPage(db: DrizzleDatabase, maxSubscribers: number): Response
 			}
 
 			submitBtn.disabled = true;
-			submitBtn.textContent = '🦫🦆🥚 Subscribing...';
+			submitBtn.textContent = 'Subscribing...';
 
 			fetch('/api/subscribe', {
 				method: 'POST',
@@ -95,7 +95,7 @@ function renderSignupPage(db: DrizzleDatabase, maxSubscribers: number): Response
 			})
 			.finally(function() {
 				submitBtn.disabled = false;
-				submitBtn.textContent = '🦫🦆🥚 Subscribe';
+				submitBtn.textContent = 'Subscribe';
 			});
 		});
 	})();
@@ -106,24 +106,25 @@ function renderSignupPage(db: DrizzleDatabase, maxSubscribers: number): Response
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>🦫🦆🥚 Daily Platypus Facts</title>
+	<title>Daily Platypus Facts</title>
 	<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦆</text></svg>">
 	<link rel="stylesheet" href="/styles.css">
 </head>
 <body>
 	<main class="container">
 		<header class="hero">
-			<h1>🦫🦆🥚 Daily Platypus Facts</h1>
+			<img src="/platypus.png" alt="Platypus mascot" class="mascot-image" width="200" height="200" />
+			<h1>Daily Platypus Facts</h1>
 			<p class="tagline">Inspired by <em>Life is Strange: Double Exposure</em></p>
 		</header>
 
 		<div class="fan-count" aria-label="${formattedCount} of ${formattedMax} Platypus Fans">
-			<span class="count">${formattedCount}</span> / <span class="max">${formattedMax}</span> Platypus Fans 🦫🦆🥚
+			<span class="count">${formattedCount}</span> / <span class="max">${formattedMax}</span> Platypus Fans
 			<p class="cap-note">Since each fact is sent with love (and a small email cost), we can only support ${formattedMax} Platypus Fans right now.</p>
 		</div>
 
 		<section class="signup-section">
-			<p class="description">Get one fascinating platypus fact delivered every day via email. 🦫🦆🥚</p>
+			<p class="description">Get one fascinating platypus fact delivered every day via email.</p>
 			${formSection}
 		</section>
 	</main>
@@ -167,7 +168,7 @@ function renderFactPage(db: DrizzleDatabase, factId: number): Response {
 <body>
 	<main class="container">
 		<header class="hero">
-			<h1><a href="/">🦫🦆🥚 Daily Platypus Facts</a></h1>
+			<h1><a href="/">Daily Platypus Facts</a></h1>
 			<p class="tagline">Inspired by <em>Life is Strange: Double Exposure</em></p>
 		</header>
 
@@ -184,7 +185,7 @@ function renderFactPage(db: DrizzleDatabase, factId: number): Response {
 		</article>
 
 		<nav class="cta">
-			<a href="/">🦫🦆🥚 Want daily platypus facts? Subscribe here!</a>
+			<a href="/">Want daily platypus facts? Subscribe here!</a>
 		</nav>
 	</main>
 	${renderFooter()}
@@ -237,7 +238,7 @@ function renderConfirmationPage(
 	updateStatus(db, subscriber.id, "active", { confirmed_at: new Date().toISOString() });
 
 	return renderMessagePage(
-		"🦫🦆🥚 Welcome, Platypus Fan!",
+		"Welcome, Platypus Fan!",
 		"You're now confirmed! You'll receive one fascinating platypus fact every day.",
 	);
 }
@@ -255,7 +256,7 @@ function renderMessagePage(heading: string, body: string, status = 200): Respons
 <body>
 	<main class="container">
 		<header class="hero">
-			<h1><a href="/">🦫🦆🥚 Daily Platypus Facts</a></h1>
+			<h1><a href="/">Daily Platypus Facts</a></h1>
 			<p class="tagline">Inspired by <em>Life is Strange: Double Exposure</em></p>
 		</header>
 
@@ -305,7 +306,7 @@ function renderUnsubscribePage(db: DrizzleDatabase, token: string): Response {
 <body>
 	<main class="container">
 		<header class="hero">
-			<h1><a href="/">🦫🦆🥚 Daily Platypus Facts</a></h1>
+			<h1><a href="/">Daily Platypus Facts</a></h1>
 			<p class="tagline">Inspired by <em>Life is Strange: Double Exposure</em></p>
 		</header>
 
@@ -367,13 +368,13 @@ function render404Page(): Response {
 <body>
 	<main class="container">
 		<header class="hero">
-			<h1><a href="/">🦫🦆🥚 Daily Platypus Facts</a></h1>
+			<h1><a href="/">Daily Platypus Facts</a></h1>
 			<p class="tagline">Inspired by <em>Life is Strange: Double Exposure</em></p>
 		</header>
 
 		<section class="not-found">
 			<h2>404 - Fact Not Found</h2>
-			<p>This platypus fact doesn't exist. Maybe it swam away? 🦫🦆🥚</p>
+			<p>This platypus fact doesn't exist. Maybe it swam away?</p>
 			<a href="/">Back to home</a>
 		</section>
 	</main>
@@ -400,7 +401,7 @@ function renderInspirationPage(): Response {
 <body>
 	<main class="container">
 		<header class="hero">
-			<h1><a href="/">🦫🦆🥚 Daily Platypus Facts</a></h1>
+			<h1><a href="/">Daily Platypus Facts</a></h1>
 			<p class="tagline">Inspired by <em>Life is Strange: Double Exposure</em></p>
 		</header>
 
@@ -435,7 +436,7 @@ function renderAboutPage(): Response {
 <body>
 	<main class="container">
 		<header class="hero">
-			<h1><a href="/">🦫🦆🥚 Daily Platypus Facts</a></h1>
+			<h1><a href="/">Daily Platypus Facts</a></h1>
 			<p class="tagline">Inspired by <em>Life is Strange: Double Exposure</em></p>
 		</header>
 
@@ -485,7 +486,7 @@ function renderDevMessageList(emailMessages: StoredEmail[]): Response {
 <body>
 	<main class="container">
 		<header class="hero">
-			<h1><a href="/">🦫🦆🥚 Daily Platypus Facts</a></h1>
+			<h1><a href="/">Daily Platypus Facts</a></h1>
 			<p class="tagline">Dev Message Viewer</p>
 		</header>
 
@@ -528,7 +529,7 @@ function renderDevEmailDetail(email: StoredEmail): Response {
 <body>
 	<main class="container">
 		<header class="hero">
-			<h1><a href="/">🦫🦆🥚 Daily Platypus Facts</a></h1>
+			<h1><a href="/">Daily Platypus Facts</a></h1>
 			<p class="tagline">Dev Message Viewer</p>
 		</header>
 
