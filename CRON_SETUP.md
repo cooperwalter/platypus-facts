@@ -24,7 +24,7 @@ scp config/platypus-facts-cron cooper@ssh.cooperwalter.dev:/tmp/
 ssh cooper@ssh.cooperwalter.dev "sudo mv /tmp/platypus-facts-cron /etc/cron.d/platypus-facts && sudo chown root:root /etc/cron.d/platypus-facts && sudo chmod 644 /etc/cron.d/platypus-facts"
 ```
 
-The cron config runs the daily send at 14:00 UTC. The container name includes a commit SHA on each deploy, so `docker ps -q --filter name=platypus-facts-web` is used to find the running container dynamically.
+The cron config runs the daily send at 6:00 AM Pacific time, using `CRON_TZ=America/Los_Angeles` to automatically adjust for daylight saving time. The container name includes a commit SHA on each deploy, so `docker ps -q --filter name=platypus-facts-web` is used to find the running container dynamically.
 
 ## Verifying the Cron Job
 

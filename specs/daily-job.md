@@ -4,7 +4,7 @@ The scheduled job that sends the day's platypus fact to all active Platypus Fans
 
 ## Schedule
 
-Runs once per day at a configured UTC time via system cron (e.g., `crontab`). The send time is configured via the `DAILY_SEND_TIME_UTC` environment variable (format: `HH:MM`, e.g., `14:00` for 2:00 PM UTC).
+Runs once per day at 6:00 AM Pacific time via system cron with `CRON_TZ=America/Los_Angeles`. This automatically adjusts for daylight saving time (PST/PDT).
 
 ## Execution Steps
 
@@ -33,6 +33,7 @@ The daily send can be triggered manually via CLI. A `--force` flag bypasses the 
 The job is a standalone Bun script (e.g., `src/jobs/daily-send.ts`) invoked by cron:
 
 ```
-# Example crontab entry (2:00 PM UTC daily)
-0 14 * * * cd /path/to/platypus-facts && bun run src/jobs/daily-send.ts
+# Example crontab entry (6:00 AM Pacific daily)
+CRON_TZ=America/Los_Angeles
+0 6 * * * cd /path/to/platypus-facts && bun run src/jobs/daily-send.ts
 ```

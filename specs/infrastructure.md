@@ -62,7 +62,7 @@ If a deploy introduces a bug: `kamal rollback` reverts to the previous container
 
 ## Cron
 
-The daily send job is scheduled via system `crontab` on the Pi. The cron entry executes inside the running Docker container. See `CRON_SETUP.md` for setup instructions.
+The daily send job is scheduled via system `crontab` on the Pi at 6:00 AM Pacific time, using `CRON_TZ=America/Los_Angeles` to automatically handle daylight saving time. The cron entry executes inside the running Docker container. See `CRON_SETUP.md` for setup instructions.
 
 ## Environment Variables
 
@@ -74,7 +74,7 @@ The daily send job is scheduled via system `crontab` on the Pi. The cron entry e
 | `NODE_ENV`             | Environment mode (`development` or `production`) | `production`            | No (default: `development`) |
 | `BREVO_API_KEY`        | Brevo API key for sending email          | `xkeysib-...`                  | Production only |
 | `EMAIL_FROM`           | Sender email address for outbound emails | `facts@platypus-facts.cooperwalter.dev` | Production only |
-| `DAILY_SEND_TIME_UTC`  | Time to send daily facts (HH:MM UTC)     | `14:00`                        | No (default: 14:00) |
+| `DAILY_SEND_TIME_UTC`  | Time to send daily facts (HH:MM UTC)     | `13:00`                        | No (default: 13:00) |
 | `MAX_SUBSCRIBERS`      | Maximum number of active Platypus Fans   | `200`                          | No (default: 200) |
 | `OPENAI_API_KEY`       | API key for AI image generation          | `sk-...`                       | No (images skipped if unset) |
 
