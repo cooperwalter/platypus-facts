@@ -116,7 +116,7 @@ describe("dailyFactEmailHtml", () => {
 		expect(html).toContain("&amp; hunt");
 	});
 
-	test("includes fact page link with 'View this fact with sources' text", () => {
+	test("includes fact page link with 'View this fact on the web' text", () => {
 		const html = dailyFactEmailHtml({
 			factText: "Fact.",
 			sources: [],
@@ -125,7 +125,7 @@ describe("dailyFactEmailHtml", () => {
 			unsubscribeUrl: "https://example.com/unsubscribe/abc",
 		});
 		expect(html).toContain("https://example.com/facts/42");
-		expect(html).toContain("View this fact with sources");
+		expect(html).toContain("View this fact on the web");
 	});
 });
 
@@ -163,7 +163,7 @@ describe("dailyFactEmailPlain", () => {
 		expect(plain).toContain("Unsubscribe: https://example.com/unsubscribe/abc");
 	});
 
-	test("includes fact page URL with 'View this fact with sources' label", () => {
+	test("includes fact page URL with 'View this fact on the web' label", () => {
 		const plain = dailyFactEmailPlain({
 			factText: "Fact.",
 			sources: [],
@@ -171,7 +171,7 @@ describe("dailyFactEmailPlain", () => {
 			factPageUrl: "https://example.com/facts/42",
 			unsubscribeUrl: "https://example.com/unsubscribe/abc",
 		});
-		expect(plain).toContain("View this fact with sources: https://example.com/facts/42");
+		expect(plain).toContain("View this fact on the web: https://example.com/facts/42");
 	});
 });
 

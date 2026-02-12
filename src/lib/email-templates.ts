@@ -76,7 +76,7 @@ ${sourceLinks}
 <p class="fact-text">${escapeHtml(data.factText)}</p>
 ${sourcesSection}
 <p style="text-align: center; margin: 24px 0;">
-<a href="${escapeHtml(data.factPageUrl)}" class="cta-button">View this fact with sources</a>
+<a href="${escapeHtml(data.factPageUrl)}" class="cta-button">View this fact on the web</a>
 </p>
 <div class="footer">
 <p><a href="${escapeHtml(data.unsubscribeUrl)}">Unsubscribe</a></p>
@@ -100,7 +100,7 @@ function dailyFactEmailPlain(data: DailyFactEmailData): string {
 
 ${data.factText}
 ${sourcesSection}
-View this fact with sources: ${data.factPageUrl}
+View this fact on the web: ${data.factPageUrl}
 
 ---
 Daily Platypus Facts — Inspired by Life is Strange: Double Exposure
