@@ -19,8 +19,8 @@ The landing page where visitors subscribe to Daily Platypus Facts.
 ### Design
 
 Platypus themed with a warm, indie, handcrafted feel:
-- Platypus imagery or illustrations
-- Personality and charm — this is a fun project. Use the platypus emoji combination (🦫🦆🥚) liberally throughout the page to add character — in the title, tagline, fan count, form labels, success/error messages, and footer.
+- **Platypus mascot image** — a platypus PNG (`public/platypus.png`) displayed prominently on the home page as a hero/mascot image above or near the title. This replaces the platypus emoji combination (🦫🦆🥚) that was previously used throughout web pages. Emails continue to use the platypus emoji combination.
+- Personality and charm — this is a fun project.
 - **Repeating platypus background pattern** — all pages use a subtle, tiled background using the platypus SVG at `public/platypus-icon.svg`. Applied via CSS `background-image` with `background-repeat: repeat`. Low-opacity so it doesn't compete with page content, creating a soft watermark-style texture across the entire page. The icons should be **generously spaced** — not packed tightly together. Use `background-size` and/or padding within the tile to ensure visible gaps between each icon so the pattern feels airy and light, not dense or wallpaper-like.
 - **No animated platypus** — there should be no animated, moving, or swimming platypus element on any page. The background pattern is the only platypus decoration.
 - **Desktop top padding** — on desktop viewports, the main content area should have generous top padding so it doesn't start right at the top of the page. This gives the design breathing room and lets the background pattern show above the content.
