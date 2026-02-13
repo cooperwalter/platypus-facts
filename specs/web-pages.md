@@ -56,7 +56,8 @@ Consistent with the signup page theme. Clean, focused on the fact content (and i
 
 Handles email-based subscription confirmation.
 
-- Valid pending token: confirms the subscription, displays a success page.
+- Valid pending token (first-time subscriber): confirms the subscription, sends a welcome email, displays a success page telling the user to check their email for their first platypus fact.
+- Valid pending token (returning subscriber): confirms the subscription without sending a welcome email, displays a success page. See `welcome-email.md` for how first-time vs returning is determined.
 - Already active: displays "You're already confirmed!" page.
 - Invalid/unsubscribed token: displays an appropriate message.
 - Cap reached: displays a "we're at capacity" page.

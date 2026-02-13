@@ -1102,6 +1102,75 @@ describe("welcome email on confirmation", () => {
 
 		expect(email.sentEmails[0].htmlBody).not.toContain('class="fact-image"');
 	});
+
+	test("welcome email is NOT sent when a returning subscriber confirms (confirmed_at was set)", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			email: "returning@example.com",
+			token: "welcome-eee-eeee-eeee-eeeeeeeeeeee",
+			status: "pending",
+			confirmed_at: "2025-01-01T00:00:00Z",
+		});
+
+		await renderConfirmationPage(db, "welcome-eee-eeee-eeee-eeeeeeeeeeee", 1000, email, BASE_URL);
+
+		expect(email.sentEmails).toHaveLength(0);
+
+		const row = db
+			.select({ status: subscribers.status })
+			.from(subscribers)
+			.where(eq(subscribers.token, "welcome-eee-eeee-eeee-eeeeeeeeeeee"))
+			.get();
+		expect(row?.status).toBe("active");
+	});
+
+	test("first-time confirmation page says 'Check your email for your first platypus fact'", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			email: "firsttime@example.com",
+			token: "welcome-fff-ffff-ffff-ffffffffffff",
+			status: "pending",
+		});
+
+		const response = await renderConfirmationPage(
+			db,
+			"welcome-fff-ffff-ffff-ffffffffffff",
+			1000,
+			email,
+			BASE_URL,
+		);
+		const html = await response.text();
+
+		expect(html).toContain("Check your email for your first platypus fact");
+	});
+
+	test("returning subscriber confirmation page says 'You'll receive one fascinating platypus fact every day'", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			email: "returning@example.com",
+			token: "welcome-ggg-gggg-gggg-gggggggggggg",
+			status: "pending",
+			confirmed_at: "2025-01-01T00:00:00Z",
+		});
+
+		const response = await renderConfirmationPage(
+			db,
+			"welcome-ggg-gggg-gggg-gggggggggggg",
+			1000,
+			email,
+			BASE_URL,
+		);
+		const html = await response.text();
+
+		expect(html).toContain("You'll receive one fascinating platypus fact every day");
+		expect(html).not.toContain("Check your email for your first platypus fact");
+	});
 });
 
 describe("GET /unsubscribe/:token", () => {

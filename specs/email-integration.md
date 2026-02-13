@@ -68,7 +68,7 @@ Sent when an active subscriber re-enters their email on the signup form.
 
 Subject: `Welcome to Daily Platypus Facts — Here's Your First Fact`
 
-Sent immediately after a subscriber confirms. Includes the most recent platypus fact as a "catch-up" so the subscriber gets instant value. See `welcome-email.md` for full details.
+Sent immediately after a **first-time** subscriber confirms (not sent to returning subscribers who previously unsubscribed and re-signed up). Includes the most recent platypus fact as a "catch-up" so the subscriber gets instant value. See `welcome-email.md` for full details.
 
 ## Unsubscribe Header
 

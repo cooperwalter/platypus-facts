@@ -1,6 +1,6 @@
 # Welcome Email with Catch-Up Fact
 
-When a subscriber confirms their email, send them a welcome email containing the most recently sent platypus fact so they don't have to wait until the next daily send.
+When a **first-time** subscriber confirms their email, send them a welcome email containing the most recently sent platypus fact so they don't have to wait until the next daily send.
 
 ## Motivation
 
@@ -8,7 +8,27 @@ New subscribers currently see a confirmation page ("Welcome, Platypus Fan!") but
 
 ## Trigger
 
-The welcome email is sent during the confirmation flow in `renderConfirmationPage()` (in `src/routes/pages.ts`), immediately after `updateStatus()` transitions the subscriber from `pending` to `active`. It is only sent on a successful status transition to `active` — not when a subscriber who is already active visits the confirmation link again.
+The welcome email is sent during the confirmation flow in `renderConfirmationPage()` (in `src/routes/pages.ts`), immediately after `updateStatus()` transitions the subscriber from `pending` to `active`. It is only sent when **all** of the following are true:
+
+1. The subscriber's status transitions from `pending` to `active` (successful confirmation).
+2. The subscriber is a **first-time subscriber** (has never been confirmed before).
+
+### First-Time vs. Returning Subscribers
+
+A "first-time subscriber" is one who has never previously confirmed. A "returning subscriber" is one who was previously active, unsubscribed, and then re-signed up.
+
+The distinction is determined by checking the subscriber's `confirmed_at` field **before** the `updateStatus()` call:
+
+- **`confirmed_at` is `null`**: First-time subscriber. Send the welcome email.
+- **`confirmed_at` is not `null`**: Returning subscriber (they confirmed previously). Do **not** send the welcome email.
+
+This works because the re-subscribe flow (in `subscription-flow.ts`) clears `unsubscribed_at` but **preserves** `confirmed_at` when transitioning from `unsubscribed` → `pending`. The previous `confirmed_at` timestamp remains in the database, serving as a reliable indicator that this subscriber has been through the confirmation flow before.
+
+The welcome email is **never** sent in these cases:
+- Returning subscribers (previously confirmed, then unsubscribed and re-subscribed)
+- Already-active subscribers visiting the confirmation link again
+- Invalid or unsubscribed tokens
+- Confirmation denied due to subscriber cap
 
 ## Fact Selection
 
@@ -116,15 +136,36 @@ The `createRequestHandler()` call site for the `/confirm/:token` route must pass
 
 When the dev email provider is active, the welcome email is stored in the `dev_messages` table with `type: "email"` (same as all other emails), making it visible in the dev message viewer at `/dev/messages`.
 
-## Confirmation Page (No Change)
+## Confirmation Page Changes
 
-The confirmation success page content remains unchanged: "Welcome, Platypus Fan!" / "You're now confirmed! You'll receive one fascinating platypus fact every day." The welcome email is a background action — the user sees the same confirmation page regardless of whether the email succeeds or fails.
+The confirmation success page is updated to reflect whether a welcome email was sent:
+
+### First-Time Subscribers
+
+When a first-time subscriber confirms (welcome email sent):
+- **Heading**: "Welcome, Platypus Fan!"
+- **Body**: "You're now confirmed! Check your email for your first platypus fact."
+
+This tells the subscriber to expect the welcome email in their inbox, giving them an immediate next action.
+
+### Returning Subscribers
+
+When a returning subscriber confirms (no welcome email):
+- **Heading**: "Welcome, Platypus Fan!"
+- **Body**: "You're now confirmed! You'll receive one fascinating platypus fact every day."
+
+This is the original confirmation message. Returning subscribers don't receive a welcome email, so the page doesn't mention checking email.
+
+### Email Failure
+
+If the welcome email fails to send for a first-time subscriber, the confirmation page still shows the first-time message ("Check your email for your first platypus fact."). The email failure is logged but does not change the page content — showing the returning-subscriber message would be confusing since the user has never subscribed before.
 
 ## Testing
 
 Tests should cover:
 
-- Welcome email is sent when a pending subscriber confirms successfully
+- Welcome email is sent when a first-time pending subscriber confirms successfully (`confirmed_at` was `null`)
+- Welcome email is NOT sent when a returning subscriber confirms (`confirmed_at` was not `null`)
 - Welcome email includes the most recently sent fact (text, sources, image URL, fact page URL)
 - Welcome email includes unsubscribe link with the subscriber's token
 - Welcome email includes List-Unsubscribe headers
@@ -139,6 +180,8 @@ Tests should cover:
 - Welcome email without a fact omits the fact section entirely (no placeholder text, no empty space)
 - Fact image URL is correctly constructed as `${baseUrl}/${image_path}` when image_path is present
 - Fact page URL is correctly constructed as `${baseUrl}/facts/${factId}`
+- First-time confirmation page says "Check your email for your first platypus fact."
+- Returning subscriber confirmation page says "You'll receive one fascinating platypus fact every day."
 
 ## Rollback
 

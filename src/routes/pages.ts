@@ -245,47 +245,61 @@ async function renderConfirmationPage(
 		);
 	}
 
+	const isFirstTime = subscriber.confirmed_at === null;
+
 	updateStatus(db, subscriber.id, "active", { confirmed_at: new Date().toISOString() });
 
-	try {
-		const recentFact = getMostRecentSentFact(db);
-		const unsubscribeUrl = `${baseUrl}/unsubscribe/${subscriber.token}`;
+	if (isFirstTime) {
+		try {
+			const recentFact = getMostRecentSentFact(db);
+			const unsubscribeUrl = `${baseUrl}/unsubscribe/${subscriber.token}`;
 
-		let factData: {
-			text: string;
-			sources: Array<{ url: string; title: string | null }>;
-			imageUrl: string | null;
-			factPageUrl: string;
-		} | null = null;
+			let factData: {
+				text: string;
+				sources: Array<{ url: string; title: string | null }>;
+				imageUrl: string | null;
+				factPageUrl: string;
+			} | null = null;
 
-		if (recentFact) {
-			const factWithSources = getFactWithSources(db, recentFact.fact_id);
-			if (factWithSources) {
-				factData = {
-					text: factWithSources.fact.text,
-					sources: factWithSources.sources,
-					imageUrl: factWithSources.fact.image_path
-						? `${baseUrl}/${factWithSources.fact.image_path}`
-						: null,
-					factPageUrl: `${baseUrl}/facts/${recentFact.fact_id}`,
-				};
+			if (recentFact) {
+				const factWithSources = getFactWithSources(db, recentFact.fact_id);
+				if (factWithSources) {
+					factData = {
+						text: factWithSources.fact.text,
+						sources: factWithSources.sources,
+						imageUrl: factWithSources.fact.image_path
+							? `${baseUrl}/${factWithSources.fact.image_path}`
+							: null,
+						factPageUrl: `${baseUrl}/facts/${recentFact.fact_id}`,
+					};
+				}
 			}
+
+			const welcomeData = { fact: factData, unsubscribeUrl, baseUrl };
+			const subject = factData
+				? "Welcome to Daily Platypus Facts \u2014 Here's Your First Fact"
+				: "Welcome to Daily Platypus Facts!";
+
+			await emailProvider.sendEmail(
+				subscriber.email,
+				subject,
+				welcomeEmailHtml(welcomeData),
+				welcomeEmailPlain(welcomeData),
+				unsubscribeHeaders(unsubscribeUrl),
+			);
+		} catch (error) {
+			console.error(
+				"Failed to send welcome email:",
+				error instanceof Error ? error.message : error,
+			);
 		}
+	}
 
-		const welcomeData = { fact: factData, unsubscribeUrl, baseUrl };
-		const subject = factData
-			? "Welcome to Daily Platypus Facts \u2014 Here's Your First Fact"
-			: "Welcome to Daily Platypus Facts!";
-
-		await emailProvider.sendEmail(
-			subscriber.email,
-			subject,
-			welcomeEmailHtml(welcomeData),
-			welcomeEmailPlain(welcomeData),
-			unsubscribeHeaders(unsubscribeUrl),
+	if (isFirstTime) {
+		return renderMessagePage(
+			"Welcome, Platypus Fan!",
+			"You're now confirmed! Check your email for your first platypus fact.",
 		);
-	} catch (error) {
-		console.error("Failed to send welcome email:", error instanceof Error ? error.message : error);
 	}
 
 	return renderMessagePage(
