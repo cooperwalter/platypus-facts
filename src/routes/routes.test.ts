@@ -1485,6 +1485,20 @@ describe("getCacheControl", () => {
 	});
 });
 
+describe("getCacheControl uppercase extension normalization", () => {
+	test("server normalizes .PNG to lowercase before calling getCacheControl", () => {
+		expect(getCacheControl(".PNG".toLowerCase())).toBe("public, max-age=604800, immutable");
+	});
+
+	test("server normalizes .CSS to lowercase before calling getCacheControl", () => {
+		expect(getCacheControl(".CSS".toLowerCase())).toBe("public, max-age=86400");
+	});
+
+	test("server normalizes .SVG to lowercase before calling getCacheControl", () => {
+		expect(getCacheControl(".SVG".toLowerCase())).toBe("public, max-age=604800, immutable");
+	});
+});
+
 describe("static file Cache-Control headers", () => {
 	function makeHandler() {
 		const db = makeTestDatabase();
