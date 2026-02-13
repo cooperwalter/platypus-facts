@@ -177,7 +177,7 @@ function renderFactPage(db: DrizzleDatabase, factId: number): Response {
 		</header>
 
 		<article class="fact-card">
-			${fact.image_path ? `<img src="/${escapeHtml(fact.image_path)}" alt="Illustration for this platypus fact" class="fact-image" />` : ""}
+			${fact.image_path ? `<img src="/${escapeHtml(fact.image_path)}" alt="Illustration for this platypus fact" width="640" height="640" class="fact-image" />` : ""}
 			<p class="fact-text">${escapeHtml(fact.text)}</p>
 
 			<section class="sources">
