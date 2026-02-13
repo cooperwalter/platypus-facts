@@ -255,6 +255,25 @@ describe("daily-send", () => {
 		expect(countResult?.count).toBe(1);
 	});
 
+	test("rejects --force flag in production (CLI entry point)", async () => {
+		const proc = Bun.spawn(["bun", "run", "src/jobs/daily-send.ts", "--force"], {
+			env: {
+				...process.env,
+				NODE_ENV: "production",
+				BASE_URL: "https://example.com",
+				BREVO_API_KEY: "fake-key",
+				EMAIL_FROM: "test@example.com",
+				DATABASE_PATH: ":memory:",
+			},
+			stdout: "pipe",
+			stderr: "pipe",
+		});
+		const exitCode = await proc.exited;
+		const stderr = await new Response(proc.stderr).text();
+		expect(exitCode).toBe(1);
+		expect(stderr).toContain("--force flag is not allowed in production");
+	});
+
 	test("without force flag, skips when fact already sent today", async () => {
 		const db = makeTestDatabase();
 		const email = makeMockEmailProvider();

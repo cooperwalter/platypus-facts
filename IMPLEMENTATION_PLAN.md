@@ -4,7 +4,7 @@
 
 **All spec items complete (2026-02-13).** Full audit across all 20 spec files and all source code — zero remaining issues. Core service fully functional and spec-compliant.
 
-- **418 tests passing** across 19 test files with **881 expect() calls**
+- **423 tests passing** across 19 test files with **898 expect() calls**
 - **Type check clean**, **lint clean**
 - **No TODOs, FIXMEs, skipped tests, or placeholder code** in source
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations (31 images in `public/images/facts/`)
@@ -12,7 +12,7 @@
 - **Fact images** optimized to 640x640 (86KB-538KB, down from 243KB-1.3MB)
 - **Favicons** generated from mascot: `favicon.ico`, `favicon-32.png`, `apple-touch-icon.png`
 - **ARCHITECTURE.md** updated with Drizzle ORM, health monitoring, welcome email flow, image optimization, all routes, static assets
-- **Latest tag**: 0.0.67
+- **Latest tag**: 0.0.68
 - **All 11 render functions** include `renderFooter()` and 3 favicon `<link>` tags
 - **Email templates**: All 4 templates (daily fact, confirmation, already subscribed, welcome) have HTML + plain text, `List-Unsubscribe` + `List-Unsubscribe-Post` headers
 - **CSS micro-interactions**: `prefers-reduced-motion` media query wrapping all transitions
@@ -46,8 +46,8 @@ All 20 spec files audited against source code (2026-02-13) — all fully complia
 - **fact-cycling.md**: Algorithm correct. All edge cases tested.
 - **seed-data.md**: `sync-facts.ts` correctly syncs, upserts by text match, generates images via DALL-E. Empty OPENAI_API_KEY handled correctly.
 - **fact-images.md**: AI generation at sync time, graceful degradation when no image. Empty API key normalized to null.
-- **email-integration.md**: Provider abstraction, Brevo implementation, dev provider with SQLite persistence. All 4 templates with HTML + plain text + headers.
-- **daily-job.md**: Idempotency, active subscribers only, individual failure handling, `--force` rejected in production.
+- **email-integration.md**: Provider abstraction, Brevo implementation, dev provider with SQLite persistence. All 4 templates with HTML + plain text + headers. List-Unsubscribe headers tested on all email paths (confirmation, already-subscribed, daily, welcome).
+- **daily-job.md**: Idempotency, active subscribers only, individual failure handling, `--force` rejected in production (now tested via subprocess).
 - **cli.md**: All commands configured in package.json.
 - **web-pages.md**: All pages implemented with footer, background pattern, desktop top padding.
 - **design-decisions.md**: All decisions reflected in implementation.
