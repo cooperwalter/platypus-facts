@@ -1,10 +1,12 @@
 import type { DrizzleDatabase } from "../lib/db";
+import { getDatabaseSizeBytes } from "../lib/db";
 import { unsubscribeHeaders, welcomeEmailHtml, welcomeEmailPlain } from "../lib/email-templates";
 import type { StoredEmail } from "../lib/email/dev";
 import type { EmailProvider } from "../lib/email/types";
-import { getFactWithSources, getMostRecentSentFact } from "../lib/facts";
+import { getFactStats, getFactWithSources, getLastSend, getMostRecentSentFact } from "../lib/facts";
 import { escapeHtml, isSafeUrl } from "../lib/html-utils";
-import { findByToken, getActiveCount, updateStatus } from "../lib/subscribers";
+import { findByToken, getActiveCount, getSubscriberCounts, updateStatus } from "../lib/subscribers";
+import { formatUptime } from "./health";
 
 function renderFooter(): string {
 	return `<footer class="site-footer">
@@ -603,6 +605,101 @@ function renderDevEmailDetail(email: StoredEmail): Response {
 	});
 }
 
+function renderHealthDashboard(
+	db: DrizzleDatabase,
+	databasePath: string,
+	maxSubscribers: number,
+	startTime: number,
+): Response {
+	const subscriberCounts = getSubscriberCounts(db);
+	const factStats = getFactStats(db);
+	const lastSend = getLastSend(db);
+	const sizeBytes = getDatabaseSizeBytes(databasePath);
+	const uptimeMs = Date.now() - startTime;
+	const sizeMB = (sizeBytes / 1048576).toFixed(2);
+
+	let lastSendHtml: string;
+	if (lastSend) {
+		const today = new Date().toISOString().split("T")[0];
+		const sendDate = new Date(lastSend.date);
+		const todayDate = new Date(today);
+		const diffDays = Math.round((todayDate.getTime() - sendDate.getTime()) / (1000 * 60 * 60 * 24));
+		const daysAgo =
+			diffDays === 0 ? "today" : diffDays === 1 ? "1 day ago" : `${diffDays} days ago`;
+		lastSendHtml = `<dt>Date</dt><dd>${escapeHtml(lastSend.date)} (${daysAgo})</dd>
+			<dt>Fact ID</dt><dd>${lastSend.factId}</dd>`;
+	} else {
+		lastSendHtml = "<dt>Status</dt><dd>No sends yet</dd>";
+	}
+
+	const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Health Dashboard — Daily Platypus Facts</title>
+	<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦆</text></svg>">
+	<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+	<main class="container">
+		<header class="hero">
+			<a href="/" style="text-decoration: none; color: inherit;">
+				<h1>Daily Platypus Facts</h1>
+			</a>
+			<p class="subtitle">Health Dashboard</p>
+		</header>
+
+		<div class="content-card">
+			<h2>Subscribers</h2>
+			<dl class="dashboard-metrics">
+				<dt>Active Platypus Fans</dt><dd>${subscriberCounts.active} / ${maxSubscribers}</dd>
+				<dt>Pending</dt><dd>${subscriberCounts.pending}</dd>
+				<dt>Unsubscribed</dt><dd>${subscriberCounts.unsubscribed}</dd>
+			</dl>
+		</div>
+
+		<div class="content-card">
+			<h2>Facts</h2>
+			<dl class="dashboard-metrics">
+				<dt>Total Facts</dt><dd>${factStats.total}</dd>
+				<dt>Facts with Images</dt><dd>${factStats.withImages}</dd>
+				<dt>Current Cycle</dt><dd>${factStats.currentCycle}</dd>
+				<dt>Facts Remaining in Cycle</dt><dd>${factStats.remainingInCycle}</dd>
+			</dl>
+		</div>
+
+		<div class="content-card">
+			<h2>Last Daily Send</h2>
+			<dl class="dashboard-metrics">
+				${lastSendHtml}
+			</dl>
+		</div>
+
+		<div class="content-card">
+			<h2>Database</h2>
+			<dl class="dashboard-metrics">
+				<dt>File Size</dt><dd>${sizeMB} MB</dd>
+			</dl>
+		</div>
+
+		<div class="content-card">
+			<h2>Uptime</h2>
+			<dl class="dashboard-metrics">
+				<dt>Server Uptime</dt><dd>${formatUptime(uptimeMs)}</dd>
+			</dl>
+		</div>
+	</main>
+	${renderFooter()}
+</body>
+</html>`;
+
+	return new Response(html, {
+		status: 200,
+		headers: { "Content-Type": "text/html; charset=utf-8" },
+	});
+}
+
 export {
 	renderSignupPage,
 	renderFactPage,
@@ -614,4 +711,5 @@ export {
 	renderAboutPage,
 	renderDevMessageList,
 	renderDevEmailDetail,
+	renderHealthDashboard,
 };

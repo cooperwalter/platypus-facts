@@ -26,6 +26,7 @@ const handleRequest = createRequestHandler({
 	rateLimiter,
 	maxSubscribers: config.maxSubscribers,
 	baseUrl: config.baseUrl,
+	databasePath: config.databasePath,
 	devEmailProvider,
 });
 

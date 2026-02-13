@@ -2,39 +2,18 @@
 
 ## Status Summary
 
-**4 spec enhancements pending implementation.** Core service is complete and fully functional. Brevo is the production email provider. MAX_SUBSCRIBERS defaults to 200.
+**3 spec enhancements pending implementation.** Core service is complete and fully functional. Brevo is the production email provider. MAX_SUBSCRIBERS defaults to 200.
 
-- **387 tests passing** across 19 test files with **821 expect() calls**
+- **410 tests passing** across 19 test files with **869 expect() calls**
 - **Type check clean**, **lint clean**
 - **No TODOs, FIXMEs, skipped tests, or placeholder code** in source
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations (31 images in `public/images/facts/`)
 - **Platypus mascot PNG** generated via DALL-E 3 at `public/platypus.png` (451KB, unoptimized)
-- **Latest tag**: 0.0.60
+- **Latest tag**: 0.0.61
 
 ---
 
 ## Pending Enhancements (Priority Order)
-
-### P3: Health Dashboard (`specs/health-dashboard.md`) — MEDIUM PRIORITY
-Operational visibility for monitoring the running service.
-
-Current state: `handleHealthCheck()` in `src/routes/health.ts` takes no parameters and returns only `{ status: "ok" }`. No `?detail=true` support, no dashboard page, no query functions for metrics. `RequestHandlerDeps` does not include `databasePath`. No uptime tracking.
-
-- [ ] Add query functions (use Drizzle query builder, add to existing modules):
-  - `getSubscriberCounts(db)` in `src/lib/subscribers.ts` — returns `{ active: number, pending: number, unsubscribed: number }`
-  - `getFactStats(db)` in `src/lib/facts.ts` — returns `{ total: number, withImages: number, currentCycle: number, remainingInCycle: number }`
-  - `getLastSend(db)` in `src/lib/facts.ts` — returns `{ date: string, factId: number } | null`
-  - `getDatabaseSizeBytes(databasePath: string)` in `src/lib/db.ts` — returns file size via `Bun.file().size`
-- [ ] Add `databasePath: string` to `RequestHandlerDeps` interface in `src/server.ts`
-- [ ] Track server uptime: store `const startTime = Date.now()` in `createRequestHandler()` closure
-- [ ] Update `handleHealthCheck()` signature to `(request: Request, db: DrizzleDatabase, databasePath: string, startTime: number)`
-  - Without `?detail=true`: return `{ status: "ok" }` (unchanged, Kamal-compatible)
-  - With `?detail=true` (strict `=== "true"` check): return JSON with subscribers, facts, lastSend, database size, uptime
-- [ ] Implement `renderHealthDashboard()` in `src/routes/pages.ts` — HTML page with operational metrics, uses `renderFooter()`, consistent theme
-- [ ] Register `GET /health/dashboard` route in `src/server.ts` — must come before `/health` route to avoid path prefix conflicts
-- [ ] Update `/health` route in `src/server.ts` to pass `request`, `db`, `databasePath`, `startTime` to `handleHealthCheck()`
-- [ ] Update `src/index.ts` to pass `databasePath` (from `config.databasePath`) in deps
-- [ ] Write tests: basic health check unchanged, `?detail=true` returns all fields with correct types, dashboard renders HTML with metrics, query functions return correct data, uptime increases over time
 
 ### P5: Micro-Interactions (`specs/micro-interactions.md`) — LOW PRIORITY
 CSS polish. No functional impact. No JavaScript required.
@@ -102,11 +81,12 @@ Current state: No optimization script exists. `src/scripts/optimize-images.ts` d
 P2 (Email Mascot) ✅ COMPLETE
 P1 (Welcome Email) ✅ COMPLETE
 P4 (Static Cache Headers) ✅ COMPLETE
+P3 (Health Dashboard) ✅ COMPLETE
 P7 (Image Optimization) ──→ P6 (Favicon)    [P6 can use manual generation or P7 script]
-P3, P5 are independent of each other
+P5 is independent
 ```
 
-**Recommended implementation order:** P3 → P5 → P7 → P6
+**Recommended implementation order:** P5 → P7 → P6
 
 ---
 
@@ -122,6 +102,7 @@ All core spec items are complete:
 | Email mascot branding (P2) | ✅ Complete | Mascot image replaces 🦫🦆🥚 in all email templates, `emailWrapper()` accepts `baseUrl`, `AlreadySubscribedEmailData` interface added |
 | Welcome email (P1) | ✅ Complete | `renderConfirmationPage()` async, sends welcome email with most recent fact on confirmation, `WelcomeEmailData`/`welcomeEmailHtml`/`welcomeEmailPlain` added, `getMostRecentSentFact()` query, List-Unsubscribe headers, failure-safe (27 new tests) |
 | Static cache headers (P4) | ✅ Complete | `getCacheControl()` helper, images 7-day immutable, CSS 1-day, others 1-hour, Content-Type preserved (14 new tests) |
+| Health dashboard (P3) | ✅ Complete | `/health?detail=true` JSON API, `/health/dashboard` HTML page, `getSubscriberCounts`/`getFactStats`/`getLastSend`/`getDatabaseSizeBytes` queries, `formatUptime` helper, uptime tracking via closure, `databasePath` in deps (19 new tests) |
 | Email provider (Brevo) | ✅ Complete | Brevo wired in, sender name included, Postmark removed |
 | Subscription flow | ✅ Complete | Cap checked at signup + confirmation, List-Unsubscribe headers on all 3 email types |
 | Email templates | ✅ Complete | Daily fact, confirmation, already-subscribed — correct subjects, plain-text fallbacks, source links, fact page link |

@@ -57,11 +57,32 @@ function getActiveSubscribers(db: DrizzleDatabase): Subscriber[] {
 	return db.select().from(subscribers).where(eq(subscribers.status, "active")).all();
 }
 
+function getSubscriberCounts(db: DrizzleDatabase): {
+	active: number;
+	pending: number;
+	unsubscribed: number;
+} {
+	const rows = db
+		.select({ status: subscribers.status, count: count() })
+		.from(subscribers)
+		.groupBy(subscribers.status)
+		.all();
+
+	const counts = { active: 0, pending: 0, unsubscribed: 0 };
+	for (const row of rows) {
+		if (row.status === "active" || row.status === "pending" || row.status === "unsubscribed") {
+			counts[row.status] = row.count;
+		}
+	}
+	return counts;
+}
+
 export type { Subscriber };
 export {
 	findByEmail,
 	findByToken,
 	getActiveCount,
+	getSubscriberCounts,
 	createSubscriber,
 	updateStatus,
 	getActiveSubscribers,

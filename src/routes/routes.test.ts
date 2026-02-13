@@ -10,7 +10,7 @@ import {
 	makeTestDatabase,
 } from "../lib/test-utils";
 import { createRequestHandler, getCacheControl } from "../server";
-import { handleHealthCheck } from "./health";
+import { formatUptime, handleHealthCheck } from "./health";
 import {
 	handleUnsubscribe,
 	render404Page,
@@ -28,11 +28,66 @@ import { getClientIp, handleSubscribe } from "./subscribe";
 const BASE_URL = "https://example.com";
 
 describe("GET /health", () => {
-	test("returns 200 with ok status", async () => {
-		const response = handleHealthCheck();
+	test("returns 200 with ok status when detail is not requested", async () => {
+		const db = makeTestDatabase();
+		const request = new Request("http://localhost/health");
+		const response = handleHealthCheck(request, db, "/tmp/nonexistent.db", Date.now());
 		expect(response.status).toBe(200);
 		const body = await response.json();
 		expect(body).toEqual({ status: "ok" });
+	});
+
+	test("returns detailed metrics when detail=true", async () => {
+		const db = makeTestDatabase();
+		makeFactRow(db, { text: "Fact 1", image_path: "images/facts/1.png" });
+		makeFactRow(db, { text: "Fact 2" });
+		makeSubscriberRow(db, { email: "active@example.com", status: "active" });
+		makeSubscriberRow(db, { email: "pending@example.com", status: "pending" });
+		makeSentFactRow(db, { fact_id: 1, sent_date: "2025-01-15", cycle: 1 });
+
+		const request = new Request("http://localhost/health?detail=true");
+		const response = handleHealthCheck(request, db, "/tmp/nonexistent.db", Date.now() - 90000);
+		expect(response.status).toBe(200);
+		const body = (await response.json()) as Record<string, unknown>;
+		expect(body.status).toBe("ok");
+		expect(body.subscribers).toEqual({ active: 1, pending: 1, unsubscribed: 0 });
+		const facts = body.facts as Record<string, number>;
+		expect(facts.total).toBe(2);
+		expect(facts.withImages).toBe(1);
+		expect(facts.currentCycle).toBe(1);
+		const lastSend = body.lastSend as Record<string, unknown>;
+		expect(lastSend.date).toBe("2025-01-15");
+		expect(lastSend.factId).toBe(1);
+		const database = body.database as Record<string, number>;
+		expect(database.sizeBytes).toBe(0);
+		expect(database.sizeMB).toBe(0);
+		const uptime = body.uptime as Record<string, unknown>;
+		expect(typeof uptime.seconds).toBe("number");
+		expect(typeof uptime.formatted).toBe("string");
+	});
+
+	test("returns minimal response when detail=false", async () => {
+		const db = makeTestDatabase();
+		const request = new Request("http://localhost/health?detail=false");
+		const response = handleHealthCheck(request, db, "/tmp/nonexistent.db", Date.now());
+		const body = await response.json();
+		expect(body).toEqual({ status: "ok" });
+	});
+
+	test("returns minimal response when detail=invalid", async () => {
+		const db = makeTestDatabase();
+		const request = new Request("http://localhost/health?detail=invalid");
+		const response = handleHealthCheck(request, db, "/tmp/nonexistent.db", Date.now());
+		const body = await response.json();
+		expect(body).toEqual({ status: "ok" });
+	});
+
+	test("returns null lastSend when no facts have been sent", async () => {
+		const db = makeTestDatabase();
+		const request = new Request("http://localhost/health?detail=true");
+		const response = handleHealthCheck(request, db, "/tmp/nonexistent.db", Date.now());
+		const body = (await response.json()) as Record<string, unknown>;
+		expect(body.lastSend).toBeNull();
 	});
 });
 
@@ -1441,6 +1496,7 @@ describe("static file Cache-Control headers", () => {
 			rateLimiter,
 			maxSubscribers: 1000,
 			baseUrl: BASE_URL,
+			databasePath: "/tmp/nonexistent.db",
 			devEmailProvider: null,
 		});
 	}
@@ -1470,5 +1526,100 @@ describe("static file Cache-Control headers", () => {
 		const handler = makeHandler();
 		const response = await handler(new Request("http://localhost/styles.css"));
 		expect(response.headers.get("Content-Type")).toContain("text/css");
+	});
+});
+
+describe("formatUptime", () => {
+	test("formats zero milliseconds as 0d 0h 0m", () => {
+		expect(formatUptime(0)).toBe("0d 0h 0m");
+	});
+
+	test("formats 90 seconds as 0d 0h 1m", () => {
+		expect(formatUptime(90000)).toBe("0d 0h 1m");
+	});
+
+	test("formats 1 day exactly", () => {
+		expect(formatUptime(86400000)).toBe("1d 0h 0m");
+	});
+
+	test("formats 3 days 14 hours 22 minutes", () => {
+		const ms = (3 * 86400 + 14 * 3600 + 22 * 60) * 1000;
+		expect(formatUptime(ms)).toBe("3d 14h 22m");
+	});
+});
+
+describe("GET /health/dashboard", () => {
+	function makeDashboardHandler() {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+		const rateLimiter = createRateLimiter(5, 3600000);
+		const handler = createRequestHandler({
+			db,
+			emailProvider: email,
+			rateLimiter,
+			maxSubscribers: 200,
+			baseUrl: BASE_URL,
+			databasePath: "/tmp/nonexistent.db",
+			devEmailProvider: null,
+		});
+		return { handler, db };
+	}
+
+	test("returns HTTP 200 with text/html content type", async () => {
+		const { handler } = makeDashboardHandler();
+		const response = await handler(new Request("http://localhost/health/dashboard"));
+		expect(response.status).toBe(200);
+		expect(response.headers.get("Content-Type")).toContain("text/html");
+	});
+
+	test("contains subscriber count, fact count, and uptime", async () => {
+		const { handler, db } = makeDashboardHandler();
+		makeFactRow(db, { text: "Test fact" });
+		makeSubscriberRow(db, { status: "active" });
+
+		const response = await handler(new Request("http://localhost/health/dashboard"));
+		const html = await response.text();
+		expect(html).toContain("Active Platypus Fans");
+		expect(html).toContain("Total Facts");
+		expect(html).toContain("Server Uptime");
+	});
+
+	test("does not contain any subscriber email addresses or tokens", async () => {
+		const { handler, db } = makeDashboardHandler();
+		makeSubscriberRow(db, {
+			email: "secret@example.com",
+			token: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+			status: "active",
+		});
+
+		const response = await handler(new Request("http://localhost/health/dashboard"));
+		const html = await response.text();
+		expect(html).not.toContain("secret@example.com");
+		expect(html).not.toContain("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+	});
+
+	test("displays correct zero values when no subscribers, facts, or sends exist", async () => {
+		const { handler } = makeDashboardHandler();
+		const response = await handler(new Request("http://localhost/health/dashboard"));
+		const html = await response.text();
+		expect(html).toContain("0 / 200");
+		expect(html).toContain("No sends yet");
+	});
+
+	test("displays last send date when sends exist", async () => {
+		const { handler, db } = makeDashboardHandler();
+		const factId = makeFactRow(db, { text: "Fact" });
+		makeSentFactRow(db, { fact_id: factId, sent_date: "2025-06-15", cycle: 1 });
+
+		const response = await handler(new Request("http://localhost/health/dashboard"));
+		const html = await response.text();
+		expect(html).toContain("2025-06-15");
+	});
+
+	test("includes footer with navigation links", async () => {
+		const { handler } = makeDashboardHandler();
+		const response = await handler(new Request("http://localhost/health/dashboard"));
+		const html = await response.text();
+		expect(html).toContain("site-footer");
 	});
 });

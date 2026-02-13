@@ -27,6 +27,7 @@ function makeHandler(
 		rateLimiter,
 		maxSubscribers: 1000,
 		baseUrl: "https://example.com",
+		databasePath: "/tmp/nonexistent.db",
 		devEmailProvider,
 	});
 

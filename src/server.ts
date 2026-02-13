@@ -12,6 +12,7 @@ import {
 	renderDevEmailDetail,
 	renderDevMessageList,
 	renderFactPage,
+	renderHealthDashboard,
 	renderInspirationPage,
 	renderSignupPage,
 	renderUnsubscribePage,
@@ -24,6 +25,7 @@ interface RequestHandlerDeps {
 	rateLimiter: RateLimiter;
 	maxSubscribers: number;
 	baseUrl: string;
+	databasePath: string;
 	devEmailProvider: DevEmailProvider | null;
 }
 
@@ -50,16 +52,29 @@ function getCacheControl(ext: string): string {
 }
 
 function createRequestHandler(deps: RequestHandlerDeps): (request: Request) => Promise<Response> {
-	const { db, emailProvider, rateLimiter, maxSubscribers, baseUrl, devEmailProvider } = deps;
+	const {
+		db,
+		emailProvider,
+		rateLimiter,
+		maxSubscribers,
+		baseUrl,
+		databasePath,
+		devEmailProvider,
+	} = deps;
 	const devRoutesEnabled = devEmailProvider !== null;
+	const startTime = Date.now();
 
 	return async function handleRequest(request: Request): Promise<Response> {
 		const url = new URL(request.url);
 		const method = request.method;
 		const pathname = url.pathname;
 
+		if (method === "GET" && pathname === "/health/dashboard") {
+			return renderHealthDashboard(db, databasePath, maxSubscribers, startTime);
+		}
+
 		if (method === "GET" && pathname === "/health") {
-			return handleHealthCheck();
+			return handleHealthCheck(request, db, databasePath, startTime);
 		}
 
 		if (method === "GET" && pathname === "/") {
