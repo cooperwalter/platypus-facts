@@ -2,30 +2,18 @@
 
 ## Status Summary
 
-**5 spec enhancements pending implementation.** Core service is complete and fully functional. Brevo is the production email provider. MAX_SUBSCRIBERS defaults to 200.
+**4 spec enhancements pending implementation.** Core service is complete and fully functional. Brevo is the production email provider. MAX_SUBSCRIBERS defaults to 200.
 
-- **373 tests passing** across 19 test files with **804 expect() calls**
+- **387 tests passing** across 19 test files with **821 expect() calls**
 - **Type check clean**, **lint clean**
 - **No TODOs, FIXMEs, skipped tests, or placeholder code** in source
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations (31 images in `public/images/facts/`)
 - **Platypus mascot PNG** generated via DALL-E 3 at `public/platypus.png` (451KB, unoptimized)
-- **Latest tag**: 0.0.59
+- **Latest tag**: 0.0.60
 
 ---
 
 ## Pending Enhancements (Priority Order)
-
-### P4: Static Cache Headers (`specs/static-cache-headers.md`) — MEDIUM PRIORITY
-Performance improvement for production. Simple to implement.
-
-Current state: Static files served in `src/server.ts` (lines 108–115) return `new Response(file)` with no `Cache-Control` header.
-
-- [ ] Implement `getCacheControl(ext: string): string` helper in `src/server.ts`:
-  - `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.svg`, `.ico` → `"public, max-age=604800, immutable"` (7 days)
-  - `.css` → `"public, max-age=86400"` (1 day)
-  - All others → `"public, max-age=3600"` (1 hour)
-- [ ] Update static file serving (line 113) to extract extension via `path.extname()` and add `Cache-Control` header to `Response`
-- [ ] Write tests: verify correct `Cache-Control` header for images, CSS, and other file types; verify Content-Type is preserved
 
 ### P3: Health Dashboard (`specs/health-dashboard.md`) — MEDIUM PRIORITY
 Operational visibility for monitoring the running service.
@@ -113,11 +101,12 @@ Current state: No optimization script exists. `src/scripts/optimize-images.ts` d
 ```
 P2 (Email Mascot) ✅ COMPLETE
 P1 (Welcome Email) ✅ COMPLETE
+P4 (Static Cache Headers) ✅ COMPLETE
 P7 (Image Optimization) ──→ P6 (Favicon)    [P6 can use manual generation or P7 script]
-P3, P4, P5 are independent of each other
+P3, P5 are independent of each other
 ```
 
-**Recommended implementation order:** P4 → P3 → P5 → P7 → P6
+**Recommended implementation order:** P3 → P5 → P7 → P6
 
 ---
 
@@ -132,6 +121,7 @@ All core spec items are complete:
 | Web page emoji removal | ✅ Complete | All occurrences of 🦫🦆🥚 removed from web pages |
 | Email mascot branding (P2) | ✅ Complete | Mascot image replaces 🦫🦆🥚 in all email templates, `emailWrapper()` accepts `baseUrl`, `AlreadySubscribedEmailData` interface added |
 | Welcome email (P1) | ✅ Complete | `renderConfirmationPage()` async, sends welcome email with most recent fact on confirmation, `WelcomeEmailData`/`welcomeEmailHtml`/`welcomeEmailPlain` added, `getMostRecentSentFact()` query, List-Unsubscribe headers, failure-safe (27 new tests) |
+| Static cache headers (P4) | ✅ Complete | `getCacheControl()` helper, images 7-day immutable, CSS 1-day, others 1-hour, Content-Type preserved (14 new tests) |
 | Email provider (Brevo) | ✅ Complete | Brevo wired in, sender name included, Postmark removed |
 | Subscription flow | ✅ Complete | Cap checked at signup + confirmation, List-Unsubscribe headers on all 3 email types |
 | Email templates | ✅ Complete | Daily fact, confirmation, already-subscribed — correct subjects, plain-text fallbacks, source links, fact page link |

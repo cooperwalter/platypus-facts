@@ -9,6 +9,7 @@ import {
 	makeSubscriberRow,
 	makeTestDatabase,
 } from "../lib/test-utils";
+import { createRequestHandler, getCacheControl } from "../server";
 import { handleHealthCheck } from "./health";
 import {
 	handleUnsubscribe,
@@ -1384,5 +1385,90 @@ describe("footer on public pages", () => {
 		const response = renderUnsubscribePage(db, token);
 		const html = await response.text();
 		expect(html).toContain("site-footer");
+	});
+});
+
+describe("getCacheControl", () => {
+	test("returns 7-day immutable cache for PNG files", () => {
+		expect(getCacheControl(".png")).toBe("public, max-age=604800, immutable");
+	});
+
+	test("returns 7-day immutable cache for JPG files", () => {
+		expect(getCacheControl(".jpg")).toBe("public, max-age=604800, immutable");
+	});
+
+	test("returns 7-day immutable cache for JPEG files", () => {
+		expect(getCacheControl(".jpeg")).toBe("public, max-age=604800, immutable");
+	});
+
+	test("returns 7-day immutable cache for GIF files", () => {
+		expect(getCacheControl(".gif")).toBe("public, max-age=604800, immutable");
+	});
+
+	test("returns 7-day immutable cache for WebP files", () => {
+		expect(getCacheControl(".webp")).toBe("public, max-age=604800, immutable");
+	});
+
+	test("returns 7-day immutable cache for SVG files", () => {
+		expect(getCacheControl(".svg")).toBe("public, max-age=604800, immutable");
+	});
+
+	test("returns 7-day immutable cache for ICO files", () => {
+		expect(getCacheControl(".ico")).toBe("public, max-age=604800, immutable");
+	});
+
+	test("returns 1-day cache for CSS files", () => {
+		expect(getCacheControl(".css")).toBe("public, max-age=86400");
+	});
+
+	test("returns 1-hour cache for unknown extensions", () => {
+		expect(getCacheControl(".txt")).toBe("public, max-age=3600");
+	});
+
+	test("returns 1-hour cache for JS files", () => {
+		expect(getCacheControl(".js")).toBe("public, max-age=3600");
+	});
+});
+
+describe("static file Cache-Control headers", () => {
+	function makeHandler() {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+		const rateLimiter = createRateLimiter(5, 3600000);
+		return createRequestHandler({
+			db,
+			emailProvider: email,
+			rateLimiter,
+			maxSubscribers: 1000,
+			baseUrl: BASE_URL,
+			devEmailProvider: null,
+		});
+	}
+
+	test("PNG static files include Cache-Control header with 7-day immutable cache", async () => {
+		const handler = makeHandler();
+		const response = await handler(new Request("http://localhost/platypus.png"));
+		expect(response.status).toBe(200);
+		expect(response.headers.get("Cache-Control")).toBe("public, max-age=604800, immutable");
+	});
+
+	test("SVG static files include Cache-Control header with 7-day immutable cache", async () => {
+		const handler = makeHandler();
+		const response = await handler(new Request("http://localhost/platypus-icon.svg"));
+		expect(response.status).toBe(200);
+		expect(response.headers.get("Cache-Control")).toBe("public, max-age=604800, immutable");
+	});
+
+	test("CSS static files include Cache-Control header with 1-day cache", async () => {
+		const handler = makeHandler();
+		const response = await handler(new Request("http://localhost/styles.css"));
+		expect(response.status).toBe(200);
+		expect(response.headers.get("Cache-Control")).toBe("public, max-age=86400");
+	});
+
+	test("static file responses preserve Content-Type header", async () => {
+		const handler = makeHandler();
+		const response = await handler(new Request("http://localhost/styles.css"));
+		expect(response.headers.get("Content-Type")).toContain("text/css");
 	});
 });

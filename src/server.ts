@@ -32,6 +32,23 @@ const CONFIRM_ROUTE_PATTERN = /^\/confirm\/([a-f0-9-]{36})$/;
 const UNSUBSCRIBE_ROUTE_PATTERN = /^\/unsubscribe\/([a-f0-9-]{36})$/;
 const DEV_MESSAGE_DETAIL_PATTERN = /^\/dev\/messages\/email-(\d+)$/;
 
+function getCacheControl(ext: string): string {
+	switch (ext) {
+		case ".png":
+		case ".jpg":
+		case ".jpeg":
+		case ".gif":
+		case ".webp":
+		case ".svg":
+		case ".ico":
+			return "public, max-age=604800, immutable";
+		case ".css":
+			return "public, max-age=86400";
+		default:
+			return "public, max-age=3600";
+	}
+}
+
 function createRequestHandler(deps: RequestHandlerDeps): (request: Request) => Promise<Response> {
 	const { db, emailProvider, rateLimiter, maxSubscribers, baseUrl, devEmailProvider } = deps;
 	const devRoutesEnabled = devEmailProvider !== null;
@@ -116,7 +133,11 @@ function createRequestHandler(deps: RequestHandlerDeps): (request: Request) => P
 			if (publicPath.startsWith(publicDir + path.sep) && !pathname.includes("..")) {
 				const file = Bun.file(publicPath);
 				if (await file.exists()) {
-					return new Response(file);
+					const ext = path.extname(publicPath).toLowerCase();
+					const cacheControl = getCacheControl(ext);
+					return new Response(file, {
+						headers: { "Cache-Control": cacheControl },
+					});
 				}
 			}
 		}
@@ -126,4 +147,4 @@ function createRequestHandler(deps: RequestHandlerDeps): (request: Request) => P
 }
 
 export type { RequestHandlerDeps };
-export { createRequestHandler };
+export { createRequestHandler, getCacheControl };
