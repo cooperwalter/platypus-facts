@@ -664,10 +664,8 @@ function renderHealthDashboard(
 <body>
 	<main class="container">
 		<header class="hero">
-			<a href="/" style="text-decoration: none; color: inherit;">
-				<h1>Daily Platypus Facts</h1>
-			</a>
-			<p class="subtitle">Health Dashboard</p>
+			<h1><a href="/">Daily Platypus Facts</a></h1>
+			<p class="tagline">Health Dashboard</p>
 		</header>
 
 		<div class="content-card">

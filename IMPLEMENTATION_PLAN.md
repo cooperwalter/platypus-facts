@@ -12,7 +12,7 @@
 - **Fact images** optimized to 640×640 (86KB–538KB, down from 243KB–1.3MB)
 - **Favicons** generated from mascot: `favicon.ico`, `favicon-32.png`, `apple-touch-icon.png`
 - **ARCHITECTURE.md** updated with Drizzle ORM, health monitoring, welcome email flow, image optimization, all routes, static assets
-- **Latest tag**: 0.0.65
+- **Latest tag**: 0.0.66
 
 ---
 
@@ -35,10 +35,11 @@ P6 (Favicon) ✅ COMPLETE
 All spec requirements verified against implementation:
 
 - **Fact image dimensions**: `width="640" height="640"` attributes present on fact `<img>` tags
-- **Favicon links**: All 11 render functions updated (10 pages + health dashboard)
+- **Favicon links**: All 10 HTML render functions updated with 3 favicon links
 - **Background pattern**: Generously spaced (80px tiles, expanded SVG viewBox, 4% opacity)
 - **Cache-Control uppercase normalization**: `.toLowerCase()` applied before `getCacheControl()`, tests added
 - **Health detail parameter**: Strict `=== "true"` check, tested with `false` and `invalid` values
+- **Health dashboard CSS**: `dashboard-metrics` grid layout and card spacing added; header link pattern fixed to `<h1><a>` matching all other pages; reuses `.tagline` class (no separate `.subtitle`)
 - **ARCHITECTURE.md**: Updated with all current components (Drizzle, health dashboard, welcome email, image optimization, all routes)
 
 ---
