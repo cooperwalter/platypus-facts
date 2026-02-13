@@ -2,35 +2,18 @@
 
 ## Status Summary
 
-**3 spec enhancements pending implementation.** Core service is complete and fully functional. Brevo is the production email provider. MAX_SUBSCRIBERS defaults to 200.
+**2 spec enhancements pending implementation.** Core service is complete and fully functional. Brevo is the production email provider. MAX_SUBSCRIBERS defaults to 200.
 
 - **410 tests passing** across 19 test files with **869 expect() calls**
 - **Type check clean**, **lint clean**
 - **No TODOs, FIXMEs, skipped tests, or placeholder code** in source
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations (31 images in `public/images/facts/`)
 - **Platypus mascot PNG** generated via DALL-E 3 at `public/platypus.png` (451KB, unoptimized)
-- **Latest tag**: 0.0.61
+- **Latest tag**: 0.0.62
 
 ---
 
 ## Pending Enhancements (Priority Order)
-
-### P5: Micro-Interactions (`specs/micro-interactions.md`) — LOW PRIORITY
-CSS polish. No functional impact. No JavaScript required.
-
-Current state: 3 existing transitions in `public/styles.css` (email input `border-color` at line 181, submit button `background` at line 203, unsubscribe button `background` at line 329) are unconditional — not wrapped in `prefers-reduced-motion` media query. All other micro-interactions are missing.
-
-- [ ] Remove the 3 existing `transition` declarations from their current locations in `public/styles.css`
-- [ ] Add `@media (prefers-reduced-motion: no-preference)` block at end of stylesheet containing ALL transitions:
-  - Move the 3 existing transitions into the media query
-  - Add link transition: `a { transition: color 0.2s ease; }`
-  - Add button enhancements: extend transition to `background 0.2s ease, transform 0.15s ease`; add `:active { transform: scale(0.97); }` for both `button[type="submit"]` and `.unsubscribe-btn`
-  - Add email input focus glow: `.email-input:focus { box-shadow: 0 0 0 3px rgba(168, 101, 32, 0.15); }` with transition `border-color 0.2s ease, box-shadow 0.2s ease`
-  - Add form message fadeIn: `@keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }` and `.form-message:not([hidden]) { animation: fadeIn 0.3s ease; }`
-  - Add mascot hover: `.mascot-image { transition: transform 0.2s ease; }` + `.mascot-image:hover { transform: scale(1.03); }`
-  - Add focus-visible: `a:focus-visible, button:focus-visible, .email-input:focus-visible { box-shadow: 0 0 0 3px rgba(168, 101, 32, 0.2); transition: box-shadow 0.2s ease; }`
-  - Add content card hover (nested inside `@media (hover: hover)`): `.content-card { transition: box-shadow 0.2s ease; }` + `.content-card:hover { box-shadow: 0 2px 12px rgba(61, 44, 30, 0.08); }`
-- [ ] No automated tests required (CSS-only visual changes, manual browser verification)
 
 ### P6: Favicon (`specs/favicon.md`) — LOW PRIORITY
 Replace inline SVG emoji favicon with mascot-based favicons.
@@ -82,11 +65,11 @@ P2 (Email Mascot) ✅ COMPLETE
 P1 (Welcome Email) ✅ COMPLETE
 P4 (Static Cache Headers) ✅ COMPLETE
 P3 (Health Dashboard) ✅ COMPLETE
+P5 (Micro-Interactions) ✅ COMPLETE
 P7 (Image Optimization) ──→ P6 (Favicon)    [P6 can use manual generation or P7 script]
-P5 is independent
 ```
 
-**Recommended implementation order:** P5 → P7 → P6
+**Recommended implementation order:** P7 → P6
 
 ---
 
@@ -103,6 +86,7 @@ All core spec items are complete:
 | Welcome email (P1) | ✅ Complete | `renderConfirmationPage()` async, sends welcome email with most recent fact on confirmation, `WelcomeEmailData`/`welcomeEmailHtml`/`welcomeEmailPlain` added, `getMostRecentSentFact()` query, List-Unsubscribe headers, failure-safe (27 new tests) |
 | Static cache headers (P4) | ✅ Complete | `getCacheControl()` helper, images 7-day immutable, CSS 1-day, others 1-hour, Content-Type preserved (14 new tests) |
 | Health dashboard (P3) | ✅ Complete | `/health?detail=true` JSON API, `/health/dashboard` HTML page, `getSubscriberCounts`/`getFactStats`/`getLastSend`/`getDatabaseSizeBytes` queries, `formatUptime` helper, uptime tracking via closure, `databasePath` in deps (19 new tests) |
+| Micro-interactions (P5) | ✅ Complete | All transitions wrapped in `@media (prefers-reduced-motion: no-preference)`, link/button/input/mascot/card transitions, fadeIn animation, focus-visible glow, `:active` scale-down, hover-only card shadow |
 | Email provider (Brevo) | ✅ Complete | Brevo wired in, sender name included, Postmark removed |
 | Subscription flow | ✅ Complete | Cap checked at signup + confirmation, List-Unsubscribe headers on all 3 email types |
 | Email templates | ✅ Complete | Daily fact, confirmation, already-subscribed — correct subjects, plain-text fallbacks, source links, fact page link |
