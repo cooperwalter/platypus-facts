@@ -12,7 +12,7 @@
 - **Fact images** optimized to 640x640 (86KB-538KB, down from 243KB-1.3MB)
 - **Favicons** generated from mascot: `favicon.ico`, `favicon-32.png`, `apple-touch-icon.png`
 - **ARCHITECTURE.md** updated with Drizzle ORM, health monitoring, welcome email flow, image optimization, all routes, static assets
-- **Latest tag**: 0.0.68
+- **Latest tag**: 0.0.69
 - **All 11 render functions** include `renderFooter()` and 3 favicon `<link>` tags
 - **Email templates**: All 4 templates (daily fact, confirmation, already subscribed, welcome) have HTML + plain text, `List-Unsubscribe` + `List-Unsubscribe-Post` headers
 - **CSS micro-interactions**: `prefers-reduced-motion` media query wrapping all transitions
