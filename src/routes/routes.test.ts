@@ -5,6 +5,7 @@ import { subscribers } from "../lib/schema";
 import {
 	makeFactRow,
 	makeMockEmailProvider,
+	makeSentFactRow,
 	makeSubscriberRow,
 	makeTestDatabase,
 } from "../lib/test-utils";
@@ -642,13 +643,20 @@ describe("GET / - signup page at capacity details", () => {
 describe("GET /confirm/:token", () => {
 	test("activates pending subscriber and shows success page", async () => {
 		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
 		const id = makeSubscriberRow(db, {
 			email: "test@example.com",
 			token: "11111111-1111-1111-1111-111111111111",
 			status: "pending",
 		});
 
-		const response = renderConfirmationPage(db, "11111111-1111-1111-1111-111111111111", 1000);
+		const response = await renderConfirmationPage(
+			db,
+			"11111111-1111-1111-1111-111111111111",
+			1000,
+			email,
+			BASE_URL,
+		);
 		const html = await response.text();
 
 		expect(response.status).toBe(200);
@@ -666,6 +674,7 @@ describe("GET /confirm/:token", () => {
 
 	test("shows 'already confirmed' page for active subscriber", async () => {
 		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
 		makeSubscriberRow(db, {
 			email: "test@example.com",
 			token: "22222222-2222-2222-2222-222222222222",
@@ -673,7 +682,13 @@ describe("GET /confirm/:token", () => {
 			confirmed_at: "2025-01-01T00:00:00Z",
 		});
 
-		const response = renderConfirmationPage(db, "22222222-2222-2222-2222-222222222222", 1000);
+		const response = await renderConfirmationPage(
+			db,
+			"22222222-2222-2222-2222-222222222222",
+			1000,
+			email,
+			BASE_URL,
+		);
 		const html = await response.text();
 
 		expect(response.status).toBe(200);
@@ -682,6 +697,7 @@ describe("GET /confirm/:token", () => {
 
 	test("shows inactive message for unsubscribed subscriber", async () => {
 		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
 		makeSubscriberRow(db, {
 			email: "test@example.com",
 			token: "33333333-3333-3333-3333-333333333333",
@@ -689,7 +705,13 @@ describe("GET /confirm/:token", () => {
 			unsubscribed_at: "2025-01-01T00:00:00Z",
 		});
 
-		const response = renderConfirmationPage(db, "33333333-3333-3333-3333-333333333333", 1000);
+		const response = await renderConfirmationPage(
+			db,
+			"33333333-3333-3333-3333-333333333333",
+			1000,
+			email,
+			BASE_URL,
+		);
 		const html = await response.text();
 
 		expect(response.status).toBe(200);
@@ -699,8 +721,15 @@ describe("GET /confirm/:token", () => {
 
 	test("returns 404 for invalid/nonexistent token", async () => {
 		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
 
-		const response = renderConfirmationPage(db, "99999999-9999-9999-9999-999999999999", 1000);
+		const response = await renderConfirmationPage(
+			db,
+			"99999999-9999-9999-9999-999999999999",
+			1000,
+			email,
+			BASE_URL,
+		);
 		const html = await response.text();
 
 		expect(response.status).toBe(404);
@@ -709,6 +738,7 @@ describe("GET /confirm/:token", () => {
 
 	test("shows at-capacity page when cap reached during confirmation", async () => {
 		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
 		makeSubscriberRow(db, {
 			email: "existing@example.com",
 			status: "active",
@@ -720,7 +750,13 @@ describe("GET /confirm/:token", () => {
 			status: "pending",
 		});
 
-		const response = renderConfirmationPage(db, "44444444-4444-4444-4444-444444444444", 1);
+		const response = await renderConfirmationPage(
+			db,
+			"44444444-4444-4444-4444-444444444444",
+			1,
+			email,
+			BASE_URL,
+		);
 		const html = await response.text();
 
 		expect(response.status).toBe(200);
@@ -737,18 +773,278 @@ describe("GET /confirm/:token", () => {
 
 	test("confirmation page includes Daily Platypus Facts branding", async () => {
 		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
 		makeSubscriberRow(db, {
 			email: "test@example.com",
 			token: "55555555-5555-5555-5555-555555555555",
 			status: "pending",
 		});
 
-		const response = renderConfirmationPage(db, "55555555-5555-5555-5555-555555555555", 1000);
+		const response = await renderConfirmationPage(
+			db,
+			"55555555-5555-5555-5555-555555555555",
+			1000,
+			email,
+			BASE_URL,
+		);
 		const html = await response.text();
 
 		expect(html).toContain("Daily Platypus Facts");
 		expect(html).toContain("Life is Strange: Double Exposure");
 		expect(html).toContain('href="/"');
+	});
+});
+
+describe("welcome email on confirmation", () => {
+	test("sends welcome email with most recent fact when pending subscriber confirms", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+		const factId = makeFactRow(db, {
+			text: "Platypuses glow under UV light.",
+			sources: [{ url: "https://example.com/uv", title: "UV Study" }],
+			image_path: "images/facts/1.png",
+		});
+		makeSentFactRow(db, { fact_id: factId, sent_date: "2025-06-01", cycle: 1 });
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-111-1111-1111-111111111111",
+			status: "pending",
+		});
+
+		await renderConfirmationPage(db, "welcome-111-1111-1111-111111111111", 1000, email, BASE_URL);
+
+		expect(email.sentEmails).toHaveLength(1);
+		expect(email.sentEmails[0].to).toBe("fan@example.com");
+		expect(email.sentEmails[0].subject).toContain("Welcome to Daily Platypus Facts");
+		expect(email.sentEmails[0].subject).toContain("Here's Your First Fact");
+		expect(email.sentEmails[0].htmlBody).toContain("Platypuses glow under UV light.");
+		expect(email.sentEmails[0].htmlBody).toContain("UV Study");
+		expect(email.sentEmails[0].htmlBody).toContain(`${BASE_URL}/images/facts/1.png`);
+		expect(email.sentEmails[0].htmlBody).toContain(`${BASE_URL}/facts/${factId}`);
+	});
+
+	test("sends welcome email without fact section when no facts have been sent", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-222-2222-2222-222222222222",
+			status: "pending",
+		});
+
+		await renderConfirmationPage(db, "welcome-222-2222-2222-222222222222", 1000, email, BASE_URL);
+
+		expect(email.sentEmails).toHaveLength(1);
+		expect(email.sentEmails[0].subject).toBe("Welcome to Daily Platypus Facts!");
+		expect(email.sentEmails[0].htmlBody).toContain("Welcome to Daily Platypus Facts");
+		expect(email.sentEmails[0].htmlBody).not.toContain("Here's the latest fact");
+	});
+
+	test("welcome email includes unsubscribe link with subscriber token", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-333-3333-3333-333333333333",
+			status: "pending",
+		});
+
+		await renderConfirmationPage(db, "welcome-333-3333-3333-333333333333", 1000, email, BASE_URL);
+
+		expect(email.sentEmails[0].htmlBody).toContain(
+			`${BASE_URL}/unsubscribe/welcome-333-3333-3333-333333333333`,
+		);
+	});
+
+	test("welcome email includes List-Unsubscribe headers", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-444-4444-4444-444444444444",
+			status: "pending",
+		});
+
+		await renderConfirmationPage(db, "welcome-444-4444-4444-444444444444", 1000, email, BASE_URL);
+
+		expect(email.sentEmails[0].headers?.["List-Unsubscribe"]).toContain(
+			`${BASE_URL}/unsubscribe/welcome-444-4444-4444-444444444444`,
+		);
+		expect(email.sentEmails[0].headers?.["List-Unsubscribe-Post"]).toBe(
+			"List-Unsubscribe=One-Click",
+		);
+	});
+
+	test("welcome email has both HTML and plain text bodies", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-555-5555-5555-555555555555",
+			status: "pending",
+		});
+
+		await renderConfirmationPage(db, "welcome-555-5555-5555-555555555555", 1000, email, BASE_URL);
+
+		expect(email.sentEmails[0].htmlBody).toBeTruthy();
+		expect(email.sentEmails[0].plainBody).toBeTruthy();
+		expect(email.sentEmails[0].plainBody).toContain("Welcome to Daily Platypus Facts");
+	});
+
+	test("confirmation still succeeds when welcome email fails to send", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+		email.sendEmail = async () => {
+			throw new Error("Email provider down");
+		};
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-666-6666-6666-666666666666",
+			status: "pending",
+		});
+
+		const response = await renderConfirmationPage(
+			db,
+			"welcome-666-6666-6666-666666666666",
+			1000,
+			email,
+			BASE_URL,
+		);
+		const html = await response.text();
+
+		expect(response.status).toBe(200);
+		expect(html).toContain("Welcome, Platypus Fan!");
+
+		const row = db
+			.select({ status: subscribers.status })
+			.from(subscribers)
+			.where(eq(subscribers.token, "welcome-666-6666-6666-666666666666"))
+			.get();
+		expect(row?.status).toBe("active");
+	});
+
+	test("welcome email is NOT sent when already-active subscriber visits confirmation link", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-777-7777-7777-777777777777",
+			status: "active",
+			confirmed_at: "2025-01-01T00:00:00Z",
+		});
+
+		await renderConfirmationPage(db, "welcome-777-7777-7777-777777777777", 1000, email, BASE_URL);
+
+		expect(email.sentEmails).toHaveLength(0);
+	});
+
+	test("welcome email is NOT sent when subscriber cap is reached", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			email: "existing@example.com",
+			status: "active",
+			confirmed_at: "2025-01-01T00:00:00Z",
+		});
+		makeSubscriberRow(db, {
+			email: "pending@example.com",
+			token: "welcome-888-8888-8888-888888888888",
+			status: "pending",
+		});
+
+		await renderConfirmationPage(db, "welcome-888-8888-8888-888888888888", 1, email, BASE_URL);
+
+		expect(email.sentEmails).toHaveLength(0);
+	});
+
+	test("welcome email is NOT sent for invalid token", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		await renderConfirmationPage(db, "welcome-999-9999-9999-999999999999", 1000, email, BASE_URL);
+
+		expect(email.sentEmails).toHaveLength(0);
+	});
+
+	test("welcome email is NOT sent for unsubscribed subscriber", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-aaa-aaaa-aaaa-aaaaaaaaaaaa",
+			status: "unsubscribed",
+			unsubscribed_at: "2025-01-01T00:00:00Z",
+		});
+
+		await renderConfirmationPage(db, "welcome-aaa-aaaa-aaaa-aaaaaaaaaaaa", 1000, email, BASE_URL);
+
+		expect(email.sentEmails).toHaveLength(0);
+	});
+
+	test("welcome email includes the most recent fact when multiple facts have been sent", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+		const factId1 = makeFactRow(db, { text: "Old fact" });
+		const factId2 = makeFactRow(db, { text: "Newest fact about platypuses" });
+		makeSentFactRow(db, { fact_id: factId1, sent_date: "2025-01-01", cycle: 1 });
+		makeSentFactRow(db, { fact_id: factId2, sent_date: "2025-06-15", cycle: 1 });
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-bbb-bbbb-bbbb-bbbbbbbbbbbb",
+			status: "pending",
+		});
+
+		await renderConfirmationPage(db, "welcome-bbb-bbbb-bbbb-bbbbbbbbbbbb", 1000, email, BASE_URL);
+
+		expect(email.sentEmails[0].htmlBody).toContain("Newest fact about platypuses");
+		expect(email.sentEmails[0].htmlBody).not.toContain("Old fact");
+	});
+
+	test("welcome email fact image URL is constructed from baseUrl and image_path", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+		const factId = makeFactRow(db, {
+			text: "Fact with image",
+			image_path: "images/facts/42.png",
+		});
+		makeSentFactRow(db, { fact_id: factId, sent_date: "2025-06-01", cycle: 1 });
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-ccc-cccc-cccc-cccccccccccc",
+			status: "pending",
+		});
+
+		await renderConfirmationPage(db, "welcome-ccc-cccc-cccc-cccccccccccc", 1000, email, BASE_URL);
+
+		expect(email.sentEmails[0].htmlBody).toContain(`${BASE_URL}/images/facts/42.png`);
+	});
+
+	test("welcome email fact omits image when fact has no image_path", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+		const factId = makeFactRow(db, { text: "Fact without image" });
+		makeSentFactRow(db, { fact_id: factId, sent_date: "2025-06-01", cycle: 1 });
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-ddd-dddd-dddd-dddddddddddd",
+			status: "pending",
+		});
+
+		await renderConfirmationPage(db, "welcome-ddd-dddd-dddd-dddddddddddd", 1000, email, BASE_URL);
+
+		expect(email.sentEmails[0].htmlBody).not.toContain('class="fact-image"');
 	});
 });
 
@@ -1025,9 +1321,10 @@ describe("platypus mascot image replaces emoji on web pages", () => {
 
 	test("confirmation success page does not contain emoji combo", async () => {
 		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
 		const token = crypto.randomUUID();
 		makeSubscriberRow(db, { token, status: "pending" });
-		const response = renderConfirmationPage(db, token, 200);
+		const response = await renderConfirmationPage(db, token, 200, email, BASE_URL);
 		const html = await response.text();
 
 		expect(html).not.toContain("🦫🦆🥚");
@@ -1072,9 +1369,10 @@ describe("footer on public pages", () => {
 
 	test("confirmation page includes footer", async () => {
 		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
 		const token = crypto.randomUUID();
 		makeSubscriberRow(db, { token, status: "pending" });
-		const response = renderConfirmationPage(db, token, 200);
+		const response = await renderConfirmationPage(db, token, 200, email, BASE_URL);
 		const html = await response.text();
 		expect(html).toContain("site-footer");
 	});

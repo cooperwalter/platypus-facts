@@ -1,4 +1,4 @@
-import { eq, isNull, max, notInArray } from "drizzle-orm";
+import { desc, eq, isNull, max, notInArray } from "drizzle-orm";
 import type { DrizzleDatabase } from "./db";
 import { factSources, facts, sentFacts } from "./schema";
 
@@ -78,6 +78,18 @@ export function recordSentFact(
 	cycle: number,
 ): void {
 	db.insert(sentFacts).values({ fact_id: factId, sent_date: sentDate, cycle }).run();
+}
+
+export function getMostRecentSentFact(
+	db: DrizzleDatabase,
+): { fact_id: number; sent_date: string } | null {
+	const row = db
+		.select({ fact_id: sentFacts.fact_id, sent_date: sentFacts.sent_date })
+		.from(sentFacts)
+		.orderBy(desc(sentFacts.sent_date))
+		.limit(1)
+		.get();
+	return row ?? null;
 }
 
 export function getSentFactByDate(

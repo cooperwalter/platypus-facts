@@ -18,6 +18,17 @@ interface AlreadySubscribedEmailData {
 	baseUrl: string;
 }
 
+interface WelcomeEmailData {
+	fact: {
+		text: string;
+		sources: Array<{ url: string; title: string | null }>;
+		imageUrl: string | null;
+		factPageUrl: string;
+	} | null;
+	unsubscribeUrl: string;
+	baseUrl: string;
+}
+
 function emailWrapper(title: string, bodyContent: string, baseUrl: string): string {
 	return `<!DOCTYPE html>
 <html lang="en">
@@ -152,6 +163,77 @@ You're already subscribed to Daily Platypus Facts and receiving your daily dose 
 Daily Platypus Facts — Inspired by Life is Strange: Double Exposure`;
 }
 
+function welcomeEmailHtml(data: WelcomeEmailData): string {
+	let factSection = "";
+	if (data.fact) {
+		const imageTag = data.fact.imageUrl
+			? `<img src="${escapeHtml(data.fact.imageUrl)}" alt="Illustration for this platypus fact" class="fact-image" />`
+			: "";
+
+		const sourceLinks = data.fact.sources
+			.filter((source) => isSafeUrl(source.url))
+			.map((source) => {
+				const displayText = source.title ? escapeHtml(source.title) : escapeHtml(source.url);
+				return `<li><a href="${escapeHtml(source.url)}">${displayText}</a></li>`;
+			})
+			.join("\n");
+
+		const sourcesHtml =
+			sourceLinks.length > 0
+				? `<div class="sources">
+<h2>Sources</h2>
+<ul>
+${sourceLinks}
+</ul>
+</div>`
+				: "";
+
+		factSection = `<h2 style="font-size: 16px; color: #5a3825; margin: 24px 0 12px;">Here's the latest fact while you wait for tomorrow's:</h2>
+${imageTag}
+<p class="fact-text">${escapeHtml(data.fact.text)}</p>
+${sourcesHtml}
+<p style="text-align: center; margin: 24px 0;">
+<a href="${escapeHtml(data.fact.factPageUrl)}" class="cta-button">View this fact on the web</a>
+</p>`;
+	}
+
+	const body = `<p class="fact-text">Welcome to Daily Platypus Facts! You're now a Platypus Fan and will receive one fascinating platypus fact every day.</p>
+${factSection}
+<div class="footer">
+<p><a href="${escapeHtml(data.unsubscribeUrl)}">Unsubscribe</a></p>
+</div>`;
+
+	return emailWrapper("Welcome to Daily Platypus Facts", body, data.baseUrl);
+}
+
+function welcomeEmailPlain(data: WelcomeEmailData): string {
+	let factSection = "";
+	if (data.fact) {
+		const sourceLines = data.fact.sources
+			.filter((source) => isSafeUrl(source.url))
+			.map((source) => {
+				const label = source.title ?? source.url;
+				return `- ${label}: ${source.url}`;
+			})
+			.join("\n");
+
+		const sourcesText = sourceLines.length > 0 ? `\nSources:\n${sourceLines}\n` : "";
+
+		factSection = `\nHere's the latest fact while you wait for tomorrow's:\n\n${data.fact.text}
+${sourcesText}
+View this fact on the web: ${data.fact.factPageUrl}`;
+	}
+
+	return `Welcome to Daily Platypus Facts!
+
+Welcome to Daily Platypus Facts! You're now a Platypus Fan and will receive one fascinating platypus fact every day.
+${factSection}
+
+---
+Daily Platypus Facts — Inspired by Life is Strange: Double Exposure
+Unsubscribe: ${data.unsubscribeUrl}`;
+}
+
 function unsubscribeHeaders(unsubscribeUrl: string): Record<string, string> {
 	return {
 		"List-Unsubscribe": `<${unsubscribeUrl}>`,
@@ -159,7 +241,12 @@ function unsubscribeHeaders(unsubscribeUrl: string): Record<string, string> {
 	};
 }
 
-export type { DailyFactEmailData, ConfirmationEmailData, AlreadySubscribedEmailData };
+export type {
+	DailyFactEmailData,
+	ConfirmationEmailData,
+	AlreadySubscribedEmailData,
+	WelcomeEmailData,
+};
 export {
 	dailyFactEmailHtml,
 	dailyFactEmailPlain,
@@ -167,5 +254,7 @@ export {
 	confirmationEmailPlain,
 	alreadySubscribedEmailHtml,
 	alreadySubscribedEmailPlain,
+	welcomeEmailHtml,
+	welcomeEmailPlain,
 	unsubscribeHeaders,
 };

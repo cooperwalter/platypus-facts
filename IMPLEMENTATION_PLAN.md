@@ -2,47 +2,18 @@
 
 ## Status Summary
 
-**6 spec enhancements pending implementation.** Core service is complete and fully functional. Brevo is the production email provider. MAX_SUBSCRIBERS defaults to 200.
+**5 spec enhancements pending implementation.** Core service is complete and fully functional. Brevo is the production email provider. MAX_SUBSCRIBERS defaults to 200.
 
-- **346 tests passing** across 19 test files with **743 expect() calls**
+- **373 tests passing** across 19 test files with **804 expect() calls**
 - **Type check clean**, **lint clean**
 - **No TODOs, FIXMEs, skipped tests, or placeholder code** in source
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations (31 images in `public/images/facts/`)
 - **Platypus mascot PNG** generated via DALL-E 3 at `public/platypus.png` (451KB, unoptimized)
-- **Latest tag**: 0.0.58
+- **Latest tag**: 0.0.59
 
 ---
 
 ## Pending Enhancements (Priority Order)
-
-### P1: Welcome Email (`specs/welcome-email.md`) — HIGH PRIORITY
-Core subscription flow feature. Users who confirm their subscription currently receive no welcome message and must wait up to 24 hours for their first fact.
-
-Current state: `renderConfirmationPage()` at `src/routes/pages.ts:201` is synchronous, takes only `(db, token, maxSubscribers)`, and does not send any email. `getFactWithSources(db, factId)` already exists at `src/lib/facts.ts:23`. No `getMostRecentSentFact`, `WelcomeEmailData`, `welcomeEmailHtml`, or `welcomeEmailPlain` exist. `emailWrapper()` now accepts `baseUrl` (P2 complete) — new templates should pass `baseUrl` for mascot image.
-
-- [ ] Add `getMostRecentSentFact(db)` query to `src/lib/facts.ts` — returns `{ factId: number, sentDate: string } | null` from most recent `sent_facts` row (ORDER BY sent_date DESC LIMIT 1)
-- [x] `getFactWithSources(db, factId)` already exists — no action needed
-- [ ] Define `WelcomeEmailData` interface in `src/lib/email-templates.ts`:
-  ```typescript
-  interface WelcomeEmailData {
-    fact: {
-      text: string;
-      sources: Array<{ url: string; title: string | null }>;
-      imageUrl: string | null;
-      factPageUrl: string;
-    } | null;
-    unsubscribeUrl: string;
-    baseUrl: string;
-  }
-  ```
-- [ ] Implement `welcomeEmailHtml(data: WelcomeEmailData)` using `emailWrapper()` — includes most recent fact (text, sources, image, fact page link) or a simpler welcome message if no facts sent yet
-- [ ] Implement `welcomeEmailPlain(data: WelcomeEmailData)` plain-text fallback
-- [ ] Welcome email subject: `"Welcome to Daily Platypus Facts — Here's Your First Fact"` (shorter `"Welcome to Daily Platypus Facts!"` if no facts sent yet)
-- [ ] Include `List-Unsubscribe` headers on welcome email (use existing `unsubscribeHeaders()` helper)
-- [ ] Make `renderConfirmationPage()` async — add `emailProvider: EmailProvider` and `baseUrl: string` params, return `Promise<Response>`
-- [ ] After successful `updateStatus()` to active: query `getMostRecentSentFact()`, build `WelcomeEmailData`, send via `emailProvider.sendEmail()` — wrap in try/catch (failed welcome email must not break confirmation page)
-- [ ] Update route handler in `src/server.ts:95` to pass `emailProvider` and `baseUrl` to `renderConfirmationPage()`, and `await` the result
-- [ ] Write tests: welcome email sent on confirmation, welcome email includes recent fact, welcome email failure doesn't break confirmation, welcome email when no facts sent yet, List-Unsubscribe headers present, welcome email not sent when already active or unsubscribed
 
 ### P4: Static Cache Headers (`specs/static-cache-headers.md`) — MEDIUM PRIORITY
 Performance improvement for production. Simple to implement.
@@ -141,11 +112,12 @@ Current state: No optimization script exists. `src/scripts/optimize-images.ts` d
 
 ```
 P2 (Email Mascot) ✅ COMPLETE
+P1 (Welcome Email) ✅ COMPLETE
 P7 (Image Optimization) ──→ P6 (Favicon)    [P6 can use manual generation or P7 script]
-P1, P3, P4, P5 are independent of each other
+P3, P4, P5 are independent of each other
 ```
 
-**Recommended implementation order:** P1 → P4 → P3 → P5 → P7 → P6
+**Recommended implementation order:** P4 → P3 → P5 → P7 → P6
 
 ---
 
@@ -159,6 +131,7 @@ All core spec items are complete:
 | Footer text | ✅ Complete | "Made with ❤️ by Cooper Walter" matches spec |
 | Web page emoji removal | ✅ Complete | All occurrences of 🦫🦆🥚 removed from web pages |
 | Email mascot branding (P2) | ✅ Complete | Mascot image replaces 🦫🦆🥚 in all email templates, `emailWrapper()` accepts `baseUrl`, `AlreadySubscribedEmailData` interface added |
+| Welcome email (P1) | ✅ Complete | `renderConfirmationPage()` async, sends welcome email with most recent fact on confirmation, `WelcomeEmailData`/`welcomeEmailHtml`/`welcomeEmailPlain` added, `getMostRecentSentFact()` query, List-Unsubscribe headers, failure-safe (27 new tests) |
 | Email provider (Brevo) | ✅ Complete | Brevo wired in, sender name included, Postmark removed |
 | Subscription flow | ✅ Complete | Cap checked at signup + confirmation, List-Unsubscribe headers on all 3 email types |
 | Email templates | ✅ Complete | Daily fact, confirmation, already-subscribed — correct subjects, plain-text fallbacks, source links, fact page link |

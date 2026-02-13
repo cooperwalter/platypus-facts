@@ -5,6 +5,7 @@ import {
 	getCurrentCycle,
 	getFactById,
 	getFactWithSources,
+	getMostRecentSentFact,
 	getNeverSentFactIds,
 	getSentFactByDate,
 	getUnsentFactIdsInCycle,
@@ -211,5 +212,41 @@ describe("getSentFactByDate", () => {
 		const result = getSentFactByDate(db, "2025-01-20");
 
 		expect(result).toBeNull();
+	});
+});
+
+describe("getMostRecentSentFact", () => {
+	test("returns the most recently sent fact by sent_date", () => {
+		const db = makeTestDatabase();
+		const factId1 = makeFactRow(db, { text: "Older fact" });
+		const factId2 = makeFactRow(db, { text: "Newer fact" });
+		makeSentFactRow(db, { fact_id: factId1, sent_date: "2025-01-15", cycle: 1 });
+		makeSentFactRow(db, { fact_id: factId2, sent_date: "2025-01-20", cycle: 1 });
+
+		const result = getMostRecentSentFact(db);
+
+		expect(result).not.toBeNull();
+		expect(result?.fact_id).toBe(factId2);
+		expect(result?.sent_date).toBe("2025-01-20");
+	});
+
+	test("returns null when no facts have been sent", () => {
+		const db = makeTestDatabase();
+
+		const result = getMostRecentSentFact(db);
+
+		expect(result).toBeNull();
+	});
+
+	test("returns the single sent fact when only one exists", () => {
+		const db = makeTestDatabase();
+		const factId = makeFactRow(db, { text: "Only fact" });
+		makeSentFactRow(db, { fact_id: factId, sent_date: "2025-03-01", cycle: 1 });
+
+		const result = getMostRecentSentFact(db);
+
+		expect(result).not.toBeNull();
+		expect(result?.fact_id).toBe(factId);
+		expect(result?.sent_date).toBe("2025-03-01");
 	});
 });

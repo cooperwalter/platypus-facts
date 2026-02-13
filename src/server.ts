@@ -92,7 +92,13 @@ function createRequestHandler(deps: RequestHandlerDeps): (request: Request) => P
 		if (method === "GET") {
 			const confirmMatch = pathname.match(CONFIRM_ROUTE_PATTERN);
 			if (confirmMatch) {
-				return renderConfirmationPage(db, confirmMatch[1], maxSubscribers);
+				return await renderConfirmationPage(
+					db,
+					confirmMatch[1],
+					maxSubscribers,
+					emailProvider,
+					baseUrl,
+				);
 			}
 
 			const factsMatch = pathname.match(FACTS_ROUTE_PATTERN);

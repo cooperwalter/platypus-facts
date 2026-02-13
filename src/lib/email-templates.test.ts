@@ -7,6 +7,8 @@ import {
 	dailyFactEmailHtml,
 	dailyFactEmailPlain,
 	unsubscribeHeaders,
+	welcomeEmailHtml,
+	welcomeEmailPlain,
 } from "./email-templates";
 
 const baseUrl = "https://platypus.example.com";
@@ -251,6 +253,143 @@ describe("alreadySubscribedEmailPlain", () => {
 	test("includes already-subscribed message", () => {
 		const plain = alreadySubscribedEmailPlain();
 		expect(plain).toContain("already a Platypus Fan");
+	});
+});
+
+describe("welcomeEmailHtml", () => {
+	test("includes welcome message", () => {
+		const html = welcomeEmailHtml({
+			fact: null,
+			unsubscribeUrl: "https://example.com/unsubscribe/abc",
+			baseUrl,
+		});
+		expect(html).toContain("Welcome to Daily Platypus Facts");
+		expect(html).toContain("Platypus Fan");
+	});
+
+	test("includes catch-up fact section when fact is provided", () => {
+		const html = welcomeEmailHtml({
+			fact: {
+				text: "Platypuses detect electric fields.",
+				sources: [{ url: "https://example.com/electro", title: "Electro Study" }],
+				imageUrl: "https://example.com/images/facts/1.png",
+				factPageUrl: "https://example.com/facts/1",
+			},
+			unsubscribeUrl: "https://example.com/unsubscribe/abc",
+			baseUrl,
+		});
+		expect(html).toContain("Here's the latest fact while you wait for tomorrow's:");
+		expect(html).toContain("Platypuses detect electric fields.");
+		expect(html).toContain("Electro Study");
+		expect(html).toContain("https://example.com/images/facts/1.png");
+		expect(html).toContain("View this fact on the web");
+		expect(html).toContain("https://example.com/facts/1");
+	});
+
+	test("omits fact section entirely when fact is null", () => {
+		const html = welcomeEmailHtml({
+			fact: null,
+			unsubscribeUrl: "https://example.com/unsubscribe/abc",
+			baseUrl,
+		});
+		expect(html).not.toContain("Here's the latest fact");
+		expect(html).not.toContain("View this fact on the web");
+		expect(html).toContain("Welcome to Daily Platypus Facts");
+	});
+
+	test("includes unsubscribe link", () => {
+		const html = welcomeEmailHtml({
+			fact: null,
+			unsubscribeUrl: "https://example.com/unsubscribe/abc",
+			baseUrl,
+		});
+		expect(html).toContain("https://example.com/unsubscribe/abc");
+		expect(html).toContain("Unsubscribe");
+	});
+
+	test("includes mascot image with baseUrl in src", () => {
+		const html = welcomeEmailHtml({
+			fact: null,
+			unsubscribeUrl: "https://example.com/unsubscribe/abc",
+			baseUrl,
+		});
+		expect(html).toContain(`src="${baseUrl}/platypus.png"`);
+	});
+
+	test("includes fact image when imageUrl is provided", () => {
+		const html = welcomeEmailHtml({
+			fact: {
+				text: "Fact.",
+				sources: [],
+				imageUrl: "https://example.com/images/facts/1.png",
+				factPageUrl: "https://example.com/facts/1",
+			},
+			unsubscribeUrl: "https://example.com/unsubscribe/abc",
+			baseUrl,
+		});
+		expect(html).toContain('class="fact-image"');
+		expect(html).toContain("https://example.com/images/facts/1.png");
+	});
+
+	test("omits fact image when imageUrl is null", () => {
+		const html = welcomeEmailHtml({
+			fact: {
+				text: "Fact.",
+				sources: [],
+				imageUrl: null,
+				factPageUrl: "https://example.com/facts/1",
+			},
+			unsubscribeUrl: "https://example.com/unsubscribe/abc",
+			baseUrl,
+		});
+		expect(html).not.toContain('class="fact-image"');
+	});
+});
+
+describe("welcomeEmailPlain", () => {
+	test("includes welcome message", () => {
+		const plain = welcomeEmailPlain({
+			fact: null,
+			unsubscribeUrl: "https://example.com/unsubscribe/abc",
+			baseUrl,
+		});
+		expect(plain).toContain("Welcome to Daily Platypus Facts");
+		expect(plain).toContain("Platypus Fan");
+	});
+
+	test("includes catch-up fact when provided", () => {
+		const plain = welcomeEmailPlain({
+			fact: {
+				text: "Platypuses detect electric fields.",
+				sources: [{ url: "https://example.com/electro", title: "Electro Study" }],
+				imageUrl: null,
+				factPageUrl: "https://example.com/facts/1",
+			},
+			unsubscribeUrl: "https://example.com/unsubscribe/abc",
+			baseUrl,
+		});
+		expect(plain).toContain("Here's the latest fact while you wait for tomorrow's:");
+		expect(plain).toContain("Platypuses detect electric fields.");
+		expect(plain).toContain("Electro Study: https://example.com/electro");
+		expect(plain).toContain("View this fact on the web: https://example.com/facts/1");
+	});
+
+	test("omits fact section when fact is null", () => {
+		const plain = welcomeEmailPlain({
+			fact: null,
+			unsubscribeUrl: "https://example.com/unsubscribe/abc",
+			baseUrl,
+		});
+		expect(plain).not.toContain("Here's the latest fact");
+	});
+
+	test("includes unsubscribe URL", () => {
+		const plain = welcomeEmailPlain({
+			fact: null,
+			unsubscribeUrl: "https://example.com/unsubscribe/abc",
+			baseUrl,
+		});
+		expect(plain).toContain("Unsubscribe: https://example.com/unsubscribe/abc");
 	});
 });
 

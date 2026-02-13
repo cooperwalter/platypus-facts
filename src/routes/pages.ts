@@ -1,6 +1,8 @@
 import type { DrizzleDatabase } from "../lib/db";
+import { unsubscribeHeaders, welcomeEmailHtml, welcomeEmailPlain } from "../lib/email-templates";
 import type { StoredEmail } from "../lib/email/dev";
-import { getFactWithSources } from "../lib/facts";
+import type { EmailProvider } from "../lib/email/types";
+import { getFactWithSources, getMostRecentSentFact } from "../lib/facts";
 import { escapeHtml, isSafeUrl } from "../lib/html-utils";
 import { findByToken, getActiveCount, updateStatus } from "../lib/subscribers";
 
@@ -198,11 +200,13 @@ function renderFactPage(db: DrizzleDatabase, factId: number): Response {
 	});
 }
 
-function renderConfirmationPage(
+async function renderConfirmationPage(
 	db: DrizzleDatabase,
 	token: string,
 	maxSubscribers: number,
-): Response {
+	emailProvider: EmailProvider,
+	baseUrl: string,
+): Promise<Response> {
 	const subscriber = findByToken(db, token);
 
 	if (!subscriber) {
@@ -236,6 +240,47 @@ function renderConfirmationPage(
 	}
 
 	updateStatus(db, subscriber.id, "active", { confirmed_at: new Date().toISOString() });
+
+	try {
+		const recentFact = getMostRecentSentFact(db);
+		const unsubscribeUrl = `${baseUrl}/unsubscribe/${subscriber.token}`;
+
+		let factData: {
+			text: string;
+			sources: Array<{ url: string; title: string | null }>;
+			imageUrl: string | null;
+			factPageUrl: string;
+		} | null = null;
+
+		if (recentFact) {
+			const factWithSources = getFactWithSources(db, recentFact.fact_id);
+			if (factWithSources) {
+				factData = {
+					text: factWithSources.fact.text,
+					sources: factWithSources.sources,
+					imageUrl: factWithSources.fact.image_path
+						? `${baseUrl}/${factWithSources.fact.image_path}`
+						: null,
+					factPageUrl: `${baseUrl}/facts/${recentFact.fact_id}`,
+				};
+			}
+		}
+
+		const welcomeData = { fact: factData, unsubscribeUrl, baseUrl };
+		const subject = factData
+			? "Welcome to Daily Platypus Facts \u2014 Here's Your First Fact"
+			: "Welcome to Daily Platypus Facts!";
+
+		await emailProvider.sendEmail(
+			subscriber.email,
+			subject,
+			welcomeEmailHtml(welcomeData),
+			welcomeEmailPlain(welcomeData),
+			unsubscribeHeaders(unsubscribeUrl),
+		);
+	} catch (error) {
+		console.error("Failed to send welcome email:", error instanceof Error ? error.message : error);
+	}
 
 	return renderMessagePage(
 		"Welcome, Platypus Fan!",
