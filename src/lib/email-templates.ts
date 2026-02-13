@@ -6,13 +6,19 @@ interface DailyFactEmailData {
 	imageUrl: string | null;
 	factPageUrl: string;
 	unsubscribeUrl: string;
+	baseUrl: string;
 }
 
 interface ConfirmationEmailData {
 	confirmUrl: string;
+	baseUrl: string;
 }
 
-function emailWrapper(title: string, bodyContent: string): string {
+interface AlreadySubscribedEmailData {
+	baseUrl: string;
+}
+
+function emailWrapper(title: string, bodyContent: string, baseUrl: string): string {
 	return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,6 +29,7 @@ function emailWrapper(title: string, bodyContent: string): string {
 body { margin: 0; padding: 0; background: #fdf6ec; font-family: Georgia, 'Times New Roman', serif; color: #3d2b1f; }
 .container { max-width: 560px; margin: 0 auto; padding: 32px 24px; }
 .header { text-align: center; padding-bottom: 24px; border-bottom: 2px solid #e8d5c0; margin-bottom: 24px; }
+.header img { display: block; margin: 0 auto 12px; border-radius: 50%; }
 .header h1 { font-size: 24px; margin: 0 0 4px 0; color: #5a3825; }
 .tagline { font-style: italic; font-size: 13px; color: #8b6f5e; margin: 0; }
 .fact-text { font-size: 17px; line-height: 1.6; margin: 20px 0; }
@@ -40,7 +47,8 @@ body { margin: 0; padding: 0; background: #fdf6ec; font-family: Georgia, 'Times 
 <body>
 <div class="container">
 <div class="header">
-<h1>🦫🦆🥚 Daily Platypus Facts</h1>
+<img src="${escapeHtml(baseUrl)}/platypus.png" alt="Daily Platypus Facts" width="80" height="80" style="display: block; margin: 0 auto 12px; border-radius: 50%;" />
+<h1>Daily Platypus Facts</h1>
 <p class="tagline">Inspired by <em>Life is Strange: Double Exposure</em></p>
 </div>
 ${bodyContent}
@@ -82,7 +90,7 @@ ${sourcesSection}
 <p><a href="${escapeHtml(data.unsubscribeUrl)}">Unsubscribe</a></p>
 </div>`;
 
-	return emailWrapper("Daily Platypus Fact", body);
+	return emailWrapper("Daily Platypus Fact", body, data.baseUrl);
 }
 
 function dailyFactEmailPlain(data: DailyFactEmailData): string {
@@ -108,13 +116,13 @@ Unsubscribe: ${data.unsubscribeUrl}`;
 }
 
 function confirmationEmailHtml(data: ConfirmationEmailData): string {
-	const body = `<p class="fact-text">🦫🦆🥚 Welcome to Daily Platypus Facts! Inspired by Life is Strange: Double Exposure.</p>
+	const body = `<p class="fact-text">Welcome to Daily Platypus Facts! Inspired by Life is Strange: Double Exposure.</p>
 <p>Click the button below to confirm your subscription and start receiving a platypus fact every day.</p>
 <p style="text-align: center;">
 <a href="${escapeHtml(data.confirmUrl)}" class="cta-button">Confirm Subscription</a>
 </p>`;
 
-	return emailWrapper("Confirm your Daily Platypus Facts subscription", body);
+	return emailWrapper("Confirm your Daily Platypus Facts subscription", body, data.baseUrl);
 }
 
 function confirmationEmailPlain(data: ConfirmationEmailData): string {
@@ -128,11 +136,11 @@ ${data.confirmUrl}
 Daily Platypus Facts — Inspired by Life is Strange: Double Exposure`;
 }
 
-function alreadySubscribedEmailHtml(): string {
-	const body = `<p class="fact-text">🦫🦆🥚 You're already a Platypus Fan!</p>
+function alreadySubscribedEmailHtml(data: AlreadySubscribedEmailData): string {
+	const body = `<p class="fact-text">You're already a Platypus Fan!</p>
 <p>You're already subscribed to Daily Platypus Facts and receiving your daily dose of platypus knowledge.</p>`;
 
-	return emailWrapper("You're already a Platypus Fan!", body);
+	return emailWrapper("You're already a Platypus Fan!", body, data.baseUrl);
 }
 
 function alreadySubscribedEmailPlain(): string {
@@ -151,7 +159,7 @@ function unsubscribeHeaders(unsubscribeUrl: string): Record<string, string> {
 	};
 }
 
-export type { DailyFactEmailData, ConfirmationEmailData };
+export type { DailyFactEmailData, ConfirmationEmailData, AlreadySubscribedEmailData };
 export {
 	dailyFactEmailHtml,
 	dailyFactEmailPlain,

@@ -114,6 +114,7 @@ async function runDailySend(
 					imageUrl: imageUrl ?? null,
 					factPageUrl,
 					unsubscribeUrl: unsubUrl,
+					baseUrl,
 				}),
 				dailyFactEmailPlain({
 					factText: factData.fact.text,
@@ -121,6 +122,7 @@ async function runDailySend(
 					imageUrl: null,
 					factPageUrl,
 					unsubscribeUrl: unsubUrl,
+					baseUrl,
 				}),
 				unsubscribeHeaders(unsubUrl),
 			);
