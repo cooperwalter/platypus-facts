@@ -79,7 +79,7 @@ describe("database setup", () => {
 		}).toThrow();
 	});
 
-	test("blocks deleting a fact that is referenced by sent_facts (NO ACTION, not CASCADE)", () => {
+	test("blocks deleting a fact that is referenced by sent_facts (RESTRICT, not CASCADE)", () => {
 		const drizzleDb = makeTestDatabase();
 		const db = drizzleDb.$client;
 		db.prepare("INSERT INTO facts (text) VALUES ('test fact')").run();

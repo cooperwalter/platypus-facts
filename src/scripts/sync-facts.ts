@@ -190,7 +190,7 @@ export async function syncFacts(
 				results.imagesFailed++;
 			}
 		}
-	} else if (openaiApiKey === undefined || openaiApiKey === null) {
+	} else if (!openaiApiKey) {
 		const row = db.select({ count: count() }).from(facts).where(isNull(facts.image_path)).get();
 		const missingCount = row?.count ?? 0;
 		if (missingCount > 0) {
@@ -205,7 +205,7 @@ export async function syncFacts(
 
 if (import.meta.main) {
 	const databasePath = process.env.DATABASE_PATH || "./data/platypus-facts.db";
-	const openaiApiKey = process.env.OPENAI_API_KEY ?? null;
+	const openaiApiKey = process.env.OPENAI_API_KEY || null;
 	const { db, sqlite } = createDatabase(databasePath);
 
 	const results = await syncFacts(db, undefined, openaiApiKey);

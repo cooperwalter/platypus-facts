@@ -226,7 +226,7 @@ View this fact on the web: ${data.fact.factPageUrl}`;
 
 	return `Welcome to Daily Platypus Facts!
 
-Welcome to Daily Platypus Facts! You're now a Platypus Fan and will receive one fascinating platypus fact every day.
+You're now a Platypus Fan and will receive one fascinating platypus fact every day.
 ${factSection}
 
 ---

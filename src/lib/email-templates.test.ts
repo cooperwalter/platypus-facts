@@ -331,6 +331,15 @@ describe("welcomeEmailHtml", () => {
 		expect(html).toContain("https://example.com/images/facts/1.png");
 	});
 
+	test("does not contain emoji combination in HTML", () => {
+		const html = welcomeEmailHtml({
+			fact: null,
+			unsubscribeUrl: "https://example.com/unsubscribe/abc",
+			baseUrl,
+		});
+		expect(html).not.toContain("🦫🦆🥚");
+	});
+
 	test("omits fact image when imageUrl is null", () => {
 		const html = welcomeEmailHtml({
 			fact: {

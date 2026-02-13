@@ -88,6 +88,24 @@ describe("signup - email", () => {
 		expect(sub?.unsubscribed_at).toBeNull();
 	});
 
+	test("preserves confirmed_at when re-signing up after unsubscribing so returning subscribers are distinguished from first-time", async () => {
+		const db = makeTestDatabase();
+		const emailProv = makeMockEmailProvider();
+		const confirmedTimestamp = "2024-06-01T12:00:00.000Z";
+		makeSubscriberRow(db, { email: "test@example.com", status: "unsubscribed" });
+		db.update(subscribers)
+			.set({ confirmed_at: confirmedTimestamp, unsubscribed_at: "2024-07-01T00:00:00.000Z" })
+			.where(eq(subscribers.email, "test@example.com"))
+			.run();
+
+		await signup(db, emailProv, "test@example.com", 1000, BASE_URL);
+
+		const sub = findByEmail(db, "test@example.com");
+		expect(sub?.status).toBe("pending");
+		expect(sub?.confirmed_at).toBe(confirmedTimestamp);
+		expect(sub?.unsubscribed_at).toBeNull();
+	});
+
 	test("rejects signup when at capacity for new subscriber", async () => {
 		const db = makeTestDatabase();
 		const emailProv = makeMockEmailProvider();
