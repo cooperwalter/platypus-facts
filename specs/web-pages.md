@@ -19,7 +19,7 @@ The landing page where visitors subscribe to Daily Platypus Facts.
 ### Design
 
 Platypus themed with a warm, indie, handcrafted feel:
-- **Platypus mascot image** — a platypus PNG (`public/platypus.png`) displayed prominently on the home page as a hero/mascot image above or near the title. This replaces the platypus emoji combination (🦫🦆🥚) that was previously used throughout web pages. Emails continue to use the platypus emoji combination.
+- **Platypus mascot image** — a platypus PNG (`public/platypus.png`) displayed prominently on the home page as a hero/mascot image above or near the title. This replaces the platypus emoji combination (🦫🦆🥚) that was previously used throughout web pages. Emails also use the mascot image in place of the emoji combination (see `email-mascot.md`).
 - Personality and charm — this is a fun project.
 - **Repeating platypus background pattern** — all pages use a subtle, tiled background using the platypus SVG at `public/platypus-icon.svg`. Applied via CSS `background-image` with `background-repeat: repeat`. Low-opacity so it doesn't compete with page content, creating a soft watermark-style texture across the entire page. The icons should be **generously spaced** — not packed tightly together. Use `background-size` and/or padding within the tile to ensure visible gaps between each icon so the pattern feels airy and light, not dense or wallpaper-like.
 - **No animated platypus** — there should be no animated, moving, or swimming platypus element on any page. The background pattern is the only platypus decoration.
@@ -99,7 +99,12 @@ These routes are only registered when dev providers are active. They are never a
 ### `GET /health`
 
 - **Response**: 200 OK when the server is ready (used by Kamal for deploy health checks)
+- With `?detail=true`: returns detailed JSON with subscriber counts, fact stats, last send date, database size, and uptime (see `health-dashboard.md`)
+
+### `GET /health/dashboard`
+
+- **Response**: Server-rendered HTML dashboard showing operational metrics (subscriber counts, fact stats, last send, database size, uptime). See `health-dashboard.md` for full details.
 
 ## Static Assets
 
-Serve static assets (CSS, images) from a `public/` directory. This includes AI-generated fact illustrations stored in `public/images/facts/` (see `fact-images.md`).
+Serve static assets (CSS, images) from a `public/` directory. This includes AI-generated fact illustrations stored in `public/images/facts/` (see `fact-images.md`). Static assets are served with `Cache-Control` headers based on file type (see `static-cache-headers.md`). Favicon files are served from `public/` (see `favicon.md`).

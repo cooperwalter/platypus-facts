@@ -54,7 +54,7 @@ The SQLite database file and generated fact images must persist across deploys. 
 
 ### Health Check
 
-The application exposes a `GET /health` endpoint that returns 200 when the server is ready. Kamal checks this before cutting traffic to the new container.
+The application exposes a `GET /health` endpoint that returns 200 when the server is ready. Kamal checks this before cutting traffic to the new container. The health endpoint also supports `?detail=true` for detailed metrics, and a separate `/health/dashboard` serves an HTML operational dashboard (see `health-dashboard.md`).
 
 ### Rollback
 
