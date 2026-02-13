@@ -5,10 +5,12 @@ import { subscribers } from "../lib/schema";
 import {
 	makeFactRow,
 	makeMockEmailProvider,
+	makeSentFactRow,
 	makeSubscriberRow,
 	makeTestDatabase,
 } from "../lib/test-utils";
-import { handleHealthCheck } from "./health";
+import { createRequestHandler, getCacheControl } from "../server";
+import { formatUptime, handleHealthCheck } from "./health";
 import {
 	handleUnsubscribe,
 	render404Page,
@@ -26,11 +28,66 @@ import { getClientIp, handleSubscribe } from "./subscribe";
 const BASE_URL = "https://example.com";
 
 describe("GET /health", () => {
-	test("returns 200 with ok status", async () => {
-		const response = handleHealthCheck();
+	test("returns 200 with ok status when detail is not requested", async () => {
+		const db = makeTestDatabase();
+		const request = new Request("http://localhost/health");
+		const response = handleHealthCheck(request, db, "/tmp/nonexistent.db", Date.now());
 		expect(response.status).toBe(200);
 		const body = await response.json();
 		expect(body).toEqual({ status: "ok" });
+	});
+
+	test("returns detailed metrics when detail=true", async () => {
+		const db = makeTestDatabase();
+		makeFactRow(db, { text: "Fact 1", image_path: "images/facts/1.png" });
+		makeFactRow(db, { text: "Fact 2" });
+		makeSubscriberRow(db, { email: "active@example.com", status: "active" });
+		makeSubscriberRow(db, { email: "pending@example.com", status: "pending" });
+		makeSentFactRow(db, { fact_id: 1, sent_date: "2025-01-15", cycle: 1 });
+
+		const request = new Request("http://localhost/health?detail=true");
+		const response = handleHealthCheck(request, db, "/tmp/nonexistent.db", Date.now() - 90000);
+		expect(response.status).toBe(200);
+		const body = (await response.json()) as Record<string, unknown>;
+		expect(body.status).toBe("ok");
+		expect(body.subscribers).toEqual({ active: 1, pending: 1, unsubscribed: 0 });
+		const facts = body.facts as Record<string, number>;
+		expect(facts.total).toBe(2);
+		expect(facts.withImages).toBe(1);
+		expect(facts.currentCycle).toBe(1);
+		const lastSend = body.lastSend as Record<string, unknown>;
+		expect(lastSend.date).toBe("2025-01-15");
+		expect(lastSend.factId).toBe(1);
+		const database = body.database as Record<string, number>;
+		expect(database.sizeBytes).toBe(0);
+		expect(database.sizeMB).toBe(0);
+		const uptime = body.uptime as Record<string, unknown>;
+		expect(typeof uptime.seconds).toBe("number");
+		expect(typeof uptime.formatted).toBe("string");
+	});
+
+	test("returns minimal response when detail=false", async () => {
+		const db = makeTestDatabase();
+		const request = new Request("http://localhost/health?detail=false");
+		const response = handleHealthCheck(request, db, "/tmp/nonexistent.db", Date.now());
+		const body = await response.json();
+		expect(body).toEqual({ status: "ok" });
+	});
+
+	test("returns minimal response when detail=invalid", async () => {
+		const db = makeTestDatabase();
+		const request = new Request("http://localhost/health?detail=invalid");
+		const response = handleHealthCheck(request, db, "/tmp/nonexistent.db", Date.now());
+		const body = await response.json();
+		expect(body).toEqual({ status: "ok" });
+	});
+
+	test("returns null lastSend when no facts have been sent", async () => {
+		const db = makeTestDatabase();
+		const request = new Request("http://localhost/health?detail=true");
+		const response = handleHealthCheck(request, db, "/tmp/nonexistent.db", Date.now());
+		const body = (await response.json()) as Record<string, unknown>;
+		expect(body.lastSend).toBeNull();
 	});
 });
 
@@ -642,13 +699,20 @@ describe("GET / - signup page at capacity details", () => {
 describe("GET /confirm/:token", () => {
 	test("activates pending subscriber and shows success page", async () => {
 		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
 		const id = makeSubscriberRow(db, {
 			email: "test@example.com",
 			token: "11111111-1111-1111-1111-111111111111",
 			status: "pending",
 		});
 
-		const response = renderConfirmationPage(db, "11111111-1111-1111-1111-111111111111", 1000);
+		const response = await renderConfirmationPage(
+			db,
+			"11111111-1111-1111-1111-111111111111",
+			1000,
+			email,
+			BASE_URL,
+		);
 		const html = await response.text();
 
 		expect(response.status).toBe(200);
@@ -666,6 +730,7 @@ describe("GET /confirm/:token", () => {
 
 	test("shows 'already confirmed' page for active subscriber", async () => {
 		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
 		makeSubscriberRow(db, {
 			email: "test@example.com",
 			token: "22222222-2222-2222-2222-222222222222",
@@ -673,7 +738,13 @@ describe("GET /confirm/:token", () => {
 			confirmed_at: "2025-01-01T00:00:00Z",
 		});
 
-		const response = renderConfirmationPage(db, "22222222-2222-2222-2222-222222222222", 1000);
+		const response = await renderConfirmationPage(
+			db,
+			"22222222-2222-2222-2222-222222222222",
+			1000,
+			email,
+			BASE_URL,
+		);
 		const html = await response.text();
 
 		expect(response.status).toBe(200);
@@ -682,6 +753,7 @@ describe("GET /confirm/:token", () => {
 
 	test("shows inactive message for unsubscribed subscriber", async () => {
 		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
 		makeSubscriberRow(db, {
 			email: "test@example.com",
 			token: "33333333-3333-3333-3333-333333333333",
@@ -689,7 +761,13 @@ describe("GET /confirm/:token", () => {
 			unsubscribed_at: "2025-01-01T00:00:00Z",
 		});
 
-		const response = renderConfirmationPage(db, "33333333-3333-3333-3333-333333333333", 1000);
+		const response = await renderConfirmationPage(
+			db,
+			"33333333-3333-3333-3333-333333333333",
+			1000,
+			email,
+			BASE_URL,
+		);
 		const html = await response.text();
 
 		expect(response.status).toBe(200);
@@ -699,8 +777,15 @@ describe("GET /confirm/:token", () => {
 
 	test("returns 404 for invalid/nonexistent token", async () => {
 		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
 
-		const response = renderConfirmationPage(db, "99999999-9999-9999-9999-999999999999", 1000);
+		const response = await renderConfirmationPage(
+			db,
+			"99999999-9999-9999-9999-999999999999",
+			1000,
+			email,
+			BASE_URL,
+		);
 		const html = await response.text();
 
 		expect(response.status).toBe(404);
@@ -709,6 +794,7 @@ describe("GET /confirm/:token", () => {
 
 	test("shows at-capacity page when cap reached during confirmation", async () => {
 		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
 		makeSubscriberRow(db, {
 			email: "existing@example.com",
 			status: "active",
@@ -720,7 +806,13 @@ describe("GET /confirm/:token", () => {
 			status: "pending",
 		});
 
-		const response = renderConfirmationPage(db, "44444444-4444-4444-4444-444444444444", 1);
+		const response = await renderConfirmationPage(
+			db,
+			"44444444-4444-4444-4444-444444444444",
+			1,
+			email,
+			BASE_URL,
+		);
 		const html = await response.text();
 
 		expect(response.status).toBe(200);
@@ -737,18 +829,347 @@ describe("GET /confirm/:token", () => {
 
 	test("confirmation page includes Daily Platypus Facts branding", async () => {
 		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
 		makeSubscriberRow(db, {
 			email: "test@example.com",
 			token: "55555555-5555-5555-5555-555555555555",
 			status: "pending",
 		});
 
-		const response = renderConfirmationPage(db, "55555555-5555-5555-5555-555555555555", 1000);
+		const response = await renderConfirmationPage(
+			db,
+			"55555555-5555-5555-5555-555555555555",
+			1000,
+			email,
+			BASE_URL,
+		);
 		const html = await response.text();
 
 		expect(html).toContain("Daily Platypus Facts");
 		expect(html).toContain("Life is Strange: Double Exposure");
 		expect(html).toContain('href="/"');
+	});
+});
+
+describe("welcome email on confirmation", () => {
+	test("sends welcome email with most recent fact when pending subscriber confirms", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+		const factId = makeFactRow(db, {
+			text: "Platypuses glow under UV light.",
+			sources: [{ url: "https://example.com/uv", title: "UV Study" }],
+			image_path: "images/facts/1.png",
+		});
+		makeSentFactRow(db, { fact_id: factId, sent_date: "2025-06-01", cycle: 1 });
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-111-1111-1111-111111111111",
+			status: "pending",
+		});
+
+		await renderConfirmationPage(db, "welcome-111-1111-1111-111111111111", 1000, email, BASE_URL);
+
+		expect(email.sentEmails).toHaveLength(1);
+		expect(email.sentEmails[0].to).toBe("fan@example.com");
+		expect(email.sentEmails[0].subject).toContain("Welcome to Daily Platypus Facts");
+		expect(email.sentEmails[0].subject).toContain("Here's Your First Fact");
+		expect(email.sentEmails[0].htmlBody).toContain("Platypuses glow under UV light.");
+		expect(email.sentEmails[0].htmlBody).toContain("UV Study");
+		expect(email.sentEmails[0].htmlBody).toContain(`${BASE_URL}/images/facts/1.png`);
+		expect(email.sentEmails[0].htmlBody).toContain(`${BASE_URL}/facts/${factId}`);
+	});
+
+	test("sends welcome email without fact section when no facts have been sent", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-222-2222-2222-222222222222",
+			status: "pending",
+		});
+
+		await renderConfirmationPage(db, "welcome-222-2222-2222-222222222222", 1000, email, BASE_URL);
+
+		expect(email.sentEmails).toHaveLength(1);
+		expect(email.sentEmails[0].subject).toBe("Welcome to Daily Platypus Facts!");
+		expect(email.sentEmails[0].htmlBody).toContain("Welcome to Daily Platypus Facts");
+		expect(email.sentEmails[0].htmlBody).not.toContain("Here's the latest fact");
+	});
+
+	test("welcome email includes unsubscribe link with subscriber token", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-333-3333-3333-333333333333",
+			status: "pending",
+		});
+
+		await renderConfirmationPage(db, "welcome-333-3333-3333-333333333333", 1000, email, BASE_URL);
+
+		expect(email.sentEmails[0].htmlBody).toContain(
+			`${BASE_URL}/unsubscribe/welcome-333-3333-3333-333333333333`,
+		);
+	});
+
+	test("welcome email includes List-Unsubscribe headers", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-444-4444-4444-444444444444",
+			status: "pending",
+		});
+
+		await renderConfirmationPage(db, "welcome-444-4444-4444-444444444444", 1000, email, BASE_URL);
+
+		expect(email.sentEmails[0].headers?.["List-Unsubscribe"]).toContain(
+			`${BASE_URL}/unsubscribe/welcome-444-4444-4444-444444444444`,
+		);
+		expect(email.sentEmails[0].headers?.["List-Unsubscribe-Post"]).toBe(
+			"List-Unsubscribe=One-Click",
+		);
+	});
+
+	test("welcome email has both HTML and plain text bodies", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-555-5555-5555-555555555555",
+			status: "pending",
+		});
+
+		await renderConfirmationPage(db, "welcome-555-5555-5555-555555555555", 1000, email, BASE_URL);
+
+		expect(email.sentEmails[0].htmlBody).toBeTruthy();
+		expect(email.sentEmails[0].plainBody).toBeTruthy();
+		expect(email.sentEmails[0].plainBody).toContain("Welcome to Daily Platypus Facts");
+	});
+
+	test("confirmation still succeeds when welcome email fails to send", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+		email.sendEmail = async () => {
+			throw new Error("Email provider down");
+		};
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-666-6666-6666-666666666666",
+			status: "pending",
+		});
+
+		const response = await renderConfirmationPage(
+			db,
+			"welcome-666-6666-6666-666666666666",
+			1000,
+			email,
+			BASE_URL,
+		);
+		const html = await response.text();
+
+		expect(response.status).toBe(200);
+		expect(html).toContain("Welcome, Platypus Fan!");
+
+		const row = db
+			.select({ status: subscribers.status })
+			.from(subscribers)
+			.where(eq(subscribers.token, "welcome-666-6666-6666-666666666666"))
+			.get();
+		expect(row?.status).toBe("active");
+	});
+
+	test("welcome email is NOT sent when already-active subscriber visits confirmation link", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-777-7777-7777-777777777777",
+			status: "active",
+			confirmed_at: "2025-01-01T00:00:00Z",
+		});
+
+		await renderConfirmationPage(db, "welcome-777-7777-7777-777777777777", 1000, email, BASE_URL);
+
+		expect(email.sentEmails).toHaveLength(0);
+	});
+
+	test("welcome email is NOT sent when subscriber cap is reached", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			email: "existing@example.com",
+			status: "active",
+			confirmed_at: "2025-01-01T00:00:00Z",
+		});
+		makeSubscriberRow(db, {
+			email: "pending@example.com",
+			token: "welcome-888-8888-8888-888888888888",
+			status: "pending",
+		});
+
+		await renderConfirmationPage(db, "welcome-888-8888-8888-888888888888", 1, email, BASE_URL);
+
+		expect(email.sentEmails).toHaveLength(0);
+	});
+
+	test("welcome email is NOT sent for invalid token", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		await renderConfirmationPage(db, "welcome-999-9999-9999-999999999999", 1000, email, BASE_URL);
+
+		expect(email.sentEmails).toHaveLength(0);
+	});
+
+	test("welcome email is NOT sent for unsubscribed subscriber", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-aaa-aaaa-aaaa-aaaaaaaaaaaa",
+			status: "unsubscribed",
+			unsubscribed_at: "2025-01-01T00:00:00Z",
+		});
+
+		await renderConfirmationPage(db, "welcome-aaa-aaaa-aaaa-aaaaaaaaaaaa", 1000, email, BASE_URL);
+
+		expect(email.sentEmails).toHaveLength(0);
+	});
+
+	test("welcome email includes the most recent fact when multiple facts have been sent", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+		const factId1 = makeFactRow(db, { text: "Old fact" });
+		const factId2 = makeFactRow(db, { text: "Newest fact about platypuses" });
+		makeSentFactRow(db, { fact_id: factId1, sent_date: "2025-01-01", cycle: 1 });
+		makeSentFactRow(db, { fact_id: factId2, sent_date: "2025-06-15", cycle: 1 });
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-bbb-bbbb-bbbb-bbbbbbbbbbbb",
+			status: "pending",
+		});
+
+		await renderConfirmationPage(db, "welcome-bbb-bbbb-bbbb-bbbbbbbbbbbb", 1000, email, BASE_URL);
+
+		expect(email.sentEmails[0].htmlBody).toContain("Newest fact about platypuses");
+		expect(email.sentEmails[0].htmlBody).not.toContain("Old fact");
+	});
+
+	test("welcome email fact image URL is constructed from baseUrl and image_path", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+		const factId = makeFactRow(db, {
+			text: "Fact with image",
+			image_path: "images/facts/42.png",
+		});
+		makeSentFactRow(db, { fact_id: factId, sent_date: "2025-06-01", cycle: 1 });
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-ccc-cccc-cccc-cccccccccccc",
+			status: "pending",
+		});
+
+		await renderConfirmationPage(db, "welcome-ccc-cccc-cccc-cccccccccccc", 1000, email, BASE_URL);
+
+		expect(email.sentEmails[0].htmlBody).toContain(`${BASE_URL}/images/facts/42.png`);
+	});
+
+	test("welcome email fact omits image when fact has no image_path", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+		const factId = makeFactRow(db, { text: "Fact without image" });
+		makeSentFactRow(db, { fact_id: factId, sent_date: "2025-06-01", cycle: 1 });
+
+		makeSubscriberRow(db, {
+			email: "fan@example.com",
+			token: "welcome-ddd-dddd-dddd-dddddddddddd",
+			status: "pending",
+		});
+
+		await renderConfirmationPage(db, "welcome-ddd-dddd-dddd-dddddddddddd", 1000, email, BASE_URL);
+
+		expect(email.sentEmails[0].htmlBody).not.toContain('class="fact-image"');
+	});
+
+	test("welcome email is NOT sent when a returning subscriber confirms (confirmed_at was set)", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			email: "returning@example.com",
+			token: "welcome-eee-eeee-eeee-eeeeeeeeeeee",
+			status: "pending",
+			confirmed_at: "2025-01-01T00:00:00Z",
+		});
+
+		await renderConfirmationPage(db, "welcome-eee-eeee-eeee-eeeeeeeeeeee", 1000, email, BASE_URL);
+
+		expect(email.sentEmails).toHaveLength(0);
+
+		const row = db
+			.select({ status: subscribers.status })
+			.from(subscribers)
+			.where(eq(subscribers.token, "welcome-eee-eeee-eeee-eeeeeeeeeeee"))
+			.get();
+		expect(row?.status).toBe("active");
+	});
+
+	test("first-time confirmation page says 'Check your email for your first platypus fact'", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			email: "firsttime@example.com",
+			token: "welcome-fff-ffff-ffff-ffffffffffff",
+			status: "pending",
+		});
+
+		const response = await renderConfirmationPage(
+			db,
+			"welcome-fff-ffff-ffff-ffffffffffff",
+			1000,
+			email,
+			BASE_URL,
+		);
+		const html = await response.text();
+
+		expect(html).toContain("Check your email for your first platypus fact");
+	});
+
+	test("returning subscriber confirmation page says 'You'll receive one fascinating platypus fact every day'", async () => {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+
+		makeSubscriberRow(db, {
+			email: "returning@example.com",
+			token: "welcome-ggg-gggg-gggg-gggggggggggg",
+			status: "pending",
+			confirmed_at: "2025-01-01T00:00:00Z",
+		});
+
+		const response = await renderConfirmationPage(
+			db,
+			"welcome-ggg-gggg-gggg-gggggggggggg",
+			1000,
+			email,
+			BASE_URL,
+		);
+		const html = await response.text();
+
+		expect(html).toContain("You'll receive one fascinating platypus fact every day");
+		expect(html).not.toContain("Check your email for your first platypus fact");
 	});
 });
 
@@ -1025,9 +1446,10 @@ describe("platypus mascot image replaces emoji on web pages", () => {
 
 	test("confirmation success page does not contain emoji combo", async () => {
 		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
 		const token = crypto.randomUUID();
 		makeSubscriberRow(db, { token, status: "pending" });
-		const response = renderConfirmationPage(db, token, 200);
+		const response = await renderConfirmationPage(db, token, 200, email, BASE_URL);
 		const html = await response.text();
 
 		expect(html).not.toContain("🦫🦆🥚");
@@ -1072,9 +1494,10 @@ describe("footer on public pages", () => {
 
 	test("confirmation page includes footer", async () => {
 		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
 		const token = crypto.randomUUID();
 		makeSubscriberRow(db, { token, status: "pending" });
-		const response = renderConfirmationPage(db, token, 200);
+		const response = await renderConfirmationPage(db, token, 200, email, BASE_URL);
 		const html = await response.text();
 		expect(html).toContain("site-footer");
 	});
@@ -1084,6 +1507,201 @@ describe("footer on public pages", () => {
 		const token = crypto.randomUUID();
 		makeSubscriberRow(db, { token, status: "active" });
 		const response = renderUnsubscribePage(db, token);
+		const html = await response.text();
+		expect(html).toContain("site-footer");
+	});
+});
+
+describe("getCacheControl", () => {
+	test("returns 7-day immutable cache for PNG files", () => {
+		expect(getCacheControl(".png")).toBe("public, max-age=604800, immutable");
+	});
+
+	test("returns 7-day immutable cache for JPG files", () => {
+		expect(getCacheControl(".jpg")).toBe("public, max-age=604800, immutable");
+	});
+
+	test("returns 7-day immutable cache for JPEG files", () => {
+		expect(getCacheControl(".jpeg")).toBe("public, max-age=604800, immutable");
+	});
+
+	test("returns 7-day immutable cache for GIF files", () => {
+		expect(getCacheControl(".gif")).toBe("public, max-age=604800, immutable");
+	});
+
+	test("returns 7-day immutable cache for WebP files", () => {
+		expect(getCacheControl(".webp")).toBe("public, max-age=604800, immutable");
+	});
+
+	test("returns 7-day immutable cache for SVG files", () => {
+		expect(getCacheControl(".svg")).toBe("public, max-age=604800, immutable");
+	});
+
+	test("returns 7-day immutable cache for ICO files", () => {
+		expect(getCacheControl(".ico")).toBe("public, max-age=604800, immutable");
+	});
+
+	test("returns 1-day cache for CSS files", () => {
+		expect(getCacheControl(".css")).toBe("public, max-age=86400");
+	});
+
+	test("returns 1-hour cache for unknown extensions", () => {
+		expect(getCacheControl(".txt")).toBe("public, max-age=3600");
+	});
+
+	test("returns 1-hour cache for JS files", () => {
+		expect(getCacheControl(".js")).toBe("public, max-age=3600");
+	});
+});
+
+describe("getCacheControl uppercase extension normalization", () => {
+	test("server normalizes .PNG to lowercase before calling getCacheControl", () => {
+		expect(getCacheControl(".PNG".toLowerCase())).toBe("public, max-age=604800, immutable");
+	});
+
+	test("server normalizes .CSS to lowercase before calling getCacheControl", () => {
+		expect(getCacheControl(".CSS".toLowerCase())).toBe("public, max-age=86400");
+	});
+
+	test("server normalizes .SVG to lowercase before calling getCacheControl", () => {
+		expect(getCacheControl(".SVG".toLowerCase())).toBe("public, max-age=604800, immutable");
+	});
+});
+
+describe("static file Cache-Control headers", () => {
+	function makeHandler() {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+		const rateLimiter = createRateLimiter(5, 3600000);
+		return createRequestHandler({
+			db,
+			emailProvider: email,
+			rateLimiter,
+			maxSubscribers: 1000,
+			baseUrl: BASE_URL,
+			databasePath: "/tmp/nonexistent.db",
+			devEmailProvider: null,
+		});
+	}
+
+	test("PNG static files include Cache-Control header with 7-day immutable cache", async () => {
+		const handler = makeHandler();
+		const response = await handler(new Request("http://localhost/platypus.png"));
+		expect(response.status).toBe(200);
+		expect(response.headers.get("Cache-Control")).toBe("public, max-age=604800, immutable");
+	});
+
+	test("SVG static files include Cache-Control header with 7-day immutable cache", async () => {
+		const handler = makeHandler();
+		const response = await handler(new Request("http://localhost/platypus-icon.svg"));
+		expect(response.status).toBe(200);
+		expect(response.headers.get("Cache-Control")).toBe("public, max-age=604800, immutable");
+	});
+
+	test("CSS static files include Cache-Control header with 1-day cache", async () => {
+		const handler = makeHandler();
+		const response = await handler(new Request("http://localhost/styles.css"));
+		expect(response.status).toBe(200);
+		expect(response.headers.get("Cache-Control")).toBe("public, max-age=86400");
+	});
+
+	test("static file responses preserve Content-Type header", async () => {
+		const handler = makeHandler();
+		const response = await handler(new Request("http://localhost/styles.css"));
+		expect(response.headers.get("Content-Type")).toContain("text/css");
+	});
+});
+
+describe("formatUptime", () => {
+	test("formats zero milliseconds as 0d 0h 0m", () => {
+		expect(formatUptime(0)).toBe("0d 0h 0m");
+	});
+
+	test("formats 90 seconds as 0d 0h 1m", () => {
+		expect(formatUptime(90000)).toBe("0d 0h 1m");
+	});
+
+	test("formats 1 day exactly", () => {
+		expect(formatUptime(86400000)).toBe("1d 0h 0m");
+	});
+
+	test("formats 3 days 14 hours 22 minutes", () => {
+		const ms = (3 * 86400 + 14 * 3600 + 22 * 60) * 1000;
+		expect(formatUptime(ms)).toBe("3d 14h 22m");
+	});
+});
+
+describe("GET /health/dashboard", () => {
+	function makeDashboardHandler() {
+		const db = makeTestDatabase();
+		const email = makeMockEmailProvider();
+		const rateLimiter = createRateLimiter(5, 3600000);
+		const handler = createRequestHandler({
+			db,
+			emailProvider: email,
+			rateLimiter,
+			maxSubscribers: 200,
+			baseUrl: BASE_URL,
+			databasePath: "/tmp/nonexistent.db",
+			devEmailProvider: null,
+		});
+		return { handler, db };
+	}
+
+	test("returns HTTP 200 with text/html content type", async () => {
+		const { handler } = makeDashboardHandler();
+		const response = await handler(new Request("http://localhost/health/dashboard"));
+		expect(response.status).toBe(200);
+		expect(response.headers.get("Content-Type")).toContain("text/html");
+	});
+
+	test("contains subscriber count, fact count, and uptime", async () => {
+		const { handler, db } = makeDashboardHandler();
+		makeFactRow(db, { text: "Test fact" });
+		makeSubscriberRow(db, { status: "active" });
+
+		const response = await handler(new Request("http://localhost/health/dashboard"));
+		const html = await response.text();
+		expect(html).toContain("Active Platypus Fans");
+		expect(html).toContain("Total Facts");
+		expect(html).toContain("Server Uptime");
+	});
+
+	test("does not contain any subscriber email addresses or tokens", async () => {
+		const { handler, db } = makeDashboardHandler();
+		makeSubscriberRow(db, {
+			email: "secret@example.com",
+			token: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+			status: "active",
+		});
+
+		const response = await handler(new Request("http://localhost/health/dashboard"));
+		const html = await response.text();
+		expect(html).not.toContain("secret@example.com");
+		expect(html).not.toContain("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+	});
+
+	test("displays correct zero values when no subscribers, facts, or sends exist", async () => {
+		const { handler } = makeDashboardHandler();
+		const response = await handler(new Request("http://localhost/health/dashboard"));
+		const html = await response.text();
+		expect(html).toContain("0 / 200");
+		expect(html).toContain("No sends yet");
+	});
+
+	test("displays last send date when sends exist", async () => {
+		const { handler, db } = makeDashboardHandler();
+		const factId = makeFactRow(db, { text: "Fact" });
+		makeSentFactRow(db, { fact_id: factId, sent_date: "2025-06-15", cycle: 1 });
+
+		const response = await handler(new Request("http://localhost/health/dashboard"));
+		const html = await response.text();
+		expect(html).toContain("2025-06-15");
+	});
+
+	test("includes footer with navigation links", async () => {
+		const { handler } = makeDashboardHandler();
+		const response = await handler(new Request("http://localhost/health/dashboard"));
 		const html = await response.text();
 		expect(html).toContain("site-footer");
 	});

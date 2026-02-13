@@ -105,5 +105,13 @@ function createInMemoryDatabase(): { db: DrizzleDatabase; sqlite: Database } {
 	return { db, sqlite };
 }
 
+function getDatabaseSizeBytes(databasePath: string): number {
+	try {
+		return fs.statSync(databasePath).size;
+	} catch {
+		return 0;
+	}
+}
+
 export type { DrizzleDatabase };
-export { createDatabase, createInMemoryDatabase };
+export { createDatabase, createInMemoryDatabase, getDatabaseSizeBytes };

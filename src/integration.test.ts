@@ -38,7 +38,13 @@ describe("integration: email signup and confirmation flow", () => {
 		if (!subscriber?.token) throw new Error("Expected token");
 		expect(email.sentEmails[0].htmlBody).toContain(subscriber.token);
 
-		const confirmResponse = renderConfirmationPage(db, subscriber.token, MAX_SUBSCRIBERS);
+		const confirmResponse = await renderConfirmationPage(
+			db,
+			subscriber.token,
+			MAX_SUBSCRIBERS,
+			email,
+			BASE_URL,
+		);
 		expect(confirmResponse.status).toBe(200);
 		const confirmHtml = await confirmResponse.text();
 		expect(confirmHtml).toContain("Welcome, Platypus Fan!");
@@ -234,14 +240,14 @@ describe("integration: cap enforcement end-to-end", () => {
 		expect(signupResult1.success).toBe(true);
 		const sub1 = findByEmail(db, "a@example.com");
 		if (!sub1?.token) throw new Error("Expected token");
-		renderConfirmationPage(db, sub1.token, maxCap);
+		await renderConfirmationPage(db, sub1.token, maxCap, email, BASE_URL);
 		expect(findByEmail(db, "a@example.com")?.status).toBe("active");
 
 		const signupResult2 = await signup(db, email, "b@example.com", maxCap, BASE_URL);
 		expect(signupResult2.success).toBe(true);
 		const sub2 = findByEmail(db, "b@example.com");
 		if (!sub2?.token) throw new Error("Expected token");
-		renderConfirmationPage(db, sub2.token, maxCap);
+		await renderConfirmationPage(db, sub2.token, maxCap, email, BASE_URL);
 		expect(findByEmail(db, "b@example.com")?.status).toBe("active");
 
 		expect(getActiveCount(db)).toBe(2);
@@ -259,7 +265,7 @@ describe("integration: cap enforcement end-to-end", () => {
 
 		const sub3 = findByEmail(db, "c@example.com");
 		if (!sub3?.token) throw new Error("Expected token");
-		renderConfirmationPage(db, sub3.token, maxCap);
+		await renderConfirmationPage(db, sub3.token, maxCap, email, BASE_URL);
 		expect(findByEmail(db, "c@example.com")?.status).toBe("active");
 		expect(getActiveCount(db)).toBe(2);
 	});
@@ -281,7 +287,7 @@ describe("integration: cap enforcement end-to-end", () => {
 
 		const sub = findByEmail(db, "a@example.com");
 		if (!sub?.token) throw new Error("Expected token");
-		const confirmResponse = renderConfirmationPage(db, sub.token, maxCap);
+		const confirmResponse = await renderConfirmationPage(db, sub.token, maxCap, email, BASE_URL);
 		const html = await confirmResponse.text();
 		expect(html).toContain("At Capacity");
 
@@ -312,7 +318,13 @@ describe("integration: re-subscribe via website with email", () => {
 		expect(email.sentEmails[0].to).toBe("returning@example.com");
 
 		if (!pending?.token) throw new Error("Expected token");
-		const confirmResponse = renderConfirmationPage(db, pending.token, MAX_SUBSCRIBERS);
+		const confirmResponse = await renderConfirmationPage(
+			db,
+			pending.token,
+			MAX_SUBSCRIBERS,
+			email,
+			BASE_URL,
+		);
 		expect(confirmResponse.status).toBe(200);
 
 		const reactivated = findByEmail(db, "returning@example.com");

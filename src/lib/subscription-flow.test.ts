@@ -88,6 +88,24 @@ describe("signup - email", () => {
 		expect(sub?.unsubscribed_at).toBeNull();
 	});
 
+	test("preserves confirmed_at when re-signing up after unsubscribing so returning subscribers are distinguished from first-time", async () => {
+		const db = makeTestDatabase();
+		const emailProv = makeMockEmailProvider();
+		const confirmedTimestamp = "2024-06-01T12:00:00.000Z";
+		makeSubscriberRow(db, { email: "test@example.com", status: "unsubscribed" });
+		db.update(subscribers)
+			.set({ confirmed_at: confirmedTimestamp, unsubscribed_at: "2024-07-01T00:00:00.000Z" })
+			.where(eq(subscribers.email, "test@example.com"))
+			.run();
+
+		await signup(db, emailProv, "test@example.com", 1000, BASE_URL);
+
+		const sub = findByEmail(db, "test@example.com");
+		expect(sub?.status).toBe("pending");
+		expect(sub?.confirmed_at).toBe(confirmedTimestamp);
+		expect(sub?.unsubscribed_at).toBeNull();
+	});
+
 	test("rejects signup when at capacity for new subscriber", async () => {
 		const db = makeTestDatabase();
 		const emailProv = makeMockEmailProvider();
@@ -137,6 +155,66 @@ describe("signup - email", () => {
 		const result = await signup(db, emailProv, "test@example.com", 1000, BASE_URL);
 		expect(result.success).toBe(true);
 		expect(emailProv.sentEmails).toHaveLength(1);
+	});
+});
+
+describe("signup - List-Unsubscribe headers", () => {
+	test("includes List-Unsubscribe and List-Unsubscribe-Post headers on confirmation email for new subscriber", async () => {
+		const db = makeTestDatabase();
+		const emailProv = makeMockEmailProvider();
+
+		await signup(db, emailProv, "new@example.com", 1000, BASE_URL);
+
+		expect(emailProv.sentEmails).toHaveLength(1);
+		const sent = emailProv.sentEmails[0];
+		expect(sent.headers?.["List-Unsubscribe"]).toBeDefined();
+		expect(sent.headers?.["List-Unsubscribe"]).toContain("/unsubscribe/");
+		expect(sent.headers?.["List-Unsubscribe-Post"]).toBe("List-Unsubscribe=One-Click");
+	});
+
+	test("includes List-Unsubscribe and List-Unsubscribe-Post headers on re-sent confirmation email for pending subscriber", async () => {
+		const db = makeTestDatabase();
+		const emailProv = makeMockEmailProvider();
+		makeSubscriberRow(db, { email: "pending@example.com", status: "pending" });
+
+		await signup(db, emailProv, "pending@example.com", 1000, BASE_URL);
+
+		expect(emailProv.sentEmails).toHaveLength(1);
+		const sent = emailProv.sentEmails[0];
+		expect(sent.headers?.["List-Unsubscribe"]).toBeDefined();
+		expect(sent.headers?.["List-Unsubscribe"]).toContain("/unsubscribe/");
+		expect(sent.headers?.["List-Unsubscribe-Post"]).toBe("List-Unsubscribe=One-Click");
+	});
+
+	test("includes List-Unsubscribe and List-Unsubscribe-Post headers on already-subscribed email for active subscriber", async () => {
+		const db = makeTestDatabase();
+		const emailProv = makeMockEmailProvider();
+		makeSubscriberRow(db, {
+			email: "active@example.com",
+			status: "active",
+			token: "active-token-1234",
+		});
+
+		await signup(db, emailProv, "active@example.com", 1000, BASE_URL);
+
+		expect(emailProv.sentEmails).toHaveLength(1);
+		const sent = emailProv.sentEmails[0];
+		expect(sent.headers?.["List-Unsubscribe"]).toContain("active-token-1234");
+		expect(sent.headers?.["List-Unsubscribe-Post"]).toBe("List-Unsubscribe=One-Click");
+	});
+
+	test("includes List-Unsubscribe and List-Unsubscribe-Post headers on confirmation email for re-subscribing user", async () => {
+		const db = makeTestDatabase();
+		const emailProv = makeMockEmailProvider();
+		makeSubscriberRow(db, { email: "unsub@example.com", status: "unsubscribed" });
+
+		await signup(db, emailProv, "unsub@example.com", 1000, BASE_URL);
+
+		expect(emailProv.sentEmails).toHaveLength(1);
+		const sent = emailProv.sentEmails[0];
+		expect(sent.headers?.["List-Unsubscribe"]).toBeDefined();
+		expect(sent.headers?.["List-Unsubscribe"]).toContain("/unsubscribe/");
+		expect(sent.headers?.["List-Unsubscribe-Post"]).toBe("List-Unsubscribe=One-Click");
 	});
 });
 

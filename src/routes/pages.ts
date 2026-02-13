@@ -1,8 +1,12 @@
 import type { DrizzleDatabase } from "../lib/db";
+import { getDatabaseSizeBytes } from "../lib/db";
+import { unsubscribeHeaders, welcomeEmailHtml, welcomeEmailPlain } from "../lib/email-templates";
 import type { StoredEmail } from "../lib/email/dev";
-import { getFactWithSources } from "../lib/facts";
+import type { EmailProvider } from "../lib/email/types";
+import { getFactStats, getFactWithSources, getLastSend, getMostRecentSentFact } from "../lib/facts";
 import { escapeHtml, isSafeUrl } from "../lib/html-utils";
-import { findByToken, getActiveCount, updateStatus } from "../lib/subscribers";
+import { findByToken, getActiveCount, getSubscriberCounts, updateStatus } from "../lib/subscribers";
+import { formatUptime } from "./health";
 
 function renderFooter(): string {
 	return `<footer class="site-footer">
@@ -107,7 +111,9 @@ function renderSignupPage(db: DrizzleDatabase, maxSubscribers: number): Response
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Daily Platypus Facts</title>
-	<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦆</text></svg>">
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+	<link rel="icon" type="image/x-icon" href="/favicon.ico">
+	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 	<link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -162,7 +168,9 @@ function renderFactPage(db: DrizzleDatabase, factId: number): Response {
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Platypus Fact #${fact.id} - Daily Platypus Facts</title>
-	<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦆</text></svg>">
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+	<link rel="icon" type="image/x-icon" href="/favicon.ico">
+	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 	<link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -173,7 +181,7 @@ function renderFactPage(db: DrizzleDatabase, factId: number): Response {
 		</header>
 
 		<article class="fact-card">
-			${fact.image_path ? `<img src="/${escapeHtml(fact.image_path)}" alt="Illustration for this platypus fact" class="fact-image" />` : ""}
+			${fact.image_path ? `<img src="/${escapeHtml(fact.image_path)}" alt="Illustration for this platypus fact" width="640" height="640" class="fact-image" />` : ""}
 			<p class="fact-text">${escapeHtml(fact.text)}</p>
 
 			<section class="sources">
@@ -198,11 +206,13 @@ function renderFactPage(db: DrizzleDatabase, factId: number): Response {
 	});
 }
 
-function renderConfirmationPage(
+async function renderConfirmationPage(
 	db: DrizzleDatabase,
 	token: string,
 	maxSubscribers: number,
-): Response {
+	emailProvider: EmailProvider,
+	baseUrl: string,
+): Promise<Response> {
 	const subscriber = findByToken(db, token);
 
 	if (!subscriber) {
@@ -235,7 +245,62 @@ function renderConfirmationPage(
 		);
 	}
 
+	const isFirstTime = subscriber.confirmed_at === null;
+
 	updateStatus(db, subscriber.id, "active", { confirmed_at: new Date().toISOString() });
+
+	if (isFirstTime) {
+		try {
+			const recentFact = getMostRecentSentFact(db);
+			const unsubscribeUrl = `${baseUrl}/unsubscribe/${subscriber.token}`;
+
+			let factData: {
+				text: string;
+				sources: Array<{ url: string; title: string | null }>;
+				imageUrl: string | null;
+				factPageUrl: string;
+			} | null = null;
+
+			if (recentFact) {
+				const factWithSources = getFactWithSources(db, recentFact.fact_id);
+				if (factWithSources) {
+					factData = {
+						text: factWithSources.fact.text,
+						sources: factWithSources.sources,
+						imageUrl: factWithSources.fact.image_path
+							? `${baseUrl}/${factWithSources.fact.image_path}`
+							: null,
+						factPageUrl: `${baseUrl}/facts/${recentFact.fact_id}`,
+					};
+				}
+			}
+
+			const welcomeData = { fact: factData, unsubscribeUrl, baseUrl };
+			const subject = factData
+				? "Welcome to Daily Platypus Facts \u2014 Here's Your First Fact"
+				: "Welcome to Daily Platypus Facts!";
+
+			await emailProvider.sendEmail(
+				subscriber.email,
+				subject,
+				welcomeEmailHtml(welcomeData),
+				welcomeEmailPlain(welcomeData),
+				unsubscribeHeaders(unsubscribeUrl),
+			);
+		} catch (error) {
+			console.error(
+				"Failed to send welcome email:",
+				error instanceof Error ? error.message : error,
+			);
+		}
+	}
+
+	if (isFirstTime) {
+		return renderMessagePage(
+			"Welcome, Platypus Fan!",
+			"You're now confirmed! Check your email for your first platypus fact.",
+		);
+	}
 
 	return renderMessagePage(
 		"Welcome, Platypus Fan!",
@@ -250,7 +315,9 @@ function renderMessagePage(heading: string, body: string, status = 200): Respons
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>${escapeHtml(heading)} - Daily Platypus Facts</title>
-	<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦆</text></svg>">
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+	<link rel="icon" type="image/x-icon" href="/favicon.ico">
+	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 	<link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -300,7 +367,9 @@ function renderUnsubscribePage(db: DrizzleDatabase, token: string): Response {
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Unsubscribe - Daily Platypus Facts</title>
-	<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦆</text></svg>">
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+	<link rel="icon" type="image/x-icon" href="/favicon.ico">
+	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 	<link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -362,7 +431,9 @@ function render404Page(): Response {
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Not Found - Daily Platypus Facts</title>
-	<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦆</text></svg>">
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+	<link rel="icon" type="image/x-icon" href="/favicon.ico">
+	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 	<link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -395,7 +466,9 @@ function renderInspirationPage(): Response {
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Inspiration - Daily Platypus Facts</title>
-	<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦆</text></svg>">
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+	<link rel="icon" type="image/x-icon" href="/favicon.ico">
+	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 	<link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -430,7 +503,9 @@ function renderAboutPage(): Response {
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>About - Daily Platypus Facts</title>
-	<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦆</text></svg>">
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+	<link rel="icon" type="image/x-icon" href="/favicon.ico">
+	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 	<link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -480,7 +555,9 @@ function renderDevMessageList(emailMessages: StoredEmail[]): Response {
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Dev Messages - Daily Platypus Facts</title>
-	<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦆</text></svg>">
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+	<link rel="icon" type="image/x-icon" href="/favicon.ico">
+	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 	<link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -523,7 +600,9 @@ function renderDevEmailDetail(email: StoredEmail): Response {
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Email #${email.id} - Dev Messages</title>
-	<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦆</text></svg>">
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+	<link rel="icon" type="image/x-icon" href="/favicon.ico">
+	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 	<link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -558,6 +637,101 @@ function renderDevEmailDetail(email: StoredEmail): Response {
 	});
 }
 
+function renderHealthDashboard(
+	db: DrizzleDatabase,
+	databasePath: string,
+	maxSubscribers: number,
+	startTime: number,
+): Response {
+	const subscriberCounts = getSubscriberCounts(db);
+	const factStats = getFactStats(db);
+	const lastSend = getLastSend(db);
+	const sizeBytes = getDatabaseSizeBytes(databasePath);
+	const uptimeMs = Date.now() - startTime;
+	const sizeMB = (sizeBytes / 1048576).toFixed(2);
+
+	let lastSendHtml: string;
+	if (lastSend) {
+		const today = new Date().toISOString().split("T")[0];
+		const sendDate = new Date(lastSend.date);
+		const todayDate = new Date(today);
+		const diffDays = Math.round((todayDate.getTime() - sendDate.getTime()) / (1000 * 60 * 60 * 24));
+		const daysAgo =
+			diffDays === 0 ? "today" : diffDays === 1 ? "1 day ago" : `${diffDays} days ago`;
+		lastSendHtml = `<dt>Date</dt><dd>${escapeHtml(lastSend.date)} (${daysAgo})</dd>
+			<dt>Fact ID</dt><dd>${lastSend.factId}</dd>`;
+	} else {
+		lastSendHtml = "<dt>Status</dt><dd>No sends yet</dd>";
+	}
+
+	const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Health Dashboard — Daily Platypus Facts</title>
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+	<link rel="icon" type="image/x-icon" href="/favicon.ico">
+	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+	<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+	<main class="container">
+		<header class="hero">
+			<h1><a href="/">Daily Platypus Facts</a></h1>
+			<p class="tagline">Health Dashboard</p>
+		</header>
+
+		<div class="content-card">
+			<h2>Subscribers</h2>
+			<dl class="dashboard-metrics">
+				<dt>Active Platypus Fans</dt><dd>${subscriberCounts.active} / ${maxSubscribers}</dd>
+				<dt>Pending</dt><dd>${subscriberCounts.pending}</dd>
+				<dt>Unsubscribed</dt><dd>${subscriberCounts.unsubscribed}</dd>
+			</dl>
+		</div>
+
+		<div class="content-card">
+			<h2>Facts</h2>
+			<dl class="dashboard-metrics">
+				<dt>Total Facts</dt><dd>${factStats.total}</dd>
+				<dt>Facts with Images</dt><dd>${factStats.withImages}</dd>
+				<dt>Current Cycle</dt><dd>${factStats.currentCycle}</dd>
+				<dt>Facts Remaining in Cycle</dt><dd>${factStats.remainingInCycle}</dd>
+			</dl>
+		</div>
+
+		<div class="content-card">
+			<h2>Last Daily Send</h2>
+			<dl class="dashboard-metrics">
+				${lastSendHtml}
+			</dl>
+		</div>
+
+		<div class="content-card">
+			<h2>Database</h2>
+			<dl class="dashboard-metrics">
+				<dt>File Size</dt><dd>${sizeMB} MB</dd>
+			</dl>
+		</div>
+
+		<div class="content-card">
+			<h2>Uptime</h2>
+			<dl class="dashboard-metrics">
+				<dt>Server Uptime</dt><dd>${formatUptime(uptimeMs)}</dd>
+			</dl>
+		</div>
+	</main>
+	${renderFooter()}
+</body>
+</html>`;
+
+	return new Response(html, {
+		status: 200,
+		headers: { "Content-Type": "text/html; charset=utf-8" },
+	});
+}
+
 export {
 	renderSignupPage,
 	renderFactPage,
@@ -569,4 +743,5 @@ export {
 	renderAboutPage,
 	renderDevMessageList,
 	renderDevEmailDetail,
+	renderHealthDashboard,
 };

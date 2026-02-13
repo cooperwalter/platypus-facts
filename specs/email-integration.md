@@ -35,7 +35,7 @@ No external service or API key is required.
 
 ## Email Templates
 
-Emails are rendered as HTML using template literals (consistent with web page rendering). Each email includes a plain-text fallback body.
+Emails are rendered as HTML using template literals (consistent with web page rendering). Each email includes a plain-text fallback body. All email templates use the platypus mascot image in the header (see `email-mascot.md`), which requires `baseUrl` to be passed through the `emailWrapper()` function.
 
 ### Daily Fact Email
 
@@ -63,6 +63,12 @@ HTML body includes:
 Subject: `You're already a Platypus Fan!`
 
 Sent when an active subscriber re-enters their email on the signup form.
+
+### Welcome Email
+
+Subject: `Welcome to Daily Platypus Facts — Here's Your First Fact`
+
+Sent immediately after a **first-time** subscriber confirms (not sent to returning subscribers who previously unsubscribed and re-signed up). Includes the most recent platypus fact as a "catch-up" so the subscriber gets instant value. See `welcome-email.md` for full details.
 
 ## Unsubscribe Header
 

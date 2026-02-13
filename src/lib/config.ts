@@ -70,7 +70,7 @@ function loadConfig(): Config {
 
 	const databasePath = process.env.DATABASE_PATH ?? "./data/platypus-facts.db";
 
-	const openaiApiKey = process.env.OPENAI_API_KEY ?? null;
+	const openaiApiKey = process.env.OPENAI_API_KEY || null;
 
 	return {
 		nodeEnv,

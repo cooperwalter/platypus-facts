@@ -26,8 +26,8 @@ async function sendConfirmation(
 	await emailProvider.sendEmail(
 		email,
 		"Confirm your Daily Platypus Facts subscription",
-		confirmationEmailHtml({ confirmUrl }),
-		confirmationEmailPlain({ confirmUrl }),
+		confirmationEmailHtml({ confirmUrl, baseUrl }),
+		confirmationEmailPlain({ confirmUrl, baseUrl }),
 		unsubscribeHeaders(unsubUrl),
 	);
 }
@@ -42,7 +42,7 @@ async function sendAlreadySubscribed(
 	await emailProvider.sendEmail(
 		email,
 		"You're already a Platypus Fan!",
-		alreadySubscribedEmailHtml(),
+		alreadySubscribedEmailHtml({ baseUrl }),
 		alreadySubscribedEmailPlain(),
 		unsubscribeHeaders(unsubUrl),
 	);

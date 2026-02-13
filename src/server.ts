@@ -12,6 +12,7 @@ import {
 	renderDevEmailDetail,
 	renderDevMessageList,
 	renderFactPage,
+	renderHealthDashboard,
 	renderInspirationPage,
 	renderSignupPage,
 	renderUnsubscribePage,
@@ -24,6 +25,7 @@ interface RequestHandlerDeps {
 	rateLimiter: RateLimiter;
 	maxSubscribers: number;
 	baseUrl: string;
+	databasePath: string;
 	devEmailProvider: DevEmailProvider | null;
 }
 
@@ -32,17 +34,47 @@ const CONFIRM_ROUTE_PATTERN = /^\/confirm\/([a-f0-9-]{36})$/;
 const UNSUBSCRIBE_ROUTE_PATTERN = /^\/unsubscribe\/([a-f0-9-]{36})$/;
 const DEV_MESSAGE_DETAIL_PATTERN = /^\/dev\/messages\/email-(\d+)$/;
 
+function getCacheControl(ext: string): string {
+	switch (ext) {
+		case ".png":
+		case ".jpg":
+		case ".jpeg":
+		case ".gif":
+		case ".webp":
+		case ".svg":
+		case ".ico":
+			return "public, max-age=604800, immutable";
+		case ".css":
+			return "public, max-age=86400";
+		default:
+			return "public, max-age=3600";
+	}
+}
+
 function createRequestHandler(deps: RequestHandlerDeps): (request: Request) => Promise<Response> {
-	const { db, emailProvider, rateLimiter, maxSubscribers, baseUrl, devEmailProvider } = deps;
+	const {
+		db,
+		emailProvider,
+		rateLimiter,
+		maxSubscribers,
+		baseUrl,
+		databasePath,
+		devEmailProvider,
+	} = deps;
 	const devRoutesEnabled = devEmailProvider !== null;
+	const startTime = Date.now();
 
 	return async function handleRequest(request: Request): Promise<Response> {
 		const url = new URL(request.url);
 		const method = request.method;
 		const pathname = url.pathname;
 
+		if (method === "GET" && pathname === "/health/dashboard") {
+			return renderHealthDashboard(db, databasePath, maxSubscribers, startTime);
+		}
+
 		if (method === "GET" && pathname === "/health") {
-			return handleHealthCheck();
+			return handleHealthCheck(request, db, databasePath, startTime);
 		}
 
 		if (method === "GET" && pathname === "/") {
@@ -92,7 +124,13 @@ function createRequestHandler(deps: RequestHandlerDeps): (request: Request) => P
 		if (method === "GET") {
 			const confirmMatch = pathname.match(CONFIRM_ROUTE_PATTERN);
 			if (confirmMatch) {
-				return renderConfirmationPage(db, confirmMatch[1], maxSubscribers);
+				return await renderConfirmationPage(
+					db,
+					confirmMatch[1],
+					maxSubscribers,
+					emailProvider,
+					baseUrl,
+				);
 			}
 
 			const factsMatch = pathname.match(FACTS_ROUTE_PATTERN);
@@ -110,7 +148,11 @@ function createRequestHandler(deps: RequestHandlerDeps): (request: Request) => P
 			if (publicPath.startsWith(publicDir + path.sep) && !pathname.includes("..")) {
 				const file = Bun.file(publicPath);
 				if (await file.exists()) {
-					return new Response(file);
+					const ext = path.extname(publicPath).toLowerCase();
+					const cacheControl = getCacheControl(ext);
+					return new Response(file, {
+						headers: { "Cache-Control": cacheControl },
+					});
 				}
 			}
 		}
@@ -120,4 +162,4 @@ function createRequestHandler(deps: RequestHandlerDeps): (request: Request) => P
 }
 
 export type { RequestHandlerDeps };
-export { createRequestHandler };
+export { createRequestHandler, getCacheControl };

@@ -19,8 +19,9 @@ A service that sends one platypus fact per day via email to all confirmed Platyp
 2. **Email integration** — Abstracted email provider for sending daily fact emails, confirmation emails, and handling unsubscribes.
 3. **Daily send job** — A scheduled cron job that selects the day's fact and sends it (with its illustration) to all active Platypus Fans via email.
 4. **Fact seed data** — A JSON file in the repo containing all platypus facts with their sources.
-5. **Fact illustrations** — AI-generated minimalist line drawings of a platypus, one per fact, generated at sync time and displayed on fact pages and in daily emails.
+5. **Fact illustrations** — AI-generated minimalist line drawings of a platypus, one per fact, generated at sync time and displayed on fact pages and in daily emails. Optimized for size via a build-time script (see `image-optimization.md`).
 6. **CLI** — Command-line tools for manually triggering the daily send (with a dev-only `--force` flag).
+7. **Health dashboard** — Operational metrics dashboard showing subscriber counts, fact stats, last send date, database size, and uptime (see `health-dashboard.md`).
 
 ## Architecture Diagram
 
@@ -28,7 +29,7 @@ An architecture diagram (`ARCHITECTURE.md` in the repo root) must be maintained 
 
 ## Platypus Emoji
 
-Since there is no platypus emoji in Unicode, the platypus is represented using the combination 🦫+🦆+🥚 wherever emoji are appropriate (README, documentation, commit messages, etc.).
+Since there is no platypus emoji in Unicode, the platypus is represented using the combination 🦫+🦆+🥚 in non-HTML contexts (README, documentation, commit messages). Web pages and email templates use the platypus mascot PNG instead (see `email-mascot.md`).
 
 ## Project Attribution
 

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { getDatabaseSizeBytes } from "./db";
 import { makeTestDatabase } from "./test-utils";
 
 describe("database setup", () => {
@@ -78,7 +79,7 @@ describe("database setup", () => {
 		}).toThrow();
 	});
 
-	test("blocks deleting a fact that is referenced by sent_facts (NO ACTION, not CASCADE)", () => {
+	test("blocks deleting a fact that is referenced by sent_facts (RESTRICT, not CASCADE)", () => {
 		const drizzleDb = makeTestDatabase();
 		const db = drizzleDb.$client;
 		db.prepare("INSERT INTO facts (text) VALUES ('test fact')").run();
@@ -204,5 +205,17 @@ describe("database pragmas", () => {
 		const db = drizzleDb.$client;
 		const result = db.query("PRAGMA busy_timeout").get() as { timeout: number };
 		expect(result.timeout).toBe(5000);
+	});
+});
+
+describe("getDatabaseSizeBytes", () => {
+	test("returns a positive number for an existing file", () => {
+		const size = getDatabaseSizeBytes(import.meta.path);
+		expect(size).toBeGreaterThan(0);
+	});
+
+	test("returns 0 for a nonexistent path", () => {
+		const size = getDatabaseSizeBytes("/tmp/nonexistent-platypus-db-12345.db");
+		expect(size).toBe(0);
 	});
 });

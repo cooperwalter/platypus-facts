@@ -28,7 +28,8 @@ When the user clicks the link:
 2. If status is `pending`:
    - Check the subscriber cap. If the cap has been reached, display a "sorry, we're at capacity" page.
    - Otherwise, update status to `active`, set `confirmed_at`.
-   - Display a confirmation success page.
+   - If this is a **first-time subscriber** (`confirmed_at` was `null` before the update): send a welcome email with the most recent platypus fact (see `welcome-email.md`) and display a confirmation page telling them to check their email.
+   - If this is a **returning subscriber** (`confirmed_at` was not `null` — they previously confirmed, then unsubscribed and re-signed up): skip the welcome email and display the standard confirmation success page.
 3. If status is `active`: Display "You're already confirmed!" page.
 4. If status is `unsubscribed` or token not found: Display an appropriate message.
 
@@ -50,7 +51,7 @@ The only way to re-subscribe after unsubscribing is to visit the website and ent
 
 ## Email Templates
 
-See `email-integration.md` for full email template details (confirmation, daily fact, already subscribed).
+See `email-integration.md` for full email template details (confirmation, daily fact, already subscribed, welcome). See `welcome-email.md` for the welcome email sent on confirmation.
 
 ## Subscriber Cap
 

@@ -2,59 +2,76 @@
 
 ## Status Summary
 
-**All spec items complete.** Brevo is the production email provider. MAX_SUBSCRIBERS defaults to 200.
+**All spec items complete (2026-02-13).** Full audit across all 20 spec files and all source code — zero remaining issues. Core service fully functional and spec-compliant.
 
-- **340 tests passing** across 19 test files with **730 expect() calls**
+- **423 tests passing** across 19 test files with **898 expect() calls**
 - **Type check clean**, **lint clean**
+- **No TODOs, FIXMEs, skipped tests, or placeholder code** in source
 - **28 real platypus facts** sourced and seeded with AI-generated illustrations (31 images in `public/images/facts/`)
-- **Platypus mascot PNG** generated via DALL-E 3 at `public/platypus.png`
-- **Latest tag**: 0.0.57
+- **Platypus mascot PNG** optimized to 74KB at 400x400 (down from 451KB at 1024x1024)
+- **Fact images** optimized to 640x640 (86KB-538KB, down from 243KB-1.3MB)
+- **Favicons** generated from mascot: `favicon.ico`, `favicon-32.png`, `apple-touch-icon.png`
+- **ARCHITECTURE.md** updated with Drizzle ORM, health monitoring, welcome email flow, image optimization, all routes, static assets
+- **Latest tag**: 0.0.69
+- **All 11 render functions** include `renderFooter()` and 3 favicon `<link>` tags
+- **Email templates**: All 4 templates (daily fact, confirmation, already subscribed, welcome) have HTML + plain text, `List-Unsubscribe` + `List-Unsubscribe-Post` headers
+- **CSS micro-interactions**: `prefers-reduced-motion` media query wrapping all transitions
+- **Static cache headers**: `getCacheControl()` with extension normalization via `.toLowerCase()`
+- **Drizzle ORM**: All query modules use Drizzle query builder; only `db.ts` uses raw sqlite (intentional for PRAGMAs/migrations)
+- **CI workflow**: `.github/workflows/ci.yml` runs tests, typecheck, and lint on PRs targeting `main`
 
 ---
 
-## Outstanding Items (Non-Blocking)
+## All Enhancements Complete
 
-- **Drizzle query builder adoption**: Only `src/lib/db.ts` uses raw `sqlite` (for low-level migration/PRAGMA logic that must run before Drizzle). All query modules already use Drizzle query builder. No further migration needed.
+```
+P2 (Email Mascot)         COMPLETE
+P1 (Welcome Email)        COMPLETE
+P4 (Static Cache Headers) COMPLETE
+P3 (Health Dashboard)     COMPLETE
+P5 (Micro-Interactions)   COMPLETE
+P7 (Image Optimization)   COMPLETE
+P6 (Favicon)              COMPLETE
+```
+
+---
+
+## Spec Compliance Audit (Latest)
+
+All 20 spec files audited against source code (2026-02-13) — all fully compliant:
+
+- **overview.md**: Tech stack, components, attribution — all present and correct
+- **data-model.md**: All 5 tables match spec exactly. WAL mode, foreign keys, Drizzle migrate() all working.
+- **subscription-flow.md**: All flows correct. Email validation, subscriber cap, rate limiting, existing subscriber lookup all working. confirmed_at preservation on re-subscribe tested.
+- **fact-cycling.md**: Algorithm correct. All edge cases tested.
+- **seed-data.md**: `sync-facts.ts` correctly syncs, upserts by text match, generates images via DALL-E. Empty OPENAI_API_KEY handled correctly.
+- **fact-images.md**: AI generation at sync time, graceful degradation when no image. Empty API key normalized to null.
+- **email-integration.md**: Provider abstraction, Brevo implementation, dev provider with SQLite persistence. All 4 templates with HTML + plain text + headers. List-Unsubscribe headers tested on all email paths (confirmation, already-subscribed, daily, welcome).
+- **daily-job.md**: Idempotency, active subscribers only, individual failure handling, `--force` rejected in production (now tested via subprocess).
+- **cli.md**: All commands configured in package.json.
+- **web-pages.md**: All pages implemented with footer, background pattern, desktop top padding.
+- **design-decisions.md**: All decisions reflected in implementation.
+- **cost-estimate.md**: Informational spec, no implementation required.
+- **email-mascot.md**: Mascot PNG in email headers, emoji removed from HTML. `emailWrapper()` accepts `baseUrl`. All 4 templates tested for emoji absence.
+- **health-dashboard.md**: `/health` JSON + `/health/dashboard` HTML. All metrics implemented.
+- **static-cache-headers.md**: `getCacheControl()` with extension normalization.
+- **favicon.md**: All favicon files exist. All render functions have favicon `<link>` tags.
+- **micro-interactions.md**: All transitions in `prefers-reduced-motion` media query.
+- **image-optimization.md**: `optimize-images.ts` with sharp + png-to-ico. Idempotent.
+- **infrastructure.md**: Kamal deploys, Cloudflare Tunnel, Docker arm64, `.env.development`, CI workflow for PRs.
+- **welcome-email.md**: Welcome email with most recent fact for first-time subscribers only. Returning subscribers skip welcome email and see different confirmation message. All 19 test scenarios covered.
+
+---
+
+## Bugs Fixed (2026-02-13)
+
+- **Welcome email plain text had duplicate opening line**: `welcomeEmailPlain()` repeated "Welcome to Daily Platypus Facts!" twice — fixed to show it once as title, then body text without redundant repeat.
+- **OPENAI_API_KEY empty string not normalized**: Config used `??` (nullish coalescing) which passes through empty strings — changed to `||` (logical OR) so empty strings become `null`. Same fix in `sync-facts.ts` CLI entry point and warning condition.
+- **db.test.ts comment inaccuracy**: Test description said "NO ACTION" but schema uses `onDelete: "restrict"` — corrected to "RESTRICT".
+
+---
+
+## Outstanding Items (Non-Blocking, Not Spec-Required)
+
 - **Manual Brevo testing**: Test with real Brevo API before production launch
 - **Database backup strategy**: Post-launch, not spec-required
-- **Mascot image optimization**: `public/platypus.png` is 445 KB (1024x1024 source displayed at 200x200 CSS). Could be resized/compressed to ~50-100 KB for faster loading. Non-critical.
-
----
-
-## Spec Compliance Summary
-
-| Area | Status | Notes |
-|------|--------|-------|
-| Platypus mascot image | ✅ Complete | `public/platypus.png` generated, displayed as hero image on home page |
-| Footer text | ✅ Complete | "Made with ❤️ by Cooper Walter" matches spec |
-| Web page emoji removal | ✅ Complete | All 20 occurrences of 🦫🦆🥚 removed from web pages |
-| Email emoji preserved | ✅ Complete | Email templates still use 🦫🦆🥚 per spec |
-| Email provider (Brevo) | ✅ Complete | Brevo wired in, sender name included, Postmark removed |
-| Subscription flow | ✅ Complete | Cap checked at signup + confirmation, List-Unsubscribe headers on all emails |
-| Email templates | ✅ Complete | All 3 templates, correct subjects, plain-text fallbacks, source links, fact page link |
-| Fact cycling | ✅ Complete | New facts prioritized, re-randomized per cycle |
-| Daily send | ✅ Complete | Idempotent, --force dev-only, graceful failure handling |
-| Sync + images | ✅ Complete | Upsert by text, image generation, auth failure handling |
-| Drizzle schema | ✅ Complete | All 5 tables match spec exactly |
-| Signup page | ✅ Complete | Warm note, fan count, form, capacity handling, mascot image |
-| Fact page | ✅ Complete | Illustration, sources, branding, signup link |
-| /inspiration page | ✅ Complete | Life is Strange: Double Exposure origin story |
-| /about page | ✅ Complete | Project description, tech stack, Brevo mention |
-| MAX_SUBSCRIBERS default | ✅ Complete | Default 200, matches spec |
-| DAILY_SEND_TIME_UTC default | ✅ Complete | Default 13:00, matches spec |
-| Confirmation page | ✅ Complete | All states handled, cap check |
-| Unsubscribe pages | ✅ Complete | GET confirmation + POST processing |
-| Health endpoint | ✅ Complete | GET /health returns 200 |
-| Dev message viewer | ✅ Complete | /dev/messages list + detail |
-| Rate limiting | ✅ Complete | 5 per IP per hour on subscribe |
-| Infrastructure/deploy | ✅ Complete | Brevo in deploy config, GitHub Actions updated |
-| Background pattern | ✅ Complete | SVG repeat with low opacity |
-| Desktop top padding | ✅ Complete | 6rem padding on ≥768px |
-| CRON_SETUP.md | ✅ Complete | Cron documentation exists |
-| Dockerfile | ✅ Complete | Multi-stage, oven/bun, arm64 handled by CI |
-| Life is Strange attribution | ✅ Complete | README, signup page, welcome email |
-| ARCHITECTURE.md diagram | ✅ Complete | Up-to-date |
-| Fact sources | ✅ Complete | All 28 facts have sources in data/facts.json |
-| Responsive design | ✅ Complete | Mobile breakpoints implemented |
-| .dockerignore | ✅ Complete | Exists |
-| CI/CD pipeline | ✅ Complete | GitHub Actions workflow |

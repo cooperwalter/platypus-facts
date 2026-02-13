@@ -5,6 +5,7 @@ import {
 	findByToken,
 	getActiveCount,
 	getActiveSubscribers,
+	getSubscriberCounts,
 	updateStatus,
 } from "./subscribers";
 import { makeTestDatabase } from "./test-utils";
@@ -180,6 +181,30 @@ describe("subscribers", () => {
 			expect(activeSubscribers).toHaveLength(1);
 			expect(activeSubscribers[0].email).toBe("test@example.com");
 			expect(activeSubscribers[0].token).toBeTruthy();
+		});
+	});
+
+	describe("getSubscriberCounts", () => {
+		test("returns zero counts when no subscribers exist", () => {
+			const db = makeTestDatabase();
+			const counts = getSubscriberCounts(db);
+			expect(counts).toEqual({ active: 0, pending: 0, unsubscribed: 0 });
+		});
+
+		test("returns correct counts with mixed subscriber statuses", () => {
+			const db = makeTestDatabase();
+			const sub1 = createSubscriber(db, "active1@example.com");
+			updateStatus(db, sub1.id, "active");
+			const sub2 = createSubscriber(db, "active2@example.com");
+			updateStatus(db, sub2.id, "active");
+			createSubscriber(db, "pending@example.com");
+			const sub4 = createSubscriber(db, "unsub@example.com");
+			updateStatus(db, sub4.id, "unsubscribed");
+
+			const counts = getSubscriberCounts(db);
+			expect(counts.active).toBe(2);
+			expect(counts.pending).toBe(1);
+			expect(counts.unsubscribed).toBe(1);
 		});
 	});
 });

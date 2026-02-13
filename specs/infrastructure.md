@@ -32,6 +32,17 @@ Deployment uses [Kamal](https://kamal-deploy.org/) for Docker-based zero-downtim
    3. Run `kamal deploy` which pulls the image on the Pi, starts the new container, health-checks it, and cuts over traffic
 2. The Docker image includes the application code, dependencies, and the fact sync script (which runs on container startup).
 
+### CI on Pull Requests
+
+A separate GitHub Actions workflow runs on pull requests targeting `main`. It runs the same checks as the deploy workflow's test job (tests, type check, lint) to catch issues before merging. The PR workflow does **not** build a Docker image or deploy — it only validates code quality.
+
+This is defined in a separate workflow file (`.github/workflows/ci.yml`) rather than adding PR triggers to the deploy workflow, to keep the deploy workflow's concurrency and job structure simple. The CI workflow:
+
+- Triggers on `pull_request` events targeting `main`
+- Runs the same steps: `bun install --frozen-lockfile`, `bun test`, `bunx tsc --noEmit`, `bunx biome check .`
+- Uses the same runner (`ubuntu-latest`) and Bun setup as the deploy workflow
+- Does not require any secrets or environment variables (tests run with dev defaults)
+
 ### Dockerfile
 
 A multi-stage Dockerfile:
@@ -54,7 +65,7 @@ The SQLite database file and generated fact images must persist across deploys. 
 
 ### Health Check
 
-The application exposes a `GET /health` endpoint that returns 200 when the server is ready. Kamal checks this before cutting traffic to the new container.
+The application exposes a `GET /health` endpoint that returns 200 when the server is ready. Kamal checks this before cutting traffic to the new container. The health endpoint also supports `?detail=true` for detailed metrics, and a separate `/health/dashboard` serves an HTML operational dashboard (see `health-dashboard.md`).
 
 ### Rollback
 
