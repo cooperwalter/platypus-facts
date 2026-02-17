@@ -23,6 +23,7 @@ function renderSignupPage(db: DrizzleDatabase, maxSubscribers: number): Response
 	const atCapacity = activeCount >= maxSubscribers;
 	const formattedCount = activeCount.toLocaleString();
 	const formattedMax = maxSubscribers.toLocaleString();
+	const percentage = Math.min(Math.round((activeCount / maxSubscribers) * 100), 100);
 
 	const formSection = atCapacity
 		? `<div class="capacity-notice">
@@ -119,17 +120,21 @@ function renderSignupPage(db: DrizzleDatabase, maxSubscribers: number): Response
 <body>
 	<main class="container">
 		<header class="hero">
-			<img src="/platypus.png" alt="Platypus mascot" class="mascot-image" width="200" height="200" />
+			<img src="/platypus.png" alt="Platypus mascot" class="mascot-image" width="260" height="260" />
 			<h1>Daily Platypus Facts</h1>
 			<p class="tagline">Inspired by <em>Life is Strange: Double Exposure</em></p>
 		</header>
 
 		<div class="fan-count" aria-label="${formattedCount} of ${formattedMax} Platypus Fans">
 			<span class="count">${formattedCount}</span> / <span class="max">${formattedMax}</span> Platypus Fans
+			<div class="fan-progress" role="progressbar" aria-valuenow="${activeCount}" aria-valuemin="0" aria-valuemax="${maxSubscribers}">
+				<div class="fan-progress-bar" style="width: ${percentage}%"></div>
+			</div>
 			<p class="cap-note">Since each fact is sent with love (and a small email cost), we can only support ${formattedMax} Platypus Fans right now.</p>
 		</div>
 
 		<section class="signup-section">
+			<h2 class="signup-heading">Join the Colony</h2>
 			<p class="description">Get one fascinating platypus fact delivered every day via email.</p>
 			${formSection}
 		</section>
